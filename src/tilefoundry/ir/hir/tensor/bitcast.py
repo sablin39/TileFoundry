@@ -13,7 +13,6 @@ from tilefoundry.evaluator.value import TensorValue
 from tilefoundry.ir.core import Call, Op
 from tilefoundry.ir.core.param_def import ParamDef
 from tilefoundry.ir.core.register import register_op
-from tilefoundry.ir.hir.sharding.reshard import _plain
 from tilefoundry.ir.pattern import is_ranked_tensor
 from tilefoundry.ir.types import (
     ComposedLayout,
@@ -25,15 +24,16 @@ from tilefoundry.ir.types import (
     TensorType,
 )
 from tilefoundry.ir.types.int_tuple import flatten
-from tilefoundry.ir.types.layout import apply, get, rank, resolve_layout
+from tilefoundry.ir.types.layout import apply, resolve_layout
 from tilefoundry.ir.types.layout_correspondence import layout_correspondence
+from tilefoundry.ir.types.mesh import levels, starts
 from tilefoundry.ir.types.shard_layout import (
-    _positions,
     layout_axis_to_tensor_axis,
     local_layout_and_offset,
     shard_layout_of,
     split_target_axes,
 )
+from tilefoundry.ir.types.stride import compact_col_major, crd2idx, idx2crd
 from tilefoundry.ir.types.utils import is_literal_shape, participant_layout
 from tilefoundry.visitor_registry import register_typeinfer
 from tilefoundry.visitor_registry.access_relation import (
@@ -53,27 +53,40 @@ class Bitcast(Op):
     layout = ParamDef(kind="attribute", annotation=LayoutBase)
 
 
-def _addresses(layout, count: int, logical_shape: tuple):
-    layout = resolve_layout(layout, logical_shape)
-    """Enumerate each unit's local addresses using the shared shard definition.
+def _address_points(layout, count: int, logical_shape: tuple):
+    """Yield logical index, physical unit ids, full address, and local address.
 
-    Shard ownership uses the layout's factored domain, independently of its
-    grouping into logical tensor axes. Whole addresses identify colex elements.
+    Both byte reinterpretation and storage aliasing read the same factored
+    shard domain; their reducers decide whether repeated locations are legal.
     """
-    if not isinstance(layout, ShardLayout):
-        return tuple(apply(layout, coord) for coord in range(count))
-    layout = participant_layout(layout)
-    whole = {apply(layout.layout, coord): coord for coord in range(count)}
+    layout = resolve_layout(layout, logical_shape)
+    shard = shard_layout_of(layout)
+    base = shard.layout if shard is not None else layout
+    whole = {}
+    corresponding = layout_correspondence(base.shape, logical_shape)
+    logical_layout = resolve_layout(None, logical_shape)
+    steps = compact_col_major(corresponding.extents)
+    for coordinate in range(count):
+        digits = corresponding.digits(apply(logical_layout, coordinate))
+        mode_index = crd2idx(digits, corresponding.extents, steps)
+        address = apply(base, mode_index)
+        if shard is None:
+            yield coordinate, (), address, address
+        else:
+            whole[address] = coordinate
+    if shard is None:
+        return
+    shift = layout.offset if isinstance(layout, ComposedLayout) else 0
+    layout = shard
     if len(whole) != count:
         raise ValueError(f"rmem layout address function is not injective: {layout!r}")
-    stated = layout.mesh.layout
-    if isinstance(stated, ComposedLayout):
-        stated = stated.outer
-    levels = tuple(get(stated, index) for index in range(rank(stated)))
-    addresses = [None] * count
-    for coordinates in product(*(range(prod(flatten(level.shape))) for level in levels)):
-        ids = tuple(apply(level, coord) for level, coord in zip(levels, coordinates, strict=True))
-        unit = tuple(_positions(layout, ids).values())
+    arrangements = levels(layout.mesh)
+    for coordinates in product(*(range(prod(flatten(level.shape))) for level in arrangements)):
+        ids = tuple(apply(level, coord) for level, coord in zip(arrangements, coordinates, strict=True))
+        unit = tuple(sorted(
+            (topology.name, start + index)
+            for topology, start, index in zip(layout.mesh.topologies, starts(layout.mesh), ids, strict=True)
+        ))
         local, offset = local_layout_and_offset(layout, tuple(layout.layout.shape), ids)
         for coord in range(prod(local.shape)):
             held = apply(local, coord)
@@ -82,26 +95,23 @@ def _addresses(layout, count: int, logical_shape: tuple):
                 raise ValueError(
                     f"local shard addresses extend outside the rmem layout: {layout!r}"
                 )
-            if addresses[logical] is not None:
-                raise ValueError(f"local shards overlap in rmem layout: {layout!r}")
-            addresses[logical] = (unit, held)
+            yield logical, unit, shift + offset + held, shift + held
+
+
+def _addresses(layout, count: int, logical_shape: tuple):
+    """Require one unique address per logical element for a Bitcast."""
+    layout = resolve_layout(layout, logical_shape)
+    if not isinstance(layout, ShardLayout):
+        return tuple(point[2] for point in _address_points(layout, count, logical_shape))
+    layout = participant_layout(layout)
+    addresses = [None] * count
+    for logical, unit, _full, held in _address_points(layout, count, logical_shape):
+        if addresses[logical] is not None:
+            raise ValueError(f"local shards overlap in rmem layout: {layout!r}")
+        addresses[logical] = (unit, held)
     if any(address is None for address in addresses):
         raise ValueError(f"local shards do not cover the rmem layout: {layout!r}")
-    corresponding = layout_correspondence(layout.layout.shape, logical_shape)
-    ordered = []
-    for coordinate in range(count):
-        linear = 0
-        for digit, extent in zip(
-            _coordinates(coordinate, logical_shape), logical_shape, strict=True
-        ):
-            linear = linear * extent + digit
-        mode_digits = corresponding.digits(linear)
-        mode_index, step = 0, 1
-        for digit, extent in zip(mode_digits, corresponding.extents, strict=True):
-            mode_index += digit * step
-            step *= extent
-        ordered.append(addresses[mode_index])
-    return tuple(ordered)
+    return tuple(addresses)
 
 
 @cache
@@ -122,12 +132,12 @@ def _address_mapping(
     return tuple(source_at[address] for address in result_at)
 
 
-def _coordinates(coord: int, shape: tuple[int, ...]) -> tuple[int, ...]:
-    digits = []
-    for extent in shape:
-        digits.append(coord % extent)
-        coord //= extent
-    return tuple(digits)
+def _stated_strides(layout) -> bool:
+    if isinstance(layout, Layout):
+        return layout.strides is not None
+    if isinstance(layout, ComposedLayout):
+        return _stated_strides(layout.outer) and _stated_strides(layout.inner)
+    return True
 
 
 @register_typeinfer(Bitcast)
@@ -183,7 +193,7 @@ def _(call: Call, ctx) -> TensorType:
             held = held.layout
         if not isinstance(held, (Layout, ComposedLayout)) or shard_layout_of(held) is not None:
             ctx.error(call, f"{end} layout must be plain (without ShardLayout): {held!r}")
-        if not _plain(held):
+        if not _stated_strides(held):
             ctx.error(call, f"{end} layout must have strides stated in every Layout component")
         if not is_literal_shape(flatten(held.shape)):
             ctx.error(call, f"{end} layout shape must be literal")
@@ -229,7 +239,7 @@ def _quasi_affine_equations(coordinates: tuple, result_shape: tuple) -> list[str
             for axis, base in enumerate(origin)
         )
         for coord, source in enumerate(coordinates)
-        for digits in (_coordinates(coord, result_shape),)
+        for digits in (idx2crd(coord, result_shape, compact_col_major(result_shape)),)
     ):
         return None
     return [
@@ -250,7 +260,7 @@ def _address_relation(source_layout, result_layout, source_shape: tuple, result_
     )
     domain = ", ".join(f"d{axis}" for axis in range(len(result_shape)))
     image = ", ".join(f"s{axis}" for axis in range(len(source_shape)))
-    coordinates = tuple(_coordinates(coord, source_shape) for coord in pairs)
+    coordinates = tuple(idx2crd(coord, source_shape, compact_col_major(source_shape)) for coord in pairs)
     if coordinates:
         origin = coordinates[0]
         steps = []
@@ -269,7 +279,7 @@ def _address_relation(source_layout, result_layout, source_shape: tuple, result_
                 for axis, base in enumerate(origin)
             )
             for coord, source in enumerate(coordinates)
-            for digits in (_coordinates(coord, result_shape),)
+            for digits in (idx2crd(coord, result_shape, compact_col_major(result_shape)),)
         ):
             equations = [
                 f"s{axis} = {base}"
@@ -289,10 +299,10 @@ def _address_relation(source_layout, result_layout, source_shape: tuple, result_
     points = []
     for coord, source_coord in enumerate(pairs):
         constraints = [
-            *(f"d{axis} = {value}" for axis, value in enumerate(_coordinates(coord, result_shape))),
+            *(f"d{axis} = {value}" for axis, value in enumerate(idx2crd(coord, result_shape, compact_col_major(result_shape)))),
             *(
                 f"s{axis} = {value}"
-                for axis, value in enumerate(_coordinates(source_coord, source_shape))
+                for axis, value in enumerate(idx2crd(source_coord, source_shape, compact_col_major(source_shape)))
             ),
         ]
         points.append(f"[{domain}] -> [{image}] : " + (" and ".join(constraints) or "true"))
@@ -318,10 +328,10 @@ def _eval_bitcast(ctx):
     indices = [0] * len(pairs)
     for coord, source_coord in enumerate(pairs):
         result_index = source_index = 0
-        for digit, extent in zip(_coordinates(coord, result.shape), result.shape, strict=True):
+        for digit, extent in zip(idx2crd(coord, result.shape, compact_col_major(result.shape)), result.shape, strict=True):
             result_index = result_index * extent + digit
         for digit, extent in zip(
-            _coordinates(source_coord, source.type.shape), source.type.shape, strict=True
+            idx2crd(source_coord, source.type.shape, compact_col_major(source.type.shape)), source.type.shape, strict=True
         ):
             source_index = source_index * extent + digit
         indices[result_index] = source_index

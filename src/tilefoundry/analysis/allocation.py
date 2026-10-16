@@ -40,6 +40,7 @@ from tilefoundry.visitor_registry.access_relation import (
     identity_access,
     leaf_span,
     leaves_of,
+    relations_of,
 )
 from tilefoundry.visitor_registry.buffer_alias import aliased_operand
 from tilefoundry.visitor_registry.call_frame import ValuationVisitor
@@ -51,6 +52,7 @@ from .access import (
     SSAValue,
     aligned_source,
     apply_source,
+    buffer_alias,
     eliminate_parameters,
     forwarded_leaves,
     referenced_values,
@@ -140,16 +142,52 @@ def root(value: AllocationValue, by_value, *, storage_path=False) -> AllocationV
         value = by_value[edge.target]
 
 
+def address_alias(value, by_value, *, alias=None, precisions=None):
+    """Compose accepted address links without merging SSA values or lifetimes."""
+    structural = alias is not None
+    alias = alias or BufferAlias(value.value, identity_of(value), AliasKind.FORWARD)
+    seen = set()
+    while alias.target in by_value:
+        current = by_value[alias.target]
+        edge = _edge(current, by_value)
+        if edge is None or (structural and edge.kind not in (AliasKind.VIEW, AliasKind.FORWARD)):
+            return alias
+        if precisions is not None:
+            precision = precisions.get(current.value, AnalysisPrecision.UNKNOWN)
+            if precision is not AnalysisPrecision.EXACT:
+                raise AnalysisError(f"non-EXACT address for {current.lifetime.binding}: {edge.relation.relation}")
+        if current in seen:
+            raise AnalysisError("allocation: storage links contain a cycle")
+        seen.add(current)
+        held = local_type_of(leaves_of(current.value.expr.type)[current.value.index])
+        values = {**alias.relation.values, **edge.relation.values}
+        relation = apply_source(alias.relation.relation, edge, len(held.shape), 0, values)
+        alias = replace(
+            alias, target=edge.target, relation=AccessRelation(relation, values),
+            writes=alias.writes or edge.writes or edge.kind is AliasKind.INSERT_SLICE,
+        )
+    return alias
+
+
 @dataclass(frozen=True)
 class AllocationSummary(IRMetadata):
     """Definition facts interpreted at a leaf call, never an execution context."""
 
     values: tuple[AllocationValue, ...]
     windows: tuple[ValueLifetime, ...]
-    return_reuse: tuple[tuple[BufferAlias, ...], ...] = ()
+    in_place: tuple[tuple[int, BufferAlias], ...] = ()
     instances: Footprint | None = None
     regions: tuple[RegionInterval, ...] = ()
+    views: dict[SSAValue, BufferAlias] = field(default_factory=dict)
+    view_precisions: dict[SSAValue, AnalysisPrecision] = field(default_factory=dict)
     requires: ClassVar[tuple[type, ...]] = (BindingValuation, TimingValuation, LoopNestValuation)
+
+    def executable_values(self):
+        return {value.value: replace(value, aliases=tuple(
+            self.views.get(value.value, alias)
+            if value.value in self.views and alias.kind is self.views[value.value].kind else alias
+            for alias in value.aliases
+        )) for value in self.values}
 
     def resolve(self, ctx):
         by_value = {value.value: value for value in self.values}
@@ -198,6 +236,8 @@ class AllocationResult:
 class AllocationModel(AnalyzeContext):
     """One definition's collection; imported values are read-only templates."""
 
+    address_decisions: list[tuple[SSAValue, BufferAlias, SSAValue]] = field(default_factory=list)
+
     liveness: Liveness
     quantities: dict[SSAValue, tuple[str, int]]
     persistent: frozenset[SSAValue]
@@ -207,9 +247,6 @@ class AllocationModel(AnalyzeContext):
     locations: dict[int, AnalyzeContext] = field(default_factory=dict)
     instance_groups: list = field(default_factory=list)
     regions: list[RegionInterval] = field(default_factory=list)
-    return_proofs: dict[SSAValue, list[tuple[BufferAlias, frozenset[int]]]] = field(
-        default_factory=dict
-    )
 
     def storage_actual(self, formal, index=0):
         argument = next(argument for param, argument in self.bindings if param is formal)
@@ -430,7 +467,7 @@ def _landing(model, holder, alias, *, window=False):
         _visible_at(model, value, representative) for value in published.values.values()
     ):
         return None
-    return representative, BufferAlias(alias.target, published, alias.kind)
+    return representative, replace(alias, relation=published)
 
 
 def _in_root(relation, positioned, scope):
@@ -445,21 +482,24 @@ def _in_root(relation, positioned, scope):
 
 
 def _mapped_pointwise(model, left, right, start, landing):
-    """Only pre-covered mapped windows may borrow a callee return proof."""
+    """Only capability-covered mapped windows may borrow an in-place proof."""
     touching = {
-        id(window)
+        window
         for member in right
         for window in model.occupancy(member)
         if window is not member.lifetime and window.last_used_at == start
     }
     covered, proved = set(), set()
     for output in left:
-        candidates = model.return_proofs.get(output.value, ())
-        if not candidates:
+        if not isinstance(output.value.expr, Call):
             continue
         context = model.locations[id(output.value.expr)]
+        if context.callee is None:
+            continue
         written = _coordinates(model, output, context.current, override=landing)
-        for actual, windows in candidates:
+        for key, actual, windows in in_place_operands(output.value.expr, context):
+            if key != output.value:
+                continue
             member = model.by_value.get(actual.target)
             read = None if member is None else _coordinates(model, member, context.current)
             if read is None or written is None or read[0] is not written[0]:
@@ -571,7 +611,11 @@ def tie_analysis(model):
     local = {item.value for item in model.liveness.intervals}
     for holder, alias, loop in sorted(
         model.candidates,
-        key=lambda item: (item[1].kind, model.by_value[item[0]].lifetime.defined_at),
+        key=lambda item: (
+            item[1].kind not in (AliasKind.INSERT_SLICE, AliasKind.FORWARD),
+            item[1].kind,
+            model.by_value[item[0]].lifetime.defined_at,
+        ),
     ):
         value = model.by_value[holder]
         target = model.by_value.get(alias.target)
@@ -585,9 +629,15 @@ def tie_analysis(model):
             continue
         left = model.members(a)
         right = model.members(b)
-        if model.is_persistent(b) or any(
+        semantic = alias.kind in (AliasKind.INSERT_SLICE, AliasKind.FORWARD)
+        if not semantic and (model.is_persistent(b) or any(
             any(item.value.expr is param for param in model.frame.function.params)
             for item in right
+        )):
+            continue
+        if (alias.kind is AliasKind.INSERT_SLICE or alias.writes) and any(
+            not use.synthetic and use.at > value.lifetime.defined_at
+            for item in right for use in use_events.get(item.value, ())
         ):
             continue
         if a.lifetime.memory_level != b.lifetime.memory_level or model.size(a) > model.size(b):
@@ -651,21 +701,22 @@ def tie_analysis(model):
                 for window in model.occupancy(item)
                 if phi_event < window.defined_at < backedge
             )
-        if not window and end > start:
+        if not window and not semantic and end > start:
             continue
         landed = _landing(model, value, alias, window=window)
         physical = landed if not window or landed is None else _landing(model, value, alias)
         if physical is None or landed is None:
             continue
         new_root, edge = physical
-        if alias.kind in (AliasKind.IN_PLACE, AliasKind.RETURN_REUSE):
+        if alias.kind is AliasKind.IN_PLACE:
             scope = model.locations[id(new_root.value.expr)].current
             positioned = _coordinates(model, new_root, scope, override=physical)
             if positioned is None or not is_zero_offset(positioned[1]):
                 continue
-        if end == start and not _pointwise(model, left, right, start, physical, use_events):
+        if not semantic and end == start and not _pointwise(model, left, right, start, physical, use_events):
             continue
         new_root.aliases += (edge,)
+        model.address_decisions.append((holder, alias, new_root.value))
         if value is not new_root and alias not in value.aliases:
             value.aliases += (alias,)
         if window and landed[0] is not new_root:
@@ -684,17 +735,23 @@ def tie_analysis(model):
 
 def published_aliases(model):
     result = {}
-    kinds = (AliasKind.INSERT_SLICE, AliasKind.CARRY_INIT, AliasKind.CARRY_YIELD)
+    kinds = (AliasKind.INSERT_SLICE, AliasKind.CARRY_INIT, AliasKind.CARRY_YIELD, AliasKind.FORWARD)
     holders = {(holder, alias.kind) for holder, alias, _loop in model.candidates}
     for value in model.by_value.values():
         if id(value.value.expr) not in model.locations:
             continue
         for kind in kinds:
-            if (value.value, kind) not in holders:
+            if kind is AliasKind.FORWARD:
+                if not isinstance(value.value.expr, Call) or model.locations[id(value.value.expr)].callee is None:
+                    continue
+            elif (value.value, kind) not in holders:
                 continue
             alias = next((a for a in value.aliases if a.kind is kind), None)
             if alias is not None:
-                result[value.value] = alias
+                result[value.value] = (
+                    address_alias(value, model.by_value, alias=alias)
+                    if kind in (AliasKind.INSERT_SLICE, AliasKind.FORWARD) else alias
+                )
                 break
     for holder, alias, _loop in model.candidates:
         if alias.kind is not AliasKind.WINDOW:
@@ -1018,6 +1075,33 @@ def operand_scope(node: Call, ctx: AllocationModel) -> IterationScope:
     )
 
 
+def in_place_operands(node, ctx):
+    """Exact zero-offset capabilities, before caller lifetime and placement checks."""
+    if ctx.callee is None:
+        scope = _proof_scope(node, ctx)
+        if _insert_accesses(node, scope) is None:
+            for operand, relation in operand_to_result_relation(node, scope, None):
+                if is_zero_offset(relation):
+                    yield SSAValue(node), BufferAlias(
+                        operand, _unprefix(relation, scope), AliasKind.IN_PLACE
+                    ), frozenset()
+        return
+    template = get_metadata(ctx.callee.function, AllocationSummary)
+    local = {value.value: value for value in template.values}
+    resolved = template.resolve(ctx) if template.in_place else None
+    for index, capability in template.in_place:
+        actual, precision = ctx.project(capability, actual_of=ctx.storage_actual)
+        if precision is not AnalysisPrecision.EXACT or not is_zero_offset(actual.relation.relation):
+            continue
+        formal = local[capability.target]
+        windows = frozenset(
+            mapped for original, mapped in zip(template.windows, resolved.windows, strict=True)
+            if (member := local.get(original.value)) is not None
+            and root(member, local) is root(formal, local)
+        )
+        yield SSAValue(node, index), actual, windows
+
+
 class AllocationConstraintVisitor(ValuationVisitor[Storage]):
     """Collect native values and interpret called templates at leaf Calls."""
 
@@ -1160,31 +1244,25 @@ class AllocationConstraintVisitor(ValuationVisitor[Storage]):
             return None
         callee = self.callee_frame(node, ctx.frame) if isinstance(node, Call) else None
         if callee is not None:
-            return self.call_storage(node, callee, ctx)
+            result = self.call_storage(node, callee, ctx)
+            self.in_place(node, ctx)
+            return result
         source = ctx.current.sources["narrow"].get(SSAValue(node))
         if source is not None and source.target != SSAValue(node):
             return self.allocate(node, ctx)
         result = self.allocate(node, ctx)
         if not isinstance(node, Call) or not isinstance(result, AllocationValue):
             return result
-        proof_scope = _proof_scope(node, ctx)
-        insert = _insert_accesses(node, proof_scope)
+        if isinstance(node.target, InsertSlice):
+            destination = ctx.by_value.get(SSAValue(node.args[0]))
+            if destination is not None:
+                ctx.candidates.append((result.value, BufferAlias(
+                    destination.value, identity_of(result), AliasKind.INSERT_SLICE
+                ), None))
         local_scope = operand_scope(node, ctx)
         local_insert = _insert_accesses(node, local_scope)
         for operand, relation in operand_to_result_relation(node, local_scope, local_insert):
-            if insert is not None and local_insert is not None:
-                if operand == local_insert[0].target and is_zero_offset(relation):
-                    destination = ctx.by_value.get(SSAValue(node.args[0]))
-                    if destination is not None:
-                        ctx.candidates.append(
-                            (
-                                result.value,
-                                BufferAlias(
-                                    destination.value, identity_of(result), AliasKind.INSERT_SLICE
-                                ),
-                                None,
-                            )
-                        )
+            if local_insert is not None:
                 if operand == local_insert[1].target:
                     update = ctx.by_value.get(SSAValue(node.args[1]))
                     if update is not None:
@@ -1197,19 +1275,16 @@ class AllocationConstraintVisitor(ValuationVisitor[Storage]):
                                 None,
                             )
                         )
-        for operand, relation in operand_to_result_relation(node, proof_scope, insert):
-            if not is_zero_offset(relation) or insert is not None:
-                continue
-            target = ctx.by_value.get(operand)
-            if target is not None and not target.lifetime.persistent:
-                ctx.candidates.append(
-                    (
-                        result.value,
-                        BufferAlias(operand, _unprefix(relation, ctx.current), AliasKind.IN_PLACE),
-                        None,
-                    )
-                )
+        self.in_place(node, ctx)
         return result
+
+    def in_place(self, node, ctx):
+        for key, operand, _windows in in_place_operands(node, ctx):
+            value, target = ctx.by_value.get(key), ctx.by_value.get(operand.target)
+            if value is not None and target is not None and not target.lifetime.persistent:
+                ctx.candidates.append((key, replace(
+                    operand, relation=identity_of(value), kind=AliasKind.IN_PLACE
+                ), None))
 
     def call_storage(self, node, callee, ctx):
         template = get_metadata(callee.function, AllocationSummary)
@@ -1223,12 +1298,11 @@ class AllocationConstraintVisitor(ValuationVisitor[Storage]):
             if returned is not None and any(
                 root(returned, local).value.expr is formal for formal in callee.function.params
             ):
-                formal = root(returned, local).value
-                actual = ctx.storage_actual(formal.expr, formal.index)
-                sources[SSAValue(node, index)] = _storage_source(
-                    SSAValue(node, index), actual.target, ctx
-                )
-        result = self.allocate(node, ctx, sources)
+                source, precision = ctx.project(address_alias(returned, local), actual_of=ctx.storage_actual)
+                if precision is AnalysisPrecision.EXACT:
+                    sources[SSAValue(node, index)] = source
+        result = self.allocate(node, ctx, {})
+        ctx.candidates.extend((key, alias, None) for key, alias in sources.items())
         resolved = template.resolve(ctx)
         for value in resolved.values:
             ctx.by_value.setdefault(value.value, value)
@@ -1237,34 +1311,6 @@ class AllocationConstraintVisitor(ValuationVisitor[Storage]):
         instances = qualify_instances(resolved.instances, ctx)
         if instances is not None:
             ctx.instance_groups.extend(instances.groups)
-        for index, candidates in enumerate(template.return_reuse):
-            key = SSAValue(node, index)
-            if key not in ctx.by_value:
-                continue
-            for candidate in candidates:
-                actual, precision = ctx.project(candidate, actual_of=ctx.storage_actual)
-                if precision is not AnalysisPrecision.EXACT or not is_zero_offset(
-                    actual.relation.relation
-                ):
-                    continue
-                formal = local.get(candidate.target)
-                covered = frozenset(
-                    id(mapped)
-                    for original, mapped in zip(template.windows, resolved.windows, strict=True)
-                    if formal is not None
-                    and (member := local.get(original.value)) is not None
-                    and root(member, local) is root(formal, local)
-                )
-                ctx.return_proofs.setdefault(key, []).append((actual, covered))
-                ctx.candidates.append(
-                    (
-                        key,
-                        BufferAlias(
-                            actual.target, identity_of(ctx.by_value[key]), AliasKind.RETURN_REUSE
-                        ),
-                        None,
-                    )
-                )
         assert tuple(value.aliases for value in template.values) == original, (
             "resolving a call mutated callee aliases"
         )
@@ -1292,13 +1338,73 @@ def collect_allocation(function, context, liveness, quantities, persistent):
     return model
 
 
+def executable_views(model):
+    """Keep runtime address proofs independent of domain-landed estimation.
+
+    Replay accepted decisions only; unavailable proofs retain UNKNOWN precision.
+    """
+    views, precisions = {}, {}
+    for value in model.by_value.values():
+        key = value.value
+        context = model.locations.get(id(key.expr))
+        if context is None:
+            continue
+        alias = _edge(value, model.by_value)
+        if alias is None or alias.kind not in (AliasKind.VIEW, AliasKind.FORWARD):
+            continue
+        exact, precision = None, AnalysisPrecision.EXACT
+        if alias.kind is AliasKind.VIEW:
+            exact = buffer_alias(key.expr, context, relations_of(key.expr, context))
+            if exact is not None:
+                relation, values = exact.relation.relation, {}
+                for name, runtime in exact.relation.values.items():
+                    unique = f"__tf_address_{id(key.expr)}_{name}"
+                    relation = relation.set_dim_name(
+                        isl.dim_type.PARAM, relation.find_dim_by_name(isl.dim_type.PARAM, name), unique
+                    )
+                    values[unique] = runtime
+                exact = replace(exact, relation=AccessRelation(relation, values))
+        elif (operands := forwarded_leaves(key.expr, context)) is not None:
+            exact = BufferAlias(operands[key.index], identity_access(
+                len(leaves_of(key.expr.type)[key.index].shape)
+            ), AliasKind.FORWARD)
+        elif context.callee is not None:
+            callee = get_metadata(context.callee.function, AllocationSummary)
+            local = callee.executable_values()
+            returned = local[SSAValue(context.callee.function.body, key.index)]
+            try:
+                source = address_alias(returned, local, precisions=callee.view_precisions)
+            except AnalysisError:
+                precision = AnalysisPrecision.UNKNOWN
+            else:
+                exact, precision = context.project(source, actual_of=context.storage_actual)
+        views[key] = exact or alias
+        precisions[key] = precision if exact is not None else AnalysisPrecision.UNKNOWN
+    decided = {(holder, decision.kind) for holder, decision, _root in model.address_decisions}
+    executable = {key: replace(value, aliases=(views[key],)
+                              if key in views and (key, views[key].kind) not in decided else ())
+                  for key, value in model.by_value.items()}
+    for holder, decision, representative in model.address_decisions:
+        if holder in views and views[holder].kind is decision.kind:
+            decision = views[holder]
+        source = address_alias(executable[holder], executable, precisions=precisions)
+        assert source.target == representative
+        values = {**source.relation.values, **decision.relation.values}
+        held = local_type_of(leaves_of(holder.expr.type)[holder.index])
+        relation = apply_source(source.relation.relation.reverse(), decision, len(held.shape), 0, values)
+        proof = replace(decision, relation=AccessRelation(relation, values))
+        views[representative] = proof
+        precisions[representative] = AnalysisPrecision.EXACT
+        executable[representative] = replace(executable[representative], aliases=(proof,))
+    return views, precisions
+
+
 def summary_of(model):
     by_value = model.by_value
-    returned = []
+    capabilities = []
     body = model.frame.function.body
     for index in range(len(leaves_of(body.type))):
         value = by_value.get(SSAValue(body, index))
-        candidates = []
         source = model.current.sources["narrow"].get(SSAValue(body, index))
         if (
             value is not None
@@ -1327,16 +1433,16 @@ def summary_of(model):
                         model.span(model.members(formal))[1]
                         <= model.span(model.members(target_root))[0]
                     ):
-                        candidates.append(
-                            BufferAlias(operand, _unprefix(relation, scope), AliasKind.RETURN_REUSE)
-                        )
-        returned.append(tuple(candidates))
+                        capabilities.append((index, BufferAlias(
+                            operand, _unprefix(relation, scope), AliasKind.IN_PLACE
+                        )))
     return AllocationSummary(
         tuple(by_value.values()),
         tuple(model.windows),
-        tuple(returned),
+        tuple(capabilities),
         Footprint(tuple(model.instance_groups)),
         tuple(model.regions),
+        *executable_views(model),
     )
 
 

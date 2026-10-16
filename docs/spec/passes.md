@@ -249,8 +249,12 @@ class ConvertHIRToTIR(ModulePass):
     addresses are byte offsets, and every analyzed offset becomes one concrete
     buffer view. Multiple offsets form a staged tuple declared outside the
     outermost enclosing HIR loop. Selection uses the linear iteration ordinal
-    from outermost to innermost, modulo the number of buffers; inner loop trip
-    counts must be constant. Instruction-generated loops do not enter this index.
+    from outermost to innermost, modulo the number of buffers, when inner loop
+    trip counts are constant. Otherwise selection uses a rank-0 integer register
+    counter modulo the number of buffers. It is initialized to zero before the
+    outermost staged loop and incremented after all uses in each completed
+    innermost staged iteration; all uses in one iteration see the same slot.
+    Instruction-generated loops do not enter this index.
     An adopted update window is written at its producer. `InsertSlice` skips
     copying only when the update's alias names that HIR destination, resolved
     through region captures.
@@ -299,28 +303,54 @@ class ConvertHIRToTIR(ModulePass):
     never at its definition; its sharding refers to that scope's mesh.
     Storage declarations follow their HIR definition's scope and position.
     Constant-address `smem` and scratch-backed `gmem` views are materialized in
-    each consuming scope. Registers shared by tied carries and their initials,
-    or region results and their body values, are declared at the outermost
-    definition among those values. An RMEM allocation MUST retain
-    its HIR tensor type with a physical-frame mesh. Whole-tensor operands reuse
-    that allocation; only subwindows require views. Each instruction MUST call
-    the shared admission check once, before declaring storage, and use that
-    projection for both storage handling and emission. Staged storage retains its
-    placement outside the outermost HIR loop.
-    Each return-type leaf becomes one output parameter with that leaf's type;
-    `umat` becomes `gmem`, retaining its layout. A non-tensor leaf raises
-    `LoweringError` naming its position and type.
-    Before lowering, return storage is traced through mesh results, tied loop
-    carries, tied insert destinations, captures, and static tuple selections. A leaf
-    ending at an unclaimed single-buffer `Zeros`, `Empty`, or caller-declared
-    retained-call result of the output parameter's exact type places that
-    storage at the output parameter,
-    regardless of storage kind. Repeated storage roots and leaves without
-    such a root raise `LoweringError`. Other `gmem` zeros use scratch.
-    Every zero fill is emitted in the zero's current scope; `Empty` emits no
-    fill. A lowered leaf that is not its output parameter raises
-    `LoweringError`. Lowering does not add output copies. Carry entry and
-    backedge copies execute the analyzed storage decisions.
+    each consuming scope. Each tensor SSA leaf MUST have its own Tensor or
+    TensorView object, even when several values have the same address. Lowering
+    MUST read addresses from the AllocationSummary SSAValue table, its accepted
+    address links and the roots' placements; it MUST NOT read MemoryMetadata.alias.
+    Every composed executable address relation MUST be EXACT and retain its
+    runtime parameter values, including accepted carry, window and in-place ties.
+    Any other precision raises LoweringError naming the SSA value and relation; an estimation upper bound is not an executable address.
+    Lowering composes the exact relation with the root's physical layout and
+    extracts the origin and strides from one affine access, retaining the
+    logical shape. An image bounding box is not a view layout. A non-affine
+    access retains a root ComposedLayout's composition; without that root
+    composition it raises LoweringError naming the relation.
+    Only `gmem` and `smem` have physical address placements. Optional `rmem`
+    IN_PLACE sharing is a live-byte peak estimate: each result retains its own
+    typed AllocTensor. Semantic views, forwards, InsertSlice destinations and
+    carry ties share register storage. Placed `smem` views MUST state their dtype
+    explicitly at the analyzed byte offset; TensorView does not reinterpret a
+    typed pointer's dtype. Loop coordinates in those relations MUST bind to their
+    own induction values.
+    Shared register storage is declared at the outermost definition among its
+    users, retaining the HIR tensor type with a physical-frame mesh. Each
+    instruction MUST call the shared admission check once, before declaring
+    storage, and use that projection for both storage handling and emission.
+    Staged storage retains its placement outside the outermost HIR loop.
+    Each return-type leaf becomes a new external output parameter with that
+    leaf's type; `umat` becomes `gmem`, retaining its layout. A non-tensor leaf
+    raises `LoweringError` naming its position and type. Outputs use the analyzed
+    storage without a producer-kind whitelist or a structural HIR storage trace.
+    Repeated output storage roots and leaves without a proved address raise
+    `LoweringError`. Retained-call arguments and destinations MUST be Tensor or
+    TensorView objects over the caller's analyzed storage, except that a returned
+    call result uses the caller's output parameter. Along a return address chain,
+    objects produced by writes and their VIEW/FORWARD results MUST be views of
+    that return leaf's output parameter. Input objects and read-only views taken
+    directly from them MUST retain the input parameter. A read-only return emits
+    no write or copy; overlap between input and output remains the caller's job.
+    If a callee writes into a formal but the caller cannot place its result on
+    that actual's storage, lowering MUST retain the `cannot be placed on its output`
+    refusal.
+    Each external output's address is the caller's responsibility; host entry,
+    automatic runtime outputs and the codegen signature add no alias contract.
+    `Zeros` and `FullLike` share fill lowering; the scalar constant uses the
+    destination dtype and requested value. Each fill is emitted in its producer's
+    scope; `Empty` emits no fill. Lowering does not add output or retained-call
+    copies. Carry entry and backedge copies execute the analyzed storage decisions.
+    Slice starts MUST materialize on-demand Call results as TIR scalar operands,
+    including Calls nested in dimension expressions. The materialized binding
+    MUST be visible where the slice key is emitted.
     A region result must not reference variables bound inside the region,
     including variables in a view's base or start coordinates.
   - Any construct without a complete lowering MUST raise `LoweringError`; the

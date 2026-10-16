@@ -15,6 +15,18 @@ from tilefoundry.ir.types.dim import DimFloorDiv, DimMul, DimVar, is_dim_op_call
 
 _UNNAMED = "_"
 _ARRANGEMENT = "every arrangement"
+_BINARY_OPERATORS = {
+    **{op: (symbol, 1) for op, symbol in (
+        ("eq", "=="), ("ne", "!="), ("lt", "<"), ("le", "<="), ("gt", ">"), ("ge", ">="),
+    )},
+    "and": ("&", 3),
+    "or": ("|", 2),
+    "add": ("+", 4),
+    "sub": ("-", 4),
+    "mul": ("*", 5),
+    "floordiv": ("//", 5),
+    "mod": ("%", 5),
+}
 
 
 class PatternPrinter:
@@ -562,7 +574,7 @@ class PatternPrinter:
             *self._rules_of(pattern.steps),
         )
 
-    def _written_expression(self, value) -> str:
+    def _written_expression(self, value, parent=0) -> str:
         if isinstance(value, float):
             return self._subject_value(value)
         name = type(value).__name__
@@ -578,20 +590,7 @@ class PatternPrinter:
             if value.op == "in":
                 values = ", ".join(self._written_value(item) for item in value.args[1])
                 return f"{self._written_expression(value.args[0])} in {{{values}}}"
-            symbol = {
-                "eq": "==",
-                "ne": "!=",
-                "lt": "<",
-                "le": "<=",
-                "gt": ">",
-                "ge": ">=",
-                "and": "&",
-                "or": "|",
-            }[value.op]
-            return (
-                f"{self._written_expression(value.args[0])} {symbol} "
-                f"{self._written_expression(value.args[1])}"
-            )
+            return self._written_binary(value, parent)
         if name == "Term":
             if value.op == "constant":
                 return self._written_expression(value.args[0])
@@ -607,18 +606,16 @@ class PatternPrinter:
                 return f"{value.args[0]!r}[{self._written_expression(value.args[1])}]"
             if value.op in {"sum", "count"}:
                 return f"{value.op.title()}({self._written_expression(value.args[0])})"
-            symbol = {
-                "add": "+",
-                "sub": "-",
-                "mul": "*",
-                "floordiv": "//",
-                "mod": "%",
-            }[value.op]
-            return (
-                f"{self._written_expression(value.args[0])} {symbol} "
-                f"{self._written_expression(value.args[1])}"
-            )
+            return self._written_binary(value, parent)
         return repr(value)
+
+    def _written_binary(self, value, parent):
+        symbol, precedence = _BINARY_OPERATORS[value.op]
+        text = (
+            f"{self._written_expression(value.args[0], precedence + (precedence == 1))} {symbol} "
+            f"{self._written_expression(value.args[1], precedence + 1)}"
+        )
+        return f"({text})" if precedence < parent else text
 
     def alternatives_Pattern(self, pattern, bindings) -> tuple:
         return ((bindings, pattern),)

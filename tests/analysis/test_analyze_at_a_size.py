@@ -102,6 +102,9 @@ class _PersistentScheduleExpectation:
 
 
 EXPECTED_MEMORY_PEAKS = {
+    "cyclic_split_weight.CyclicSplitWeight.read[static]": {"gmem": 8 * 4 // 4},
+    "cyclic_split_weight.MeshOrderWeight.read[static]": {"gmem": 32 * 4 // 32},
+    "two_dimvar_reshape.TwoDimVarReshape.squeeze[C=128,T=128]": {"gmem": 128 * 128 * 4},
     "child_matmul_target.ChildMatmul.run[static]": {
         "gmem": 64 * 64 * 2 + 64 * 32 * 2 + 64 * 32 * 4,
         "rmem": 16384,
@@ -132,8 +135,8 @@ EXPECTED_MEMORY_PEAKS = {
         "rmem": 16384,
         "smem": 64 * 16 * 2 + 16 * 32 * 2,
     },
-    "data_started_window.DataStart.probe[static]": {"gmem": 4_384, "rmem": 16, "smem": 256},
-    "data_started_window.MeshStart.probe[static]": {"gmem": 4_384, "rmem": 8, "smem": 256},
+    "data_started_window.DataStart.probe[static]": {"gmem": 3_360, "rmem": 16, "smem": 256},
+    "data_started_window.MeshStart.probe[static]": {"gmem": 3_360, "rmem": 8, "smem": 256},
     "derived_prefill.DerivedPrefill.prefill[prefill_n=64,topology_only=128]": {
         "gmem": 288,
     },
@@ -259,10 +262,10 @@ EXPECTED_MEMORY_PEAKS = {
         "rmem": 49_672,
         "smem": 16_384,
     },
-    "moe_mega_kernel.MoEMegaKernel.experts[static]": {"gmem": 94720},
-    "moe_mega_kernel.MoEMegaKernel.routed_expert[static]": {"gmem": 61_696},
-    "moe_mega_kernel.MoEMegaKernel.shared_expert[static]": {"gmem": 64_000},
-    "performance_findings.Compare.kernel[static]": {"gmem": 136704},
+    "moe_mega_kernel.MoEMegaKernel.experts[static]": {"gmem": 92_160},
+    "moe_mega_kernel.MoEMegaKernel.routed_expert[static]": {"gmem": (120 * 64 + 64) * 4},
+    "moe_mega_kernel.MoEMegaKernel.shared_expert[static]": {"gmem": (120 * 64 + 10 * 64) * 4},
+    "performance_findings.Compare.kernel[static]": {"gmem": 135_696},
     "performance_findings.GmemSquare.kernel[static]": {"gmem": 68_096},
     "performance_findings.Levels.kernel[static]": {
         "gmem": 2_113_536,
@@ -293,7 +296,7 @@ EXPECTED_MEMORY_PEAKS = {
         "smem": 231424,
     },
     "qwen3_1_7b_pd.PrefillLayer.layer_decode[ctx_len=128,seq=128]": {
-        "gmem": 152708368,
+        "gmem": 152_184_080,
         "rmem": 1552,
         "smem": 65_792,
     },
@@ -308,12 +311,12 @@ EXPECTED_MEMORY_PEAKS = {
         "smem": 3 * 128 * 128 * 2,
     },
     "qwen3_1_7b_pd.PrefillLayer.model[ctx_len=4608,seq=1]": {
-        "gmem": 4_611_690_784,
+        "gmem": 4_611_686_688,
         "rmem": 1552,
         "smem": 65_792,
     },
     "qwen3_1_7b_pd.PrefillLayer.model[ctx_len=512,seq=1]": {
-        "gmem": 4_611_690_784,
+        "gmem": 4_611_686_688,
         "rmem": 1552,
         "smem": 65_792,
     },
@@ -343,7 +346,7 @@ EXPECTED_MEMORY_PEAKS = {
     "specialize_through_call.ToCallee.run[n=128]": {"gmem": 1_024, "smem": 128},
     "square_cuda.Model.main[static]": {"gmem": 676, "rmem": 4},
     "tiny_tp_decoder.DecoderLayer.decode[static]": {"gmem": 48, "rmem": 32},
-    "tiny_tp_decoder.DecoderLayer.project[static]": {"gmem": 128},
+    "tiny_tp_decoder.DecoderLayer.project[static]": {"gmem": 96},
     "tp_all_to_all.TransposeShard.transpose_shard[static]": {"gmem": 256},
     "weighted_twin.Weighted.scaled[static]": {"gmem": 1_348, "rmem": 8},
 }

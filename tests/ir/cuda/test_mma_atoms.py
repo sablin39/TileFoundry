@@ -1,7 +1,9 @@
-"""Check each distinct MMA register fragment against its PTX thread table.
+"""Check MMA register fragments against PTX and shared layouts against CUTLASS.
 
-The six cases cover SM80 A/B/C, WGMMA C with a non-unit column repeat,
-and the two WGMMA RS A layouts distinguished by element width.
+The canonical smem atoms below are literal bit-unit shapes/strides from CUTLASS
+``e406c186f510a15091cce01f782020ceb7ba8eb5``, ``include/cute/atom/mma_traits_sm90_gmma.hpp:75-85``.
+``include/cute/layout.hpp:1778-1796`` requires exact atom divisibility for
+``tile_to_shape``, repeating MN first (LayoutLeft) or K first (LayoutRight).
 See [tir §2.3](docs/spec/tir.md#23-tir-ops).
 """
 
@@ -15,7 +17,16 @@ from tilefoundry.ir.core import Call, Var
 from tilefoundry.ir.hir.sharding.reshard import Reshard
 from tilefoundry.ir.isl_interop import layout_to_isl_map
 from tilefoundry.ir.pattern.utils import fixed_pattern_value, selected_pattern
-from tilefoundry.ir.types import DType, Layout, ShardLayout, Split, TensorType
+from tilefoundry.ir.tir.cuda.nn import wgmma
+from tilefoundry.ir.types import (
+    ComposedLayout,
+    DType,
+    Layout,
+    ShardLayout,
+    Split,
+    Swizzle,
+    TensorType,
+)
 from tilefoundry.ir.types.int_tuple import flatten, product
 from tilefoundry.ir.types.storage import StorageKind
 from tilefoundry.visitor_registry.typeinfer import inference_type
@@ -169,3 +180,105 @@ def _held_elements(
         )
     )
     return elements
+
+
+_GMMA_ATOMS = {
+    ("MN", 0): ((128, 8), (1, 128)),
+    ("MN", 1): ((256, 8), (1, 256)),
+    ("MN", 2): ((512, 8), (1, 512)),
+    ("MN", 3): ((1024, 8), (1, 1024)),
+    ("K", 0): ((8, 128), (128, 1)),
+    ("K", 1): ((8, 256), (256, 1)),
+    ("K", 2): ((8, 512), (512, 1)),
+    ("K", 3): ((8, 1024), (1024, 1)),
+}
+
+
+def _canonical_smem_cases():
+    """Keep 2166 of 3168 combinations under CUTLASS atom divisibility (1002 dropped)."""
+    cases = []
+    for role in ("A", "B"):
+        for major in ("MN", "K"):
+            for bits in range(4):
+                for element_bytes in ((2,) if major == "MN" else (1, 2, 4)):
+                    atom_shape, _ = _GMMA_ATOMS[major, bits]
+                    am, ak = atom_shape
+                    if major == "MN":
+                        am //= 8 * element_bytes
+                    else:
+                        ak //= 8 * element_bytes
+                    for mn in ((64,) if role == "A" else range(8, 257, 8)):
+                        for issues in (1, 2, 4):
+                            bk = issues * 32 // element_bytes
+                            if mn % am or bk % ak:
+                                continue
+                            for order in ("MN", "K"):
+                                values = (role, major, bits, element_bytes, mn, bk, order)
+                                cases.append(pytest.param(*values, id="-".join(map(str, values))))
+    assert len(cases) == 2166
+    return cases
+
+
+def _assert_smem_addresses(full, shape, role, am, ak, sm, sk, ms, ks):
+    """Prove address equality at every tensor element using one bounded ISL map."""
+    digits = layout_to_isl_map(
+        shape, ShardLayout(full, wgmma.BROADCAST, wgmma.WARPGROUP), {},
+        divided=lambda _: (),
+    )
+    positions = [f"p{i}" for i in range(len(flatten(full.shape)))]
+    address = " + ".join(
+        f"{stride} * {position}"
+        for stride, position in zip(flatten(full.strides), positions, strict=True)
+    )
+    actual = digits.apply_range(isl.map(f"{{ [{', '.join(positions)}] -> [{address}] }}"))
+    domain = isl.set(f"{{ [c0, c1] : 0 <= c0 < {shape[0]} and 0 <= c1 < {shape[1]} }}")
+    m, k = ("c0", "c1") if role == "A" else ("c1", "c0")
+    expected = isl.map(
+        f"{{ [c0, c1] -> [{sm} * ({m} mod {am}) + {sk} * ({k} mod {ak})"
+        f" + {ms} * floor({m}/{am}) + {ks} * floor({k}/{ak})] }}"
+    )
+    assert actual.intersect_domain(domain).is_equal(expected.intersect_domain(domain))
+
+
+@pytest.mark.parametrize(
+    ("role", "major", "bits", "element_bytes", "mn", "bk", "order"),
+    _canonical_smem_cases(),
+)
+def test_wgmma_admits_every_canonical_smem_tiling(role, major, bits, element_bytes, mn, bk, order):
+    """Each legal CUTLASS tiling agrees elementwise and admits every issue view."""
+    atom_shape, atom_strides = _GMMA_ATOMS[major, bits]
+    am, ak = atom_shape
+    sm, sk = atom_strides
+    if major == "MN":
+        am //= 8 * element_bytes
+        sk //= 8 * element_bytes
+    else:
+        ak //= 8 * element_bytes
+        sm //= 8 * element_bytes
+    rm, rk = mn // am, bk // ak
+    atom_size = am * ak
+    ms = atom_size * (rk if order == "K" else 1)
+    ks = atom_size * (rm if order == "MN" else 1)
+    full = Layout(((rm, am), (rk, ak)), ((ms, sm), (ks, sk)))
+    if role == "B":
+        full = Layout(tuple(reversed(full.shape)), tuple(reversed(full.strides)))
+    shape = (mn, bk) if role == "A" else (bk, mn)
+    _assert_smem_addresses(full, shape, role, am, ak, sm, sk, ms, ks)
+
+    issue_k = 32 // element_bytes
+    if major == "MN" or bits <= 1:
+        view = Layout(((rm, am), (issue_k // ak, ak)), ((ms, sm), (ks, sk)))
+        suffix = "mn_major" if major == "MN" else "k_major_whole"
+        offsets = (0,)
+    else:
+        view = Layout(((rm, am), issue_k), ((ms, sm), 1))
+        suffix = "k_major_sliced"
+        offsets = range(0, ak, issue_k)
+    factory = getattr(wgmma, f"_{role.lower()}_{suffix}_smem_pattern")
+    if role == "B":
+        view = Layout(tuple(reversed(view.shape)), tuple(reversed(view.strides)))
+    for offset in offsets:
+        candidate = ComposedLayout(Swizzle(bits, 4, 3), offset, view)
+        assert factory(element_bytes).match(candidate, {"n": mn}) is not None, (
+            role, major, bits, element_bytes, mn, bk, order, offset, candidate
+        )

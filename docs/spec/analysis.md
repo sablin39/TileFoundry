@@ -502,8 +502,12 @@ are monotonic across the whole Function, including nested and sibling regions.
 | `RegionMemoryMetadata.lifetimes` | Every value residency except a non-material view. | As above |
 
 - constraints:
-  - A caller-owned parameter MUST NOT be reused. Donation is a contract with
-    the caller, not a conclusion this family may draw.
+  - Optional reuse MUST NOT place an ordinary result in a caller-owned
+    parameter buffer. Donation is a contract with the caller, not a conclusion
+    this family may draw. Semantic same-address relations, including registered
+    views, InsertSlice destinations, and retained-call formal-to-actual bindings,
+    are address constraints rather than optional donation. Each SSA value remains
+    a distinct value with its own interval, even when addresses are equal.
 
 ##### `BufferAlias`
 
@@ -531,15 +535,18 @@ class BufferAlias:
     They MUST have their own AllocationValue intervals and require the operand's
     address through constraints. Static tuple projections are visitor structural rules, like
     `Tuple`, `MeshRegion`, and `LoopRegion`, rather than registered views.
-    Every other result, including `Transpose` or a result that overwrites
-    a destination, MUST allocate its own. Analysis MUST use operation semantics
+    An InsertSlice result MUST use its destination's address, including a
+    parameter destination, unless the old value has a later ordinary use.
+    Every other ordinary result, including `Transpose`, MUST allocate its own.
+    Analysis MUST use operation semantics
     for this distinction rather than infer aliasing from layouts.
-  - Reshard MUST alias its source when storage is unchanged, both layouts are
-    plain (including compositions without `ShardLayout` components) with
-    strides stated in every `Layout` component, the shape is literal, and the
-    two layouts map every colex coordinate to the same address. An
-    address-changing, storage-changing, or sharded Reshard MUST
-    retain its independent buffer.
+  - Reshard MUST alias its source iff storage is unchanged, the shape is
+    literal, and every logical element retains its complete set of storage
+    instances and addresses. Gmem has one instance per device; smem has one
+    per device and CTA; rmem has one per thread. Broadcast replicas MUST be included: removing a
+    replica changes the set. A plain end has a copy on every
+    instance of the other end's mesh; two sharded ends retain their own mesh
+    selections. Every other Reshard MUST retain its independent buffer.
   - Bitcast MUST alias its source and allocate no independent buffer. Its
     declared access relation MUST bijectively map result coordinates to source
     coordinates with the same physical address, requiring the source's
@@ -556,6 +563,15 @@ class BufferAlias:
     Failure to prove that declaration MUST raise `AnalysisError`. `Transpose`
     is not registered: it writes a new value, retains its access permutation,
     and receives its own allocation under the ordinary conflict rules.
+  - Retained calls MUST translate every callee value in a formal parameter's
+    address group into the corresponding actual argument's group. A call result
+    returning a parameter or its view MUST use that actual's address and relation,
+    unless the composed callee chain writes into the formal (directly through
+    InsertSlice or through a retained call) and the old actual has a later ordinary
+    use. Read-only parameter and view returns MUST alias despite later reads of
+    the actual. This is independent of optional reuse of fresh results. InsertSlice
+    and call-result aliases MUST publish `MemoryMetadata.alias` without independent
+    bytes or offsets.
   - Allocation MUST return storage for each SSA value and record adopted
     InsertSlice update windows and carried-phi ties in `MemoryMetadata.alias`.
     An update window MUST be adopted only together with the InsertSlice's
@@ -579,6 +595,19 @@ class BufferAlias:
     source. The table MUST store the fully composed `BufferAlias` under an
     `SSAValue` key, with precision in a parallel per-view table. All scopes in
     one definition share those tables; other definitions use independent tables.
+    AllocationSummary MUST separately retain executable VIEW/FORWARD address
+    proofs and their precision. A registered view's executable proof is its
+    direct-operand `buffer_alias` relation, including runtime parameter values;
+    a folded `narrow` source upper bound MUST NOT stand in for that address.
+    Every ACCEPTED address decision that lowering composes MUST likewise retain
+    its direct proof, independently of the estimator's domain-landed link. This
+    includes InsertSlice destination identity, carry entry/backedge ties, window
+    adoption and addressable in-place reuse. An empty execution domain does not
+    erase an accepted address decision. Rejected candidates MUST NOT supply
+    executable proofs. Lowering retains zero-trip loops.
+    Lowering MUST compose only EXACT executable relations and refuse any other
+    precision, naming the value and relation. Estimation, optional reuse, address
+    placement and reports continue to use the analysis source tables above.
     A retained Call return leaf MUST project the callee's return source.
     Source identity describes data for footprint and traffic, independently of
     allocation ownership. Allocation gives each Call result its own storage
@@ -635,7 +664,6 @@ the following order and behavior:
 | CARRY_YIELD | Yield -> phi | Loop-body condition below | Yes |
 | INSERT_SLICE | Result -> destination | Ordinary tie condition | Yes |
 | WINDOW | Update -> result | Window condition below | On the update's storage root |
-| RETURN_REUSE | Call result -> actual argument | Ordinary tie condition and callee's zero-offset proof | No |
 | IN_PLACE | Result -> operand | Ordinary tie condition and zero-offset proof | No |
 
 Structural source links MUST be installed first. Conditional relations MUST be
@@ -654,7 +682,7 @@ A root's extent MUST be the maximum bytes of every member's occupancy, including
 mapped return-producer windows; its own lifetime.bytes remains the size of its
 projected Type. At equal endpoints,
 a mapped callee window has no caller-local access proof: only members of the
-formal covered by a callee RETURN_REUSE candidate may borrow that proof, checked
+formal covered by a callee IN_PLACE capability may borrow that proof, checked
 again in actual storage-root coordinates. Other mapped windows MUST end strictly
 before the candidate starts. Global interference MUST compare individual
 windows, never their occupancy envelope.
@@ -665,8 +693,8 @@ InsertSlice destination identity branch is a valid proof. A matmul reading its
 carry is not pointwise and MUST NOT acquire a carry-yield tie on that evidence.
 IN_PLACE candidates MUST be limited to proved zero-offset, non-persistent
 operands at the same level whose own last use is no later than the result's
-definition. Nonzero-offset IN_PLACE and RETURN_REUSE candidates MUST NOT be
-registered. IN_PLACE and RETURN_REUSE MUST use source-resolved
+definition. Nonzero-offset IN_PLACE candidates MUST NOT be registered.
+IN_PLACE MUST use source-resolved
 `operand_to_result_relation`, grouped by `Access.target`, so the proof is in
 storage-root coordinates after VIEW/FORWARD composition. A Slice's local
 identity MUST NOT turn a shifted backing-buffer read into zero-offset reuse.
@@ -721,12 +749,15 @@ ties MUST publish no alias; lowering copies the corresponding carry or slice.
 A callee root containing a formal or the returned storage root is a boundary
 and MUST have no local address variable or published offsets. Read-only
 zero-offset operand proofs, including formal operands and VIEW/FORWARD paths
-to the return root, MAY produce RETURN_REUSE candidates when formal occupancy
-ends no later than return occupancy starts. These proofs MUST NOT create local
+to the return root, MAY declare an IN_PLACE capability (output index, formal
+input leaf and coordinate relation) when formal occupancy ends no later than
+output occupancy starts. The call site MUST register and judge these capabilities
+with the same IN_PLACE rules as ordinary operations; a later use of the actual
+MUST prevent reuse. These proofs MUST NOT create local
 IN_PLACE aliases, link formal storage to a result, or publish metadata.
 
 An internal AllocationSummary MUST contain the definition's values, windows,
-return candidates, instance address evidence, and flat RegionInterval facts.
+IN_PLACE capabilities, instance address evidence, and flat RegionInterval facts.
 At a Call leaf its resolve MUST translate windows and region events using
 TimingValuation. Windows rooted at a formal MUST name the actual SSA leaf;
 windows rooted at a return MUST name the Call result leaf. Internal SSA values
@@ -809,7 +840,7 @@ class MemoryLevelPeak:
     MUST NOT make a program unplaceable, and a level owned per unit of a topology
     other than the one being analysed MUST fail rather than be assumed. Domains
     holding the same buffers are one question, decided once.
-  - Carry, InsertSlice, window, return-reuse and in-place sharing MUST follow
+  - Carry, InsertSlice, window and in-place sharing MUST follow
     the pre-solve value links and acceptance conditions above. Simultaneously
     live values in overlapping address intervals MUST belong to the same root;
     otherwise analysis MUST raise `AnalysisError` identifying both bindings,
@@ -1831,7 +1862,7 @@ widening; the two modules do not define a second affine graph representation.
     report unknown for a larger box. It MUST count directly when every retained
     parameter is already fixed to one integer point. An empty parameter context
     MUST count as zero; a non-empty context with an unbounded parameter MUST
-    report unknown.
+    report unknown. An unbounded set dimension MUST also report unknown.
   - `IterationScope.trips()` MUST count a loop off its bounds, not its domain:
     `max(1, ceil(max(stop - start) / step))`, refusing an unbounded span.
     `trips_precision` is `EXACT` where that span reaches one value and

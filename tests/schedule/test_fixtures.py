@@ -18,13 +18,16 @@ from functools import partial
 from itertools import combinations
 from math import prod
 from pathlib import Path
+from types import SimpleNamespace
 
+import isl
 import pytest
 import torch
 
 import tilefoundry.passes.transforms.convert_hir_to_tir as lowering_module
 from tests._source import import_dsl
-from tilefoundry.analysis.access import SSAValue
+from tilefoundry.analysis.access import AliasKind, SSAValue
+from tilefoundry.analysis.allocation import AllocationSummary
 from tilefoundry.analysis.api import analyze
 from tilefoundry.analysis.check import check_program
 from tilefoundry.analysis.liveness import Liveness, result_copies
@@ -36,6 +39,7 @@ from tilefoundry.analysis.metadata import (
     RegionMemoryMetadata,
     RooflineMetadata,
 )
+from tilefoundry.analysis.precision import AnalysisPrecision
 from tilefoundry.cli import main as cli_main
 from tilefoundry.codegen.cuda.context import CudaCodegenContext
 from tilefoundry.codegen.emitter import CppEmitter
@@ -63,6 +67,7 @@ from tilefoundry.ir.hir.function import Function
 from tilefoundry.ir.hir.loop_region import LoopRegion
 from tilefoundry.ir.hir.mesh_region import MeshRegion
 from tilefoundry.ir.hir.schedule import ScheduleOp, operand_relations
+from tilefoundry.ir.hir.tensor.arange import Arange as HirArange
 from tilefoundry.ir.hir.tensor.cast import Cast as HirCast
 from tilefoundry.ir.hir.tensor.empty import Empty
 from tilefoundry.ir.hir.tensor.reshape import Reshape
@@ -78,12 +83,13 @@ from tilefoundry.ir.pattern import (
     thread_execution_mesh,
 )
 from tilefoundry.ir.tir import PrimFunction
+from tilefoundry.ir.tir.arange import Arange as TirArange
 from tilefoundry.ir.tir.async_copy import CopyAsync
 from tilefoundry.ir.tir.cuda.memory.copy_async_tensor import CopyAsyncTensor
 from tilefoundry.ir.tir.cuda.nn.mma import TiledMma
 from tilefoundry.ir.tir.cuda.nn.sm80_mma import Mma
 from tilefoundry.ir.tir.cuda.nn.wgmma import Form, Wgmma
-from tilefoundry.ir.tir.memory import Copy, TensorView
+from tilefoundry.ir.tir.memory import Copy, PtrOf, TensorView
 from tilefoundry.ir.tir.stmts import Evaluate, For, If, LetStmt, MeshScope, Sequential, While
 from tilefoundry.ir.types import (
     ComposedLayout,
@@ -92,28 +98,33 @@ from tilefoundry.ir.types import (
     Mesh,
     ShardLayout,
     StorageKind,
+    Swizzle,
     TensorType,
     Topology,
 )
-from tilefoundry.ir.types.layout import flatten
+from tilefoundry.ir.types.dim import DimVar
+from tilefoundry.ir.types.layout import flatten, resolve_layout
 from tilefoundry.ir.types.layout_algebra import cosize
 from tilefoundry.ir.types.mesh import levels, make_mesh, starts
+from tilefoundry.ir.types.utils import static_dim_value
 from tilefoundry.ir.visitor import StmtVisitor, collect_exprs
-from tilefoundry.passes.transforms.convert_hir_to_tir import LoweringError
 from tilefoundry.schedule import finalize
 from tilefoundry.target import CudaTarget
 from tilefoundry.visitor_registry.access_relation import (
+    AccessRelation,
     access_relation_registry,
     identity_relations,
     relations_of,
 )
 from tilefoundry.visitor_registry.buffer_alias import aliased_operand
+from tilefoundry.visitor_registry.candidates import candidate_operands
 from tilefoundry.visitor_registry.contexts import TypeInferContext, VerifyContext
-from tilefoundry.visitor_registry.instruction import check_call
+from tilefoundry.visitor_registry.instruction import ScheduleRefusal, check_call
 from tilefoundry.visitor_registry.typeinfer import inference_type
 from tilefoundry.visitor_registry.verify import verify_module, verify_prim_function
 
 PLAIN = (
+    "reshard_locations",
     "chunk_rmsnorm",
     "fp8_block_scaled_gemm",
     "gemm_8192x17408x5120_cta_grid",
@@ -130,10 +141,21 @@ PLAIN_REFUSED = {
     ),
 }
 FINALIZE_REFUSED = {
-    "staged_dynamic_inner": "staged selection needs a constant trip count for 'j'",
     "duplicate_output_storage": "return leaf (2,) shares storage with another output",
 }
 CANDIDATES_REFUSED = {
+    "zero_trip_insert_slice": "source has no unscheduled candidate site",
+    "strided_return_window": "source has no unscheduled candidate site",
+    "inplace_output_update": "source has no unscheduled candidate site",
+    "wgmma_b_mn_major_grouped_n64": "source has no unscheduled candidate site",
+    "reshard_views": "source has no unscheduled candidate site",
+    "scalar_ceildiv_gate": "source has no unscheduled candidate site",
+    "register_index_window": "source has no unscheduled candidate site",
+    "register_index_window_offset": "source has no unscheduled candidate site",
+    "wgmma_b_mn_major_wide_lbo": "source has no unscheduled candidate site",
+    "cta_submesh_thread_scope": "source has no unscheduled candidate site",
+    "loop_variable_rebound": "source has no unscheduled candidate site",
+    "submesh_slice_in_sibling": "source has no unscheduled candidate site",
     "module_instances": "source has no unscheduled candidate site",
     "child_weight": "source has no unscheduled candidate site",
     "loop_carry_window": "source has no unscheduled candidate site",
@@ -161,6 +183,7 @@ WGMMA_FACTS = Path(__file__).parents[1] / "fixtures" / "schedule" / "Wgmma.facts
 _H200_FACTS_TEXT = """\
 target nvidia.h200_sxm
 instructions
+  T.arange             all targets
   T.binary             all targets
   T.cast               all targets
   T.clamp              all targets
@@ -177,6 +200,7 @@ instructions
 _H200_FACTS_JSON = {
     "target": "nvidia.h200_sxm",
     "instructions": [
+        {"id": "T.arange", "capability": None},
         {"id": "T.binary", "capability": None},
         {"id": "T.cast", "capability": None},
         {"id": "T.clamp", "capability": None},
@@ -194,6 +218,7 @@ _H200_FACTS_JSON = {
 _TARGET_NEUTRAL_FACTS = """\
 target {target}
 instructions
+  T.arange  all targets
   T.binary  all targets
   T.cast    all targets
   T.clamp   all targets
@@ -234,6 +259,20 @@ class _RmemExpectation:
 
 
 SMEM_GOLDEN = {
+    "zero_trip_insert_slice": 0,
+    "strided_return_window": 0,
+    "inplace_output_update": 0,
+    "wgmma_b_mn_major_grouped_n64": 6144,
+    "wgmma_b_mn_major_wide_lbo": 10240,
+    "register_index_window": 0,
+    "register_index_window_offset": 0,
+    "register_full_like": 0,
+    "register_arange": 0,
+    "reshard_views": 0,
+    "scalar_ceildiv_gate": 0,
+    "cta_submesh_thread_scope": 0,
+    "loop_variable_rebound": 0,
+    "submesh_slice_in_sibling": 32,
     "module_instances": 0,
     "duplicate_output_storage": 8,
     "loop_carry_rebind": 0,
@@ -272,6 +311,55 @@ SMEM_GOLDEN = {
 }
 
 RMEM_EXPECTED = {
+    "zero_trip_insert_slice": {
+        "thread@0:1#0": _RmemExpectation(16, "one four-element f32 update row"),
+        "cta@0:1#0": _RmemExpectation(16, "parent envelope of the update row"),
+    },
+    "strided_return_window": {
+        "thread@0:1#0": _RmemExpectation(12288, "24 * 256 bf16 register output elements"),
+        "cta@0:32#0": _RmemExpectation(12288, "parent envelope of the register output"),
+    },
+    "inplace_output_update": {
+        "cta@0:1#0": _RmemExpectation(16, "CTA envelope of the row register storage"),
+    },
+    "wgmma_b_mn_major_grouped_n64": {
+        "thread@0:256#0": _RmemExpectation(32768, "two 64x64 f32 accumulator groups; MMA aliases acc"),
+    },
+    "wgmma_b_mn_major_wide_lbo": {
+        "thread@0:128#0": _RmemExpectation(32768, "64x128 f32 accumulator and MMA result alias"),
+    },
+    "register_index_window": {
+        "thread@0:1#0": _RmemExpectation(32, "8 f32 output elements; index/view lifetimes reuse their storage"),
+        "cta@0:1#0": _RmemExpectation(32, "parent envelope of the register output"),
+    },
+    "register_index_window_offset": {
+        "thread@0:1#0": _RmemExpectation(32, "8 f32 output elements; index/view lifetimes reuse their storage"),
+        "cta@0:1#0": _RmemExpectation(32, "parent envelope of the register output"),
+    },
+    "register_full_like": {
+        "thread@0:1#0": _RmemExpectation(65, "two independent 8-element f32 buffers and a predicate"),
+        "cta@0:1#0": _RmemExpectation(65, "parent envelope of the independent buffers and predicate"),
+    },
+    "register_arange": {
+        "thread@0:1#0": _RmemExpectation(64, "independent 8-element i32 indices and output buffers"),
+        "cta@0:1#0": _RmemExpectation(64, "parent envelope of the two independent buffers"),
+    },
+    "reshard_views": {
+        "thread@0:1#0": _RmemExpectation(32, "8 f32 register output elements"),
+        "cta@0:2#0": _RmemExpectation(32, "parent envelope of the output"),
+    },
+    "scalar_ceildiv_gate": {
+        "thread@0:1#0": _RmemExpectation(32, "8 f32 register output elements"),
+        "cta@0:4#0": _RmemExpectation(32, "parent envelope of the output"),
+    },
+    "cta_submesh_thread_scope": {
+        "thread@0:128#0": _RmemExpectation(512, "4x32 f32 register tile"),
+    },
+    "loop_variable_rebound": {
+        "thread@0:1#0": _RmemExpectation(64, "two independent live 2x4 f32 buffers"),
+        "cta@0:1#0": _RmemExpectation(64, "parent envelope of the independent loop buffers"),
+    },
+    "submesh_slice_in_sibling": {},
     "duplicate_output_storage": {},
     "loop_carry_rebind": {
         "thread@0:32#0": _RmemExpectation(
@@ -889,6 +977,24 @@ def _evaluate_call(
     return evaluate(function, *(data for _type, data in typed_inputs))
 
 
+@pytest.mark.parametrize("dtype", (DType.i32, DType.i64))
+def test_schedule_arange_evaluates_static_coordinates(dtype) -> None:
+    type_ = TensorType((8,), dtype, Layout((8,), (1,)), StorageKind.RMEM)
+    torch_dtype = to_torch_dtype(dtype)
+    result = _evaluate_call(
+        ScheduleOp(op=TirArange(start=3, step=2)),
+        ((type_, torch.empty(8, dtype=torch_dtype)),), type_,
+    )
+    assert torch.equal(result, torch.tensor([3, 5, 7, 9, 11, 13, 15, 17], dtype=torch_dtype))
+
+
+def test_arange_candidates_refuse_a_symbolic_start() -> None:
+    type_ = TensorType((8,), DType.i32, Layout((8,), (1,)), StorageKind.RMEM)
+    call = Call(target=HirArange(type=type_, start=DimVar("start", 0, 8)), args=(), type=type_)
+    with pytest.raises(ScheduleRefusal, match="start must be a static integer"):
+        candidate_operands(call, TirArange)
+
+
 def test_schedule_copy_evaluates_to_the_source_value() -> None:
     layout = Layout((4,), (1,))
     source_type = TensorType((4,), DType.bf16, layout, StorageKind.GMEM)
@@ -1117,7 +1223,68 @@ def _check_finalize_unbound_dim(out: Path, captured: pytest.CaptureResult[str]) 
     assert not out.exists()
 
 
+def _check_reshard_locations(out: Path, captured: pytest.CaptureResult[str]) -> None:
+    rows = _quiet_json(out, captured)["functions"][0]["calls"]
+    rows = {row["value"].rsplit(":", 1)[1]: row["memory"] for row in rows}
+    for label, byte_count in (("12", 256), ("14", 32), ("20", 224)):
+        memory = rows[label]
+        assert memory["operands"][0]["read"] == byte_count
+        assert memory["operands"][1]["write"] == byte_count
+    assert rows["20"]["buffer_bytes"] == 112
+    assert rows["20"]["offsets"]
+    for label in ("15", "16", "17", "18"):
+        memory = rows[label]
+        assert memory["buffer_bytes"] is None
+        assert memory["offsets"] == []
+        assert memory["traffic"] == {"communication": {}, "storage": {}}
+
+
+def _check_reshape_matches_torch(out: Path, captured: pytest.CaptureResult[str]) -> None:
+    report = _quiet_json(out, captured)
+    assert report["passed"]
+    comparison = report["runs"][0]["outputs"][0]["fns"][0]
+    assert comparison["fn"] == "allclose" and comparison["passed"]
+
+
+def _check_crossing_axes_refusal(out: Path, captured: pytest.CaptureResult[str]) -> None:
+    assert captured.out == ""
+    assert "layout positions (2, 8, 2, 4, 2, 4, 8) cross logical axes of (64, 128)" in captured.err
+    assert "layout_crossing_axes.py:13:" in captured.err
+    assert not out.exists()
+
+
+def _check_selector_help(out: Path, captured: pytest.CaptureResult[str]) -> None:
+    assert captured.err == ""
+    assert "model.py[:Module[.function]]" in captured.out
+    assert "child_module" not in captured.out
+
+
+def _reshape_tensor(expected: bool = False) -> torch.Tensor:
+    x = torch.arange(128, dtype=torch.float32).reshape(1, 8, 1, 16)
+    return x.reshape(8, 16) if expected else x
+
+
 FIXTURES = (
+    FixtureCase(
+        "reshard is charged only when an element moves",
+        ("analyze", "tests/fixtures/schedule/plain/reshard_locations.py", "{out}", "--memory", "--json"),
+        _check_reshard_locations,
+    ),
+    FixtureCase(
+        "check binds two DimVars in a reshape",
+        ("check", "tests/fixtures/placed/two_dimvar_reshape.py:TwoDimVarReshape", "--inputs", "files:{tmp}/x.pt", "--expected", "{tmp}/expected.pt", "--dim", "T=8", "--dim", "C=16", "--device", "cpu", "--out", "output", "--fn", "allclose", "--atol", "0", "--rtol", "0", "--json", "{out}"),
+        _check_reshape_matches_torch,
+        files={"x.pt": _reshape_tensor, "expected.pt": partial(_reshape_tensor, True)},
+    ),
+    FixtureCase(
+        "finalize refuses a layout crossing logical axes where it is declared",
+        ("schedule", "finalize", "tests/fixtures/diagnostics/layout_crossing_axes.py", "{out}"),
+        _check_crossing_axes_refusal,
+        code=1,
+    ),
+    FixtureCase(
+        "analyze help names only Module.function", ("analyze", "--help"), _check_selector_help,
+    ),
     FixtureCase(
         "finalize binds an open row dimension",
         (
@@ -1313,7 +1480,11 @@ def test_fixture(case: FixtureCase, tmp_path: Path, capsys: pytest.CaptureFixtur
         torch.save(make(), tmp_path / name)
     out = tmp_path / "out"
     argv = [arg.format(out=out, tmp=tmp_path) for arg in case.argv]
-    assert cli_main(argv) == case.code
+    try:
+        code = cli_main(argv)
+    except SystemExit as error:
+        code = error.code
+    assert code == case.code
     case.check(out, capsys.readouterr())
 
 
@@ -1537,7 +1708,7 @@ def test_schedule_candidate_reports_cover_every_site(
         ("chunk_rmsnorm", ("chunks=16",), 0, 7, 0, "KN"),
         ("chunk_rmsnorm", ("chunks=32",), 0, 7, 0, "KN"),
         ("fp8_block_scaled_gemm", (), 1, 5, 0, "KN"),
-        ("gemm_8192x17408x5120_cta_grid", (), 1, 4, 0, "KN"),
+        ("gemm_8192x17408x5120_cta_grid", (), 1, 3, 0, "KN"),
         ("gemm_relu_gemm_tiled", (), 2, 2, 0, "KN"),
         ("gemm_relu_gemm_untiled", (), 2, 0, 0, "KN"),
         ("gemm_relu_gemm_untiled", (), 2, 0, 0, "NK"),
@@ -1637,7 +1808,7 @@ def test_schedule_candidates_omit_selected_schedule_calls(
     assert "tf.reshard" not in ops
     assert any(
         op
-        in {"tf.binary", "tf.cast", "tf.clamp", "tf.relu", "tf.reduce", "tf.unary", "tf.transpose"}
+        in {"tf.arange", "tf.binary", "tf.cast", "tf.clamp", "tf.relu", "tf.reduce", "tf.unary", "tf.transpose"}
         for op in ops
     )
     if source.stem == "wgmma_cast_between_schedules":
@@ -1758,8 +1929,7 @@ def test_schedule_finalize_writes_verified_tir(
         return
 
     out = tmp_path / source.name
-    golden_name = "loop_carry_window.py" if source.stem == "loop_carry_rebind" else source.name
-    expected = source.parent.parent / "tir" / golden_name
+    expected = source.parent.parent / "tir" / source.name
 
     assert cli_main(["schedule", "finalize", str(source), str(out)]) == 0
     captured = capsys.readouterr()
@@ -1778,6 +1948,12 @@ def test_schedule_finalize_writes_verified_tir(
     if source.stem == "loop_outputs":
         assert lowered.output_count == 3
         assert import_dsl(as_script(lowered)).output_count == 3
+    if source.stem == "zero_trip_insert_slice":
+        visitor = _RetainedStatements()
+        visitor.visit(functions[0].body)
+        assert len(visitor.loops) == 1
+        loop = visitor.loops[0]
+        assert tuple(static_dim_value(value) for value in (loop.start, loop.stop, loop.step)) == (0, 0, 1)
     assert found
     wgmma_lhs = [
         captures
@@ -1861,6 +2037,221 @@ def test_lowering_rejects_instruction_without_access_relation(
     monkeypatch.setattr(lowering_module, "analyze", lambda *_args, **_kwargs: result)
 
     _assert_cli_lowering_error(source, "states no access relations", tmp_path, capsys)
+
+
+def test_lowering_rejects_non_exact_address(monkeypatch, tmp_path, capsys):
+    source = Path(__file__).parents[1] / "fixtures/schedule/hir/register_index_window_offset.py"
+    module = _module_in(source)
+    result = analyze(*check_program(module, module.entry_function()), analysis=("memory",))
+    summary = get_metadata(result.function, AllocationSummary)
+    key = next(key for key, alias in summary.views.items() if alias.relation.values)
+    summary.view_precisions[key] = AnalysisPrecision.UPPER_BOUND
+    monkeypatch.setattr(lowering_module, "analyze", lambda *_args, **_kwargs: result)
+
+    out = tmp_path / "failed.py"
+    assert cli_main(["schedule", "finalize", str(source), str(out)]) == 1
+    captured = capsys.readouterr()
+    assert "non-EXACT address for" in captured.err
+    assert str(summary.views[key].relation.relation) in captured.err
+    assert not out.exists()
+
+
+def test_zero_trip_carry_keeps_direct_address_proofs_and_the_loop():
+    module = import_dsl('''
+from tilefoundry.dsl import *
+from tilefoundry.target import CudaTarget
+@module(entry="gemm", target=CudaTarget("nvidia.h200_sxm"),
+        topologies=(Topology("cta", 1), Topology("thread", 1)))
+class ZeroTripCarry:
+    @func
+    def gemm(x: Tensor[(4,), "f32"]):
+        with Mesh(("cta",), layout=(1,), names=("b",)) as cta:
+            with Mesh(("thread",), layout=(1,), names=("t",)) as thread:
+                acc = tf.schedule((x, tf.empty(Tensor[(4,), "f32", "rmem"])), op=T.copy())
+                for k in range(0):
+                    acc = tf.schedule((x, tf.empty(Tensor[(4,), "f32", "rmem"])), op=T.copy())
+                return tf.schedule((acc, tf.empty(Tensor[(4,), "f32"])), op=T.copy())
+''')
+    result = analyze(*check_program(module, module.entry_function()), analysis=("memory",))
+    summary = get_metadata(result.function, AllocationSummary)
+    carry = [proof for proof in summary.views.values()
+             if proof.kind in (AliasKind.CARRY_INIT, AliasKind.CARRY_YIELD)]
+    assert {proof.kind for proof in carry} == {AliasKind.CARRY_INIT, AliasKind.CARRY_YIELD}
+    assert all(proof.relation.relation.is_identity() for proof in carry)
+    lowered = finalize(module)
+    verify_module(lowered)
+    verify_module(import_dsl(as_script(lowered)))
+    visitor = _RetainedStatements()
+    visitor.visit(lowered.entry_function().body)
+    assert len(visitor.loops) == 1
+    loop = visitor.loops[0]
+    assert tuple(static_dim_value(value) for value in (loop.start, loop.stop, loop.step)) == (0, 0, 1)
+    body = _RetainedStatements()
+    body.visit(loop.body)
+    assert sum(isinstance(op, Copy) for op in body.operations) == 1
+
+
+def test_dynamic_window_keeps_a_mixed_scalar_and_constant_key():
+    module = import_dsl('''
+from tilefoundry.dsl import *
+from tilefoundry.target import CudaTarget
+@module(entry="gemm", target=CudaTarget("nvidia.h200_sxm"),
+        topologies=(Topology("cta", 1), Topology("thread", 1)))
+class Window:
+    @func
+    def gemm(x: Tensor[(64, 8), "f32"], starts: Tensor[(1,), "i64"]) -> Tensor[(8, 8), "f32", "rmem"]:
+        with Mesh(("cta",), layout=(1,), names=("b",)) as cta:
+            with Mesh(("thread",), layout=(1,), names=("t",)) as thread:
+                held = tf.schedule((starts, tf.empty(Tensor[(1,), "i64", (1,), "rmem"])), op=T.copy())
+                start = tf.reshape(held, new_shape=())
+                window = x[start + 1:start + 9, 0:8]
+                return tf.schedule((window, tf.empty(Tensor[(8, 8), "f32", (8, 8), "rmem"])), op=T.copy())
+''')
+    lowered = finalize(module)
+    verify_module(lowered)
+    printed = as_script(lowered)
+    verify_module(import_dsl(printed))
+    visitor = _RetainedStatements()
+    visitor.visit(lowered.entry_function().body)
+    views = [value for value in visitor.bindings.values()
+             if isinstance(value, Call) and isinstance(value.target, TensorView)
+             and value.type.shape == (8, 8)]
+    assert any(resolve_layout(view.type.layout, view.type.shape).strides == (8, 1)
+               and any(isinstance(expr, Call) and isinstance(expr.target, Slice)
+                       and expr.target.sizes == (1, 1)
+                       and isinstance(expr.args[1].elements[0], Call)
+                       and expr.args[1].elements[1].value == 0
+                       for expr in collect_exprs(view)) for view in views)
+
+
+def test_register_row_pointer_keeps_the_split_axis_whole():
+    module = import_dsl('''
+from tilefoundry.dsl import *
+from tilefoundry.target import CudaTarget
+@module(entry="gemm", target=CudaTarget("nvidia.h200_sxm"),
+        topologies=(Topology("cta", 1), Topology("thread", 16)))
+class RegisterRows:
+    @func
+    def gemm(x: Tensor[(16,16), "f32"]):
+        with Mesh(("cta",), layout=(1,), names=("b",)) as cta:
+            with Mesh(("thread",), layout=(16,), names=("col",)) as th:
+                held = tf.schedule((x, tf.empty(Tensor[(16,16), "f32", (16,16 @ th.col), "rmem"])), op=T.copy())
+                out = tf.zeros(Tensor[(16,16), "f32"])
+                for i in range(16):
+                    out = tf.insert_slice(out, held[i:i+1, :], (i,0))
+                return out
+''')
+    lowered = finalize(module)
+    verify_module(lowered)
+    verify_module(import_dsl(as_script(lowered)))
+    visitor = _RetainedStatements()
+    visitor.visit(lowered.entry_function().body)
+    slices = [expr for value in visitor.bindings.values() for expr in collect_exprs(value)
+              if isinstance(expr, Call) and isinstance(expr.target, Slice)
+              and isinstance(expr.args[0].type.layout, ShardLayout)]
+    assert slices and all(expr.target.sizes[1] == 16 for expr in slices)
+
+
+@pytest.mark.parametrize("start,offset", [(0, 0), (64, 4096)])
+def test_composed_view_keeps_its_layout_when_logical_rank_changes(start, offset):
+    module = import_dsl('''
+from tilefoundry.dsl import *
+from tilefoundry.target import CudaTarget
+@module(entry="gemm", target=CudaTarget("nvidia.h200_sxm"),
+        topologies=(Topology("cta", 1), Topology("thread", 1)))
+class ComposedReshape:
+    @func
+    def gemm(x: Tensor[(64,128), "bf16"]):
+        with Mesh(("cta",), layout=(1,), names=("b",)) as cta:
+            with Mesh(("thread",), layout=(1,), names=("t",)) as thread:
+                layout = ComposedLayout(Swizzle(3,4,3), 0, Layout(((8,8),(2,4,16)), ((512,64),(4096,16,1))))
+                shared = tf.schedule((x, tf.empty(Tensor[(64,128), "bf16", layout, "smem"])), op=T.copy())
+                reshaped = tf.reshape(shared[:,START:START+64], (8,8,16,4))
+                return tf.schedule((reshaped, tf.empty(Tensor[(8,8,16,4), "bf16", "rmem"])), op=T.copy())
+'''.replace('START', str(start)))
+    lowered = finalize(module)
+    verify_module(lowered)
+    verify_module(import_dsl(as_script(lowered)))
+    visitor = _RetainedStatements()
+    visitor.visit(lowered.entry_function().body)
+    views = [value for value in visitor.bindings.values()
+             if isinstance(value, Call) and isinstance(value.target, TensorView)
+             and value.type.shape == (8, 8, 16, 4)]
+    assert any(value.type.layout == ComposedLayout(
+        Swizzle(3, 4, 3), offset, Layout((8, 8, 16, 4), (512, 64, 4, 1))
+    ) for value in views)
+
+
+@pytest.mark.parametrize("width,start,shape,modes,strides,offset", [
+    (256, 0, (16, 8, 16, 16), (16, 8, (4, 4), 16), (512, 64, (8192, 16), 1), 0),
+    (32, 0, (16, 8, 2, 16), (16, 8, 2, 16), (512, 64, 16, 1), 0),
+    (128, 128, (16, 8, 8, 16), (16, 8, (2, 4), 16), (512, 64, (8192, 16), 1), 16384),
+])
+def test_composed_reshape_retains_non_affine_outer_modes(width, start, shape, modes, strides, offset):
+    module = import_dsl('''
+from tilefoundry.dsl import *
+from tilefoundry.target import CudaTarget
+@module(entry="gemm", target=CudaTarget("nvidia.h200_sxm"),
+        topologies=(Topology("cta", 1), Topology("thread", 1)))
+class ComposedReshape:
+    @func
+    def gemm(x: Tensor[(128,256), "bf16"]):
+        with Mesh(("cta",), layout=(1,), names=("b",)) as cta:
+            with Mesh(("thread",), layout=(1,), names=("t",)) as thread:
+                layout = ComposedLayout(Swizzle(3,4,3), 0, Layout((128,(4,64)), (64,(8192,1))))
+                shared = tf.schedule((x, tf.empty(Tensor[(128,256), "bf16", layout, "smem"])), op=T.copy())
+                reshaped = tf.reshape(shared[:,START:START+WIDTH], SHAPE)
+                return tf.schedule((reshaped, tf.empty(Tensor[SHAPE, "bf16", "rmem"])), op=T.copy())
+'''.replace('WIDTH', str(width)).replace('START', str(start)).replace('SHAPE', repr(shape)))
+    lowered = finalize(module)
+    verify_module(import_dsl(as_script(lowered)))
+    visitor = _RetainedStatements()
+    visitor.visit(lowered.entry_function().body)
+    expected = ComposedLayout(
+        Swizzle(3, 4, 3), offset, Layout(modes, strides)
+    )
+    assert any(isinstance(value, Call) and isinstance(value.target, TensorView)
+               and value.type.layout == expected for value in visitor.bindings.values())
+
+
+def test_address_origin_can_divide_a_runtime_loop_index():
+    module = import_dsl('''
+from tilefoundry.dsl import *
+from tilefoundry.target import CudaTarget
+@module(entry="gemm", target=CudaTarget("nvidia.h200_sxm"),
+        topologies=(Topology("cta", 1), Topology("thread", 1)))
+class ModularWindow:
+    @func
+    def gemm(x: Tensor[(64,), "f32"]):
+        with Mesh(("cta",), layout=(1,), names=("b",)) as cta:
+            with Mesh(("thread",), layout=(1,), names=("t",)) as thread:
+                out = tf.zeros(Tensor[(8,), "f32", "rmem"])
+                for u in range(cta.b, 8, 1):
+                    start = (u % 4) * 8
+                    out = tf.schedule((x[start:start+8], tf.empty(Tensor[(8,), "f32", "rmem"])), op=T.copy())
+                return out
+''')
+    verify_module(import_dsl(as_script(finalize(module))))
+
+
+@pytest.mark.parametrize("coordinate_division", [False, True])
+def test_view_strides_distinguish_coordinate_and_parameter_divisions(coordinate_division):
+    source = Var("x", type=TensorType((64,), DType.f32, Layout((64,), (1,)), StorageKind.GMEM))
+    desired = replace(source.type, shape=(8,), layout=Layout((8,), (1,)))
+    relation = AccessRelation(isl.map("{ [i] -> [floor(i/2)] : 0 <= i < 8 }"))
+    if not coordinate_division:
+        tile = Var("tile", type=TensorType.umat_scalar(DType.i64))
+        relation = AccessRelation(
+            isl.map("[tile] -> { [i] -> [i + floor(tile/4)] : 0 <= i < 8 }"), {"tile": tile}
+        )
+    lowering = SimpleNamespace(_dim=lambda value: value)
+    address = SimpleNamespace(relation=relation)
+    if coordinate_division:
+        with pytest.raises(lowering_module.LoweringError, match="non-affine address"):
+            lowering_module.Lowering._address_view(lowering, source, address, desired)
+    else:
+        view = lowering_module.Lowering._address_view(lowering, source, address, desired)
+        assert view.type.layout == Layout((8,), (1,))
 
 
 def test_lowering_rejects_addressable_result_without_offsets(
@@ -1986,6 +2377,19 @@ class _RetainedStatements(StmtVisitor[None]):
         self.calls = []
         self.loops = []
         self.operations = []
+        self.statements = []
+        self.bindings = {}
+
+    def visit_LetStmt(self, stmt, ctx=None):
+        self.bindings[id(stmt.var)] = stmt.value
+        self.visit(stmt.body)
+
+    def storage(self, value):
+        if isinstance(value, Var) and id(value) in self.bindings:
+            return self.storage(self.bindings[id(value)])
+        if isinstance(value, Call) and isinstance(value.target, (TensorView, PtrOf, Slice)):
+            return self.storage(value.args[0])
+        return value
 
     def visit_For(self, stmt, ctx=None):
         self.loops.append(stmt)
@@ -1993,6 +2397,7 @@ class _RetainedStatements(StmtVisitor[None]):
 
     def visit_Evaluate(self, stmt, ctx=None):
         self.operations.append(stmt.callable)
+        self.statements.append(stmt)
         if isinstance(stmt.callable, (PrimFunction, ModuleList, Call)):
             self.calls.append(stmt)
 
@@ -2025,7 +2430,7 @@ def test_lowering_retains_all_four_instance_and_local_call_shapes():
             CppEmitter(context=CudaCodegenContext(target=lowered.target)).visit_Evaluate(call)
 
 
-def _returned_view(storage):
+def _returned_view(storage, chain=False):
     type_ = TensorType((32,), DType.f32, Layout((32,), (1,)), storage)
     param = Var("x", type=type_)
     function = Function.build(name="run", params=(param,), body=param, return_type=type_)
@@ -2033,20 +2438,93 @@ def _returned_view(storage):
     slot = ModuleList(leaf)
     activation = replace(param)
     call = Call(slot, (activation,), type=type_)
+    if chain:
+        call = Call(slot, (call,), type=type_)
     root = Function.build(name="root", params=(activation,), body=call, return_type=type_)
     return Module("ViewCaller", (root,), "root", children={"child": slot},
                   target=CudaTarget("nvidia.h200_sxm"),
                   topologies=(Topology("cta", 1), Topology("thread", 32)))
 
 
-def test_a_returned_gmem_view_requires_explicit_scheduled_copy():
-    with pytest.raises(LoweringError, match=r"return leaf \(\) cannot be placed on its output: x"):
-        finalize(_returned_view(StorageKind.GMEM))
+@pytest.mark.parametrize("storage", [StorageKind.GMEM, StorageKind.SMEM])
+@pytest.mark.parametrize("chain", [False, True])
+def test_a_returned_view_passes_its_analyzed_storage_to_the_callee(storage, chain):
+    lowered = finalize(_returned_view(storage, chain))
+    verify_module(lowered)
+    function = lowered.entry_function()
+    visitor = _RetainedStatements()
+    visitor.visit(function.body)
+    assert len(visitor.calls) == (2 if chain else 1)
+    for prior in visitor.calls[:-1]:
+        assert visitor.storage(prior.args[0]) is function.params[0]
+        assert visitor.storage(prior.args[-1]) is function.params[0]
+    call = visitor.calls[-1]
+    assert call.args[0] is not call.args[-1]
+    assert visitor.storage(call.args[0]) is function.params[0]
+    assert visitor.storage(call.args[-1]) is function.params[-1]
+    assert not any(isinstance(op, Copy) for op in visitor.operations)
+    callee = _RetainedStatements()
+    callee.visit(lowered.children[call.callable.key].elements[0].entry_function().body)
+    assert not callee.operations
 
 
-def test_a_returned_smem_view_requires_explicit_scheduled_copy():
-    with pytest.raises(LoweringError, match=r"return leaf \(\) cannot be placed on its output: x"):
-        finalize(_returned_view(StorageKind.SMEM))
+@pytest.mark.parametrize("read_old", [False, True])
+@pytest.mark.parametrize("reshape", [False, True])
+def test_inplace_output_passes_distinct_views_without_a_whole_copy(tmp_path, read_old, reshape):
+    source = Path(__file__).parents[1] / "fixtures/schedule/hir/inplace_output_update.py"
+    if read_old or reshape:
+        text = source.read_text()
+        if read_old:
+            text = text.replace("(x, tf.empty", "(out[0:1, :], tf.empty")
+        if reshape:
+            text = text.replace("return update(out, x)", "return tf.reshape(update(out, x), (4, 2))")
+        rewritten = tmp_path / source.name
+        rewritten.write_text(text)
+        source = rewritten
+    lowered = finalize(_module_in(source))
+    verify_module(lowered)
+    function = lowered.entry_function()
+    visitor = _RetainedStatements()
+    visitor.visit(function.body)
+    assert len(visitor.calls) == 1
+    call = visitor.calls[0]
+    assert call.args[0] is not call.args[-1]
+    assert visitor.storage(call.args[0]) is function.params[0]
+    assert visitor.storage(call.args[-1]) is function.params[-1]
+    callee = _RetainedStatements()
+    callee.visit(call.callable.body)
+    copies = [stmt for stmt in callee.statements if isinstance(stmt.callable, Copy)]
+    assert len(copies) == 2
+    assert callee.storage(copies[0].args[0]) is call.callable.params[0 if read_old else 1]
+    assert callee.storage(copies[-1].args[-1]) is call.callable.params[-1]
+    assert not any(stmt.args[0].type.shape == (2, 4) for stmt in copies)
+
+
+def test_read_only_call_before_an_update_keeps_the_input_storage(tmp_path):
+    source = Path(__file__).parents[1] / "fixtures/schedule/hir/inplace_output_update.py"
+    text = source.read_text().replace(
+        "    @func\n    def update",
+        '    @func\n    def identity(out: Tensor[(2, 4), "f32"]):\n'
+        '        return out\n\n    @func\n    def update',
+    ).replace(
+        "row = tf.schedule((x,", "old = identity(out)\n                row = tf.schedule((old[0:1, :],"
+    ).replace("return tf.insert_slice(out,", "return tf.insert_slice(old,")
+    path = tmp_path / source.name
+    path.write_text(text)
+    lowered = finalize(_module_in(path))
+    verify_module(lowered)
+    visitor = _RetainedStatements()
+    visitor.visit(lowered.entry_function().body)
+    update = visitor.calls[0].callable
+    body = _RetainedStatements()
+    body.visit(update.body)
+    assert len(body.calls) == 1
+    identity = body.calls[0]
+    assert body.storage(identity.args[0]) is update.params[0]
+    assert body.storage(identity.args[-1]) is update.params[0]
+    copies = [stmt for stmt in body.statements if isinstance(stmt.callable, Copy)]
+    assert body.storage(copies[0].args[0]) is update.params[0]
+    assert body.storage(copies[-1].args[-1]) is update.params[-1]
 
 
 @pytest.mark.parametrize("wrong,refused", [

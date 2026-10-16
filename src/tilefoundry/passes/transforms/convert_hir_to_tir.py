@@ -1,7 +1,7 @@
 """Lower scheduled HIR to effect-form TIR.
 
 The pass analyzes a checked program and lowers each retained definition once.
-Memory metadata owns storage addresses; registered access relations own
+Allocation summaries own storage addresses; registered access relations own
 instruction issue geometry. This file only turns those two facts into statements.
 """
 
@@ -15,8 +15,10 @@ from math import prod
 import isl
 
 from tilefoundry.analysis import MemoryMetadata, analyze
-from tilefoundry.analysis.access import BufferAlias, SSAValue
+from tilefoundry.analysis.access import AliasKind, SSAValue, name_loop_parameters, referenced_values
+from tilefoundry.analysis.allocation import AllocationSummary, _edge, address_alias, root
 from tilefoundry.analysis.check import check_program
+from tilefoundry.analysis.errors import AnalysisError
 from tilefoundry.inspection.analysis_report import render_analysis
 from tilefoundry.inspection.values import ReportIdentity, ReportSelection
 from tilefoundry.ir.core import (
@@ -41,11 +43,10 @@ from tilefoundry.ir.hir.mesh_region import MeshRegion
 from tilefoundry.ir.hir.schedule import ScheduleOp, instruction_schema, operand_relations
 from tilefoundry.ir.hir.sharding.mesh_coord import MeshCoord
 from tilefoundry.ir.hir.specialize import origin_of
-from tilefoundry.ir.hir.tensor.empty import Empty
 from tilefoundry.ir.hir.tensor.slice import Slice
 from tilefoundry.ir.hir.tensor.tuple_get_item import TupleGetItem
-from tilefoundry.ir.hir.tensor.zeros import Zeros
 from tilefoundry.ir.isl_interop import isl_to_dim
+from tilefoundry.ir.tir.arith import Binary as TirBinary
 from tilefoundry.ir.tir.async_copy import CopyAsync, is_indexed_copy
 from tilefoundry.ir.tir.memory import AllocTensor, Copy, Fill, PtrOf, TensorView
 from tilefoundry.ir.tir.prim_function import PrimFunction
@@ -72,16 +73,22 @@ from tilefoundry.ir.types.dim import (
     simplify_dim,
 )
 from tilefoundry.ir.types.layout import flatten, resolve_layout
+from tilefoundry.ir.types.layout_algebra import composition
+from tilefoundry.ir.types.layout_correspondence import layout_correspondence
+from tilefoundry.ir.types.shard_layout import shard_layout_of, split_target_axes
 from tilefoundry.ir.types.stride import compact_row_major
 from tilefoundry.ir.types.utils import (
     i64_const,
     participant_layout,
     static_dim_value,
 )
-from tilefoundry.ir.visitor import collect_exprs, expr_children
+from tilefoundry.ir.visitor import expr_children
 from tilefoundry.passes.pass_base import ModulePass
+from tilefoundry.utils.isl_utils import as_multi_aff
 from tilefoundry.visitor_registry.access_relation import (
+    AccessRelation,
     iteration_universe,
+    leaves_of,
     projected_axes,
 )
 from tilefoundry.visitor_registry.buffer_alias import aliased_operand
@@ -273,6 +280,17 @@ def _plain_layout(type_: TensorType):
     return layout
 
 
+def _layout_addresses(shape, layout):
+    flat = flatten(resolve_layout(layout, shape))
+    coordinates = [f"c{axis}" for axis in range(len(shape))]
+    digits = layout_correspondence(flat.shape, tuple(shape)).coordinates(coordinates)
+    linear = " + ".join(f"{stride} * ({digit})" for stride, digit in zip(
+        flat.strides, digits, strict=True
+    )) or "0"
+    offset = layout.offset if isinstance(layout, ComposedLayout) else 0
+    return isl.map(f"{{ [{', '.join(coordinates)}] -> [{offset} + {linear}] }}")
+
+
 def _storage_type(type_: TensorType) -> TensorType:
     return replace(type_, layout=_plain_layout(type_))
 
@@ -312,60 +330,52 @@ class Lowering(ValuationVisitor[Expr | _View]):
             ctx = self.locations.get(id(expr), self.context)
             if isinstance(expr, (MeshRegion, LoopRegion)):
                 ctx = ctx.parent
-        return super().visit(expr, ctx)
-
-    def _carry_initial(self, value):
-        for loop in self.locations.get(id(value), self.context).enclosing_loops():
-            for param, initial in zip(loop.params[:len(loop.yield_values)], loop.args):
-                if param is value:
-                    return initial
-        return None
+        result = super().visit(expr, ctx)
+        return self._value(expr, result) if SSAValue(expr) in self.addresses else result
 
     def __post_init__(self) -> None:
         super().__init__()
         self.names = Names(self.authored)
         self.logical: dict[int, TensorType] = {}
         self.staged: dict[int, tuple[Var, tuple[LoopRegion, ...]]] = {}
+        self.stage_counters = {}
         self.frames: list[Mesh] = []
         self.outputs: list[tuple[tuple[int, ...], Var]] = []
-        self.output_storage: dict[int, Var] = {}
+        self.output_storage: dict[SSAValue, Var] = {}
+        self.output_values = {}
         self.scratch: list[Var] = []
         self.ctx = LoweringContext(self.function)
-        values = {id(value): value for value in collect_exprs(self.function.body)}
-        calls = {key: value for key, value in values.items() if isinstance(value, Call)}
-        self.output_windows = {
-            id(call): memory.alias
-            for call in calls.values()
-            if (memory := get_metadata(call, MemoryMetadata)) is not None
-            and memory.alias is not None
-        }
+        summary = get_metadata(self.function, AllocationSummary)
+        self.addresses = {}
+        self.address_precisions = summary.view_precisions
+        self.storage = {}
+        self.tensors = {}
         self.authored_values: dict[int, Expr] = {}
         if self.function.body is not None and self.authored.body is not None:
             self.authored_values[id(self.function.body)] = self.authored.body
         self.locations = self.index_contexts(self.function, self.context)
-        self.output_ties = {}
-        for value in values.values():
-            memory = get_metadata(value, MemoryMetadata)
-            alias = None if memory is None else memory.alias
-            if (
-                alias is not None
-                and self._carry_initial(alias.target.expr) is not None
-                and self._carry_initial(value) is not alias.target.expr
-                and alias.relation.relation.is_identity()
-                and getattr(value.type, "shape", None) == alias.target.expr.type.shape
-            ):
-                root = self._return_storage(value, (), aliases=False)
-                region = self.locations.get(id(root))
-                loops = () if region is None else region.enclosing_loops()
-                if any(any(alias.target.expr is param for param in loop.params) for loop in loops):
-                    self.output_ties[id(root)] = alias
-                self.output_ties[id(value)] = alias
-        self.output_windows = {
-            key: alias for key, alias in self.output_windows.items() if key not in self.output_ties
-        }
+        for value in summary.executable_values().values():
+            aliases = []
+            for alias in value.aliases:
+                if value.lifetime.memory_level == "rmem" and alias.kind is AliasKind.IN_PLACE:
+                    continue
+                relation = alias.relation.relation
+                depth = relation.dim(isl.dim_type.IN) - len(leaves_of(value.value.expr.type)[value.value.index].shape)
+                if depth:
+                    loops = self.locations[id(value.value.expr)].enclosing_loops()[:depth]
+                    relation, bindings = name_loop_parameters(relation, (loop.induction_var for loop in loops))
+                    relation = relation.project_out(isl.dim_type.IN, 0, depth)
+                    relation = relation.gist_params(relation.params())
+                    alias = replace(alias, relation=AccessRelation(relation, referenced_values(
+                        relation, {**alias.relation.values, **bindings}
+                    )))
+                aliases.append(alias)
+            self.addresses[value.value] = replace(value, aliases=tuple(aliases))
         self.register_scopes = self._register_scope_plan()
+        self.parameters = {}
         for param in self.function.params:
             physical = Var(param.name, type=param.type, is_const=param.is_const)
+            self.parameters[id(param)] = physical
             self._memo[id(param)] = (param, physical)
             if isinstance(param.type, TensorType):
                 self.logical[id(physical)] = param.type
@@ -378,46 +388,42 @@ class Lowering(ValuationVisitor[Expr | _View]):
         for path, type_ in self._return_leaves(self.function.return_type):
             if not isinstance(type_, TensorType):
                 raise LoweringError(f"return leaf {path!r} has non-tensor type {type_!r}")
-            root = self._return_storage(self.function.body, path)
-            if root is not None:
-                if id(root) in seen:
-                    raise LoweringError(f"return leaf {path!r} shares storage with another output")
-                seen.add(id(root))
-            roots.append((path, type_, root))
-        for path, type_, root in roots:
-            output_type = (
-                replace(type_, storage=StorageKind.GMEM)
-                if type_.storage is StorageKind.UMAT
-                else type_
-            )
+            key = SSAValue(self.function.body, len(roots))
+            if key not in self.addresses:
+                raise LoweringError(f"return leaf {path!r} cannot be placed on its output: None")
+            address = self._address(key.expr, key.index)
+            if address.target in seen:
+                raise LoweringError(f"return leaf {path!r} shares storage with another output")
+            seen.add(address.target)
+            roots.append((path, type_, key, address))
+        for path, type_, key, address in roots:
+            output_type = replace(type_, storage=StorageKind.GMEM) if type_.storage is StorageKind.UMAT else type_
             output = Var(self.names.fresh("out"), type=output_type)
             self.outputs.append((path, output))
-            if (
-                isinstance(root, Call)
-                and (
-                    isinstance(root.target, (Zeros, Empty))
-                    or self.callee_frame(root, self.context.frame) is not None
+            value = self.addresses[key]
+            returning = True
+            while True:
+                retained = (isinstance(value.value.expr, Call)
+                            and self.callee_frame(value.value.expr, self.context.frame) is not None)
+                if self._address(value.value.expr, value.value.index).writes or (returning and retained):
+                    self.output_values[value.value] = (output, address)
+                edge = _edge(value, self.addresses)
+                if edge is None:
+                    break
+                returning = returning and not retained and not edge.writes and edge.kind in (
+                    AliasKind.VIEW, AliasKind.FORWARD
                 )
-                and getattr(root.target, "buffers", 1) == 1
-                and replace(root.type, layout=resolve_layout(root.type.layout, root.type.shape))
-                == replace(
-                    output_type, layout=resolve_layout(output_type.layout, output_type.shape)
-                )
-                and id(root) not in self.output_storage
-            ):
-                self.output_storage[id(root)] = output
-            else:
-                raise LoweringError(
-                    f"return leaf {path!r} cannot be placed on its output: "
-                    f"{_label(root) if root is not None else None}"
-                )
+                value = self.addresses[edge.target]
+            held = leaves_of(address.target.expr.type)[address.target.index]
+            if address.relation.relation.is_identity() and held == type_:
+                self.output_storage[address.target] = output
         body = self.function.body
         result = self.visit(body)
         if not isinstance(body, MeshRegion):
             self._finish(result)
         statements = self.ctx.blocks[0].build()
 
-        params = tuple(self._memo[id(param)][1] for param in self.function.params)
+        params = tuple(self.parameters[id(param)] for param in self.function.params)
         return PrimFunction(
             self.function.name,
             (*params, *self.scratch, *(output for _path, output in self.outputs)),
@@ -451,58 +457,79 @@ class Lowering(ValuationVisitor[Expr | _View]):
         else:
             yield path, type_
 
-    def _return_storage(
-        self, value: Expr, path: tuple[int, ...], *, aliases: bool = True
-    ) -> Expr | None:
-        """Follow the HIR storage edges that lowering already implements."""
-        if isinstance(value, MeshRegion):
-            return self._return_storage(value.body, path, aliases=aliases)
-        if isinstance(value, LoopRegion):
-            if not value.yield_values:
-                return None
-            slot, tail = (0, path) if len(value.yield_values) == 1 else (path[0], path[1:])
-            return self._return_storage(value.params[slot], tail, aliases=aliases)
-        if isinstance(value, Tuple):
-            return (
-                self._return_storage(value.elements[path[0]], path[1:], aliases=aliases)
-                if path
-                else None
-            )
-        memory = get_metadata(value, MemoryMetadata)
-        if aliases and memory is not None and memory.alias is not None:
-            return self._return_storage(
-                memory.alias.target.expr,
-                (*self._alias_path(memory.alias.target), *path),
-                aliases=aliases,
-            )
-        if isinstance(value, Var):
-            initial = self._carry_initial(value)
-            if initial is not None:
-                if (
-                    memory is not None
-                    and memory.alias is not None
-                    and memory.alias.target.expr is initial
-                ):
-                    return self._return_storage(initial, path, aliases=aliases)
-                return value if not path else None
-            root = self._capture_root(value)
-            return (
-                self._return_storage(root, path, aliases=aliases)
-                if root is not value
-                else value
-                if not path
-                else None
-            )
-        if isinstance(value, Call):
-            if isinstance(value.target, TupleGetItem):
-                index = static_dim_value(value.args[1])
-                if index is not None:
-                    return self._return_storage(value.args[0], (index, *path), aliases=aliases)
-                return None
-            slot = aliased_operand(value)
-            if slot is not None:
-                return self._return_storage(value.args[slot], path, aliases=aliases)
-        return value if not path else None
+    def _address(self, value: Expr, index: int = 0):
+        try:
+            return address_alias(self.addresses[SSAValue(value, index)], self.addresses,
+                                 precisions=self.address_precisions)
+        except AnalysisError as error:
+            raise LoweringError(str(error)) from error
+
+    def _same_address(self, left, right):
+        a, b = self._address(left), self._address(right)
+        return a.target == b.target and a.relation.relation.is_equal(b.relation.relation)
+
+    def _tensor(self, key: SSAValue):
+        known = self.tensors.get(key)
+        if known is not None:
+            return known
+        address = self._address(key.expr, key.index)
+        value = self.addresses[key]
+        while True:
+            if value.value in self.output_values:
+                output, returned = self.output_values[value.value]
+                relation = address.relation.relation.apply_range(returned.relation.relation.reverse())
+                relative = replace(address, relation=AccessRelation(
+                    relation, {**address.relation.values, **returned.relation.values}
+                ))
+                desired = leaves_of(key.expr.type)[key.index]
+                result = self._address_view(output, relative, desired)
+                self.logical[id(result)] = desired
+                self.tensors[key] = result
+                return result
+            edge = _edge(value, self.addresses)
+            if edge is None:
+                break
+            value = self.addresses[edge.target]
+        base = self.storage.get(address.target)
+        if base is None:
+            source = address.target.expr
+            base = self.parameters.get(id(source))
+            if base is None:
+                base = self.output_storage.get(address.target)
+            if base is None:
+                base = self._declare(source, leaves_of(source.type)[address.target.index],
+                                     getattr(source.target, "buffers", 1) if isinstance(source, Call) else 1)
+            self.storage[address.target] = base
+        desired = leaves_of(key.expr.type)[key.index]
+        if desired.storage is StorageKind.GMEM and desired.dtype != base.type.dtype:
+            raise LoweringError("gmem cross-dtype reuse has no offset-view representation")
+        if desired.storage is StorageKind.SMEM and desired.dtype != base.type.dtype:
+            source = address.target.expr
+            offsets = get_metadata(source, MemoryMetadata).offsets
+            with self.ctx.declaration_scope(self._staging_owner(source) if len(offsets) > 1 else None):
+                result = self._smem_storage(key.expr, _storage_type(desired), offsets,
+                                            self.names.fresh("value"), self._staging_loops(source))
+        else:
+            result = base if key == address.target else self._address_view(base, address, desired)
+        self.logical[id(result)] = desired
+        self.tensors[key] = result
+        return result
+
+    def _value(self, expr: Expr, fallback=None):
+        index = 0
+        def build(type_, lowered):
+            nonlocal index
+            if isinstance(type_, TupleType):
+                elements = lowered.elements if isinstance(lowered, Tuple) else (None,) * len(type_.fields)
+                return Tuple(tuple(build(field, value) for field, value in zip(
+                    type_.fields, elements, strict=True
+                )), type=type_)
+            key = SSAValue(expr, index)
+            index += 1
+            if type_.shape == () and isinstance(lowered, (Call, Constant)):
+                return lowered
+            return self._tensor(key) if key in self.addresses else lowered
+        return build(expr.type, fallback)
 
     def _register_scope_plan(self) -> dict[int, Expr]:
         """Place genuinely shared registers at their outermost HIR definition.
@@ -518,18 +545,20 @@ class Lowering(ValuationVisitor[Expr | _View]):
             for path, type_ in self._return_leaves(scope.owner.type):
                 if not isinstance(type_, TensorType) or type_.storage is not StorageKind.RMEM:
                     continue
-                root = self._return_storage(scope.owner, path)
-                if root is None:
+                index = tuple(self._return_leaves(scope.owner.type)).index((path, type_))
+                root_value = self.addresses.get(SSAValue(scope.owner, index))
+                if root_value is None:
                     continue
-                previous = locations.get(id(root), self.locations.get(id(root)))
+                source = root(root_value, self.addresses).value.expr
+                previous = locations.get(id(source), self.locations.get(id(source)))
                 receiver = scope.parent
                 if previous is None:
-                    locations[id(root)] = receiver
+                    locations[id(source)] = receiver
                 else:
                     ancestors = {id(ctx.owner) for ctx in previous.ancestors()}
                     while id(receiver.owner) not in ancestors:
                         receiver = receiver.parent
-                    locations[id(root)] = receiver
+                    locations[id(source)] = receiver
         return {key: scope.owner for key, scope in locations.items()}
 
     def _declare(
@@ -600,16 +629,19 @@ class Lowering(ValuationVisitor[Expr | _View]):
             view = _View(scratch, (i64_const(0),), (elements,), desired, stem)
             self.logical[id(view)] = type_
             return view
+        return self._smem_storage(expr, storage_type, offsets, stem, self._staging_loops(expr))
+
+    def _smem_storage(self, expr, storage_type, offsets, stem, loops):
         fields = tuple(self._literal_view(storage_type, offset) for offset in offsets)
         if len(fields) == 1:
             view = _View(fields[0].args[0], (), tuple(storage_type.shape), storage_type, stem)
-            self.logical[id(view)] = type_
+            self.logical[id(view)] = storage_type
             return view
         tuple_type = TupleType(tuple(field.type for field in fields))
         stages = Var(self.names.fresh(f"{stem}_stages"), type=tuple_type)
         self.ctx.bind(stages, Tuple(fields, type=tuple_type))
-        self.logical[id(stages)] = type_
-        self.staged[id(expr)] = (stages, self._staging_loops(expr))
+        self.logical[id(stages)] = storage_type
+        self.staged[id(expr)] = (stages, loops)
         return self._stage(expr)
 
     @staticmethod
@@ -628,6 +660,20 @@ class Lowering(ValuationVisitor[Expr | _View]):
 
     def _stage(self, expr: Call) -> Expr:
         stages, loops = self.staged[id(expr)]
+        if any(static_dim_value(bound) is None
+               for loop in loops[1:] for bound in (loop.start, loop.extent, loop.step)):
+            key = tuple(id(loop) for loop in loops)
+            if key not in self.stage_counters:
+                counter = Var(self.names.fresh("stage_counter"), type=_BINDING)
+                one = Var(self.names.fresh("stage_one"), type=_BINDING)
+                with self.ctx.declaration_scope(self._staging_owner(expr)):
+                    for value, number in ((counter, 0), (one, 1)):
+                        self.ctx.bind(value, Call(AllocTensor(tensor_type=_BINDING), (), type=_BINDING))
+                        self.ctx.add(Evaluate(Fill(), (value, Constant(number, type=_BINDING))))
+                self.stage_counters[key] = (counter, one)
+            counter, _one = self.stage_counters[key]
+            index = simplify_dim(DimMod, (counter, len(stages.type.fields)))
+            return Call(TupleGetItem(), (stages, index), type=stages.type.fields[0])
         index = i64_const(0)
         for depth, loop in enumerate(loops):
             known = self._memo.get(id(loop.induction_var))
@@ -643,11 +689,6 @@ class Lowering(ValuationVisitor[Expr | _View]):
                     f"{loop.induction_var.name!r}"
                 )
             if depth:
-                if start is None or stop is None:
-                    raise LoweringError(
-                        f"{_label(expr)} staged selection needs a constant trip count for "
-                        f"{loop.induction_var.name!r}"
-                    )
                 trips = max(0, (stop - start + step - 1) // step)
                 index = simplify_dim(DimMul, (index, trips))
             moved = (
@@ -669,7 +710,7 @@ class Lowering(ValuationVisitor[Expr | _View]):
     def _bind_region_args(self, region: LoopRegion | MeshRegion) -> None:
         values = tuple(self.visit(arg) for arg in region.args)
         for param, value in zip(region.params, values, strict=True):
-            self._memo[id(param)] = (param, value)
+            self._memo[id(param)] = (param, self._value(param, value) if SSAValue(param) in self.addresses else value)
 
     def _pair_authored(self, expr: Expr) -> None:
         authored = self.authored_values.get(id(expr))
@@ -735,20 +776,8 @@ class Lowering(ValuationVisitor[Expr | _View]):
         self._bind_region_args(loop)
         carried_values = []
         for slot, param in enumerate(loop.params[: len(loop.yield_values)]):
-            memory = get_metadata(param, MemoryMetadata)
-            if memory is not None and memory.alias is not None:
-                if memory.alias.target.expr is not loop.args[slot]:
-                    raise LoweringError(
-                        f"loop parameter {param.name!r} has an alias that is not a carry tie"
-                    )
-                carried = self._alias_value(param, memory.alias.target)
-            else:
-                tie = self.output_ties.get(id(param))
-                carried = (
-                    self._declare(param, param.type, 1)
-                    if tie is None
-                    else self._alias_value(param, tie.target)
-                )
+            carried = self._value(param)
+            if not self._same_address(param, loop.args[slot]):
                 self._emit_copy(self.visit(loop.args[slot]), carried)
             self._memo[id(param)] = (param, carried)
             carried_values.append(carried)
@@ -764,14 +793,11 @@ class Lowering(ValuationVisitor[Expr | _View]):
             for param, source, carried, value in zip(
                 loop.params, loop.yield_values, init, yielded, strict=False
             ):
-                memory = get_metadata(source, MemoryMetadata)
-                tied = (
-                    memory is not None
-                    and memory.alias is not None
-                    and self._capture_root(memory.alias.target.expr) is param
-                )
-                if not tied:
+                if not self._same_address(source, param):
                     self._emit_copy(value, carried)
+            for key, (counter, one) in self.stage_counters.items():
+                if key[-1] == id(loop):
+                    self.ctx.add(Evaluate(TirBinary(kind=BinaryKind.ADD), (counter, one, counter)))
         result = (
             init[0]
             if len(init) == 1
@@ -788,7 +814,7 @@ class Lowering(ValuationVisitor[Expr | _View]):
             known = self._memo.get(id(value))
             if known is None:
                 raise LoweringError(f"dimension uses unbound value {value.name!r}")
-            return known[1]
+            return self._operand(known[1])
         if isinstance(value, Call) and isinstance(value.target, MeshCoord):
             return Call(
                 MeshCoord(mesh=self._physical_frame(value.target.mesh)),
@@ -804,6 +830,8 @@ class Lowering(ValuationVisitor[Expr | _View]):
             return simplify_dim(dim_op, tuple(self._dim(arg) for arg in value.args))
         if isinstance(value, Call) and is_dim_op_call(value):
             return Call(value.target, tuple(self._dim(arg) for arg in value.args), type=value.type)
+        if isinstance(value, Call):
+            return self._operand(self.visit(value))
         if isinstance(value, Expr):
             return self._known(value)
         raise LoweringError(f"dimension {value!r} is not lowerable")
@@ -824,6 +852,14 @@ class Lowering(ValuationVisitor[Expr | _View]):
 
     def _lower_call(self, call: Call) -> Expr | _View:
         frame = self.callee_frame(call, self.context.frame)
+        summary = get_metadata(frame.function, AllocationSummary)
+        values = {value.value: value for value in summary.values}
+        for index in range(len(leaves_of(call.type))):
+            returned = root(values[SSAValue(frame.function.body, index)], values).value
+            formal = next((i for i, param in enumerate(frame.function.params)
+                           if returned.expr is param), None)
+            if formal is not None and self._address(call, index).target != self._address(call.args[formal], returned.index).target:
+                raise LoweringError(f"return leaf {self._alias_path(SSAValue(call, index))!r} cannot be placed on its output: {_label(call)}")
         lowering = self.callees.get(id(frame.function))
         if lowering is None:
             region = self.locations[id(call)]
@@ -835,9 +871,7 @@ class Lowering(ValuationVisitor[Expr | _View]):
             lowering.lowered = lowering.run()
             self.callees[id(frame.function)] = lowering
         args = tuple(self.visit(arg) for arg in call.args)
-        destination = self.output_storage.get(id(call))
-        if destination is None:
-            destination = self._declare_result(call, 1)
+        destination = self._value(call)
         self.logical[id(destination)] = call.type
         scratch = []
         for param in lowering.scratch:
@@ -913,28 +947,15 @@ class Lowering(ValuationVisitor[Expr | _View]):
         return Call(call.target, (source, index), type=call.type)
 
     def visit_Slice(self, call: Call):
-        base = self.visit(call.args[0])
-        starts_arg = call.args[1]
-        starts = (
-            tuple(self._window_start(value) for value in starts_arg.elements)
-            if isinstance(starts_arg, Tuple)
-            else (self._window_start(starts_arg),)
-        )
-        if any(stride != 1 for stride in call.target.strides):
-            raise LoweringError(f"{_label(call)} has a strided Slice, which is not contiguous")
-        return _View(base, starts, tuple(call.target.sizes), call.type)
+        for arg in call.args:
+            self.visit(arg)
+        return self._value(call)
 
     def visit_Reshape(self, call: Call):
-        source = self.visit(call.args[0])
-        return _View(
-            source,
-            tuple(i64_const(0) for _ in source.type.shape),
-            tuple(source.type.shape),
-            call.type,
-        )
+        self.visit(call.args[0])
+        return self._value(call)
 
-    def visit_Bitcast(self, call: Call):
-        return self.visit_Reshape(call)
+    visit_Bitcast = visit_Reshape
 
     def visit_Reshard(self, call: Call):
         if aliased_operand(call) is None:
@@ -945,43 +966,22 @@ class Lowering(ValuationVisitor[Expr | _View]):
         return self._lower_automatic_instruction(call)
 
     def _declare_result(self, call: Call, buffers: int) -> Expr:
-        tie = self.output_ties.get(id(call))
-        if tie is not None:
-            return self._alias_value(call, tie.target)
         if call.type.storage is StorageKind.RMEM and buffers != 1:
             raise LoweringError(f"{_label(call)} staged buffer has no owning scope")
-        return self._declare(call, call.type, buffers)
+        return self._value(call)
 
     def visit_Empty(self, call: Call) -> Expr:
-        placed = self.output_storage.get(id(call))
-        if placed is not None:
-            self.logical[id(placed)] = call.type
-            return placed
         return self._declare_result(call, call.target.buffers)
 
-    def _bind_window_alias(self, producer: Call, window: BufferAlias) -> None:
-        self._alias_value(producer, window.target)
-        for value in window.relation.values.values():
-            if (
-                isinstance(value, Expr)
-                and not isinstance(value, Constant)
-                and not (isinstance(value, Call) and isinstance(value.target, MeshCoord))
-            ):
-                self._alias_value(producer, value)
-
     def visit_Zeros(self, call: Call) -> Expr | _View:
-        alias = self.output_windows.get(id(call))
-        if alias is not None:
-            window = self._output_window(alias, call.type)
-            self.logical[id(window)] = call.type
-            self._emit_fill(window, call.type)
-            return window
-        result = self.output_storage.get(id(call))
-        if result is None:
-            result = self._declare_result(call, 1)
-        else:
-            self.logical[id(result)] = call.type
-        self._emit_fill(result, call.type)
+        return self._lower_fill(call, 0.0)
+
+    def visit_FullLike(self, call: Call) -> Expr | _View:
+        return self._lower_fill(call, call.target.value)
+
+    def _lower_fill(self, call: Call, value) -> Expr | _View:
+        result = self._declare_result(call, 1)
+        self._emit_fill(result, call.type, value)
         return result
 
     def _window_start(self, value: Expr) -> Expr:
@@ -990,7 +990,7 @@ class Lowering(ValuationVisitor[Expr | _View]):
             if operation is not None:
                 return simplify_dim(operation, tuple(self._window_start(arg) for arg in value.args))
         return (
-            self.visit(value)
+            self._operand(self.visit(value))
             if isinstance(value, Call) and not is_dim_op_call(value)
             else self._dim(value)
         )
@@ -1004,31 +1004,15 @@ class Lowering(ValuationVisitor[Expr | _View]):
     def visit_InsertSlice(self, call: Call) -> Expr:
         target = self.visit(call.args[0])
         update = self.visit(call.args[1])
-        memory = get_metadata(call, MemoryMetadata)
-        tied = (
-            memory is not None
-            and memory.alias is not None
-            and self._capture_root(memory.alias.target.expr) is self._capture_root(call.args[0])
-        )
-        result = target if tied else self._declare_result(call, 1)
+        tied = self._same_address(call, call.args[0])
+        result = self._value(call)
         if not tied:
             self._emit_copy(target, result)
-        update_source = self._capture_root(call.args[1])
-        if isinstance(update_source, Call) and isinstance(update_source.target, ScheduleOp):
-            slot = aliased_operand(update_source)
-            update_source = self._capture_root(update_source.args[slot])
-        root = self._return_storage(update_source, (), aliases=False)
-        if root is not None:
-            update_source = root
-        memory = get_metadata(update_source, MemoryMetadata)
-        destination = self._capture_root(call.args[0])
-        if (
-            tied
-            and memory is not None
-            and memory.alias is not None
-            and memory.alias.target.expr is destination
-        ):
-            return result
+        value = self.addresses[SSAValue(call.args[1])]
+        while (edge := _edge(value, self.addresses)) is not None:
+            if edge.kind is AliasKind.WINDOW and edge.target == SSAValue(call):
+                return result
+            value = self.addresses[edge.target]
         starts, desired = self._insert_window(call, result, update.type)
         self._emit_copy(
             update, result, starts=starts, sizes=tuple(update.type.shape), desired=desired
@@ -1101,31 +1085,13 @@ class Lowering(ValuationVisitor[Expr | _View]):
         reads = tuple(param for param in params if param.effect & MemoryEffect.READ)
         writes = tuple(param for param in params if param.effect & MemoryEffect.WRITE)
         produced = tuple(param for param in writes if not param.effect & MemoryEffect.READ)
-        output_window = self.output_windows.get(id(call))
-        destination_operand = None
-        if isinstance(call.target, ScheduleOp) and produced:
-            destination_operand = call.args[params.index(produced[0])]
-            output_window = self.output_windows.get(id(destination_operand))
-        if output_window is not None:
-            self._bind_window_alias(call, output_window)
-        written = None
-        if produced and output_window is None and not isinstance(call.target, ScheduleOp):
-            written = self._declare_result(call, 1)
-        if destination_operand is not None and output_window is None:
-            tie = self.output_ties.get(id(call))
-            written = (
-                self.visit(destination_operand) if tie is None else self._alias_value(call, tie.target)
-            )
-            if tie is not None:
-                self._memo[id(destination_operand)] = (destination_operand, written)
+        destination_operand = call.args[params.index(produced[0])] if isinstance(call.target, ScheduleOp) and produced else None
+        written = self._value(call) if produced else None
         read_values = {}
         supplied = params if isinstance(call.target, ScheduleOp) else reads
         for param, operand in zip(
             supplied, call.args if operands is None else operands, strict=True
         ):
-            if param.effect == MemoryEffect.WRITE and output_window is not None:
-                read_values[param.name] = None
-                continue
             value = (
                 written
                 if operand is destination_operand
@@ -1178,15 +1144,13 @@ class Lowering(ValuationVisitor[Expr | _View]):
                 if isinstance(call.target, ScheduleOp) or param.effect & MemoryEffect.READ
                 else written
             )
-            if value is None and output_window is None:
+            if value is None:
                 raise LoweringError(f"{_label(call)} has no storage for {param.name}")
             operands.append((param.name, value))
 
         written = self._emit_instruction(
-            call, op, tuple(operands), mesh, output_window, written, projection
+            call, op, tuple(operands), mesh, written, projection
         )
-        if destination_operand is not None and output_window is not None and written is not None:
-            self._memo[id(destination_operand)] = (destination_operand, written)
         result_param = next(param for param in params if param.effect & MemoryEffect.WRITE)
         if result_param.effect & MemoryEffect.READ:
             return read_values[result_param.name]
@@ -1199,40 +1163,89 @@ class Lowering(ValuationVisitor[Expr | _View]):
             path for path, held in self._return_leaves(value.expr.type) if isinstance(held, TensorType)
         )[value.index]
 
-    def _alias_value(self, producer: Expr, value: Expr | SSAValue) -> Expr:
-        path = self._alias_path(value) if isinstance(value, SSAValue) else ()
-        value = value.expr if isinstance(value, SSAValue) else value
-        known = self._memo.get(id(value))
-        if known is None:
-            raise LoweringError(f"{_label(producer)} alias requires lowered value {_label(value)!r}")
-        result = known[1]
-        for index in path:
-            result = (
-                result.elements[index]
-                if isinstance(result, Tuple)
-                else Call(TupleGetItem(), (result, i64_const(index)), type=result.type.fields[index])
-            )
-        return result
-
-    def _output_window(self, alias: BufferAlias, desired: TensorType) -> _View:
-        target = self._alias_value(alias.target.expr, alias.target)
-        origin = alias.relation.relation
-        for axis in range(origin.dim(isl.dim_type.IN)):
+    def _address_view(self, target, address, desired):
+        """Derive an exact physical view; a proved composition carries its origin."""
+        relation = address.relation.relation
+        if relation.is_identity() and tuple(desired.shape) == tuple(target.type.shape):
+            zeros = tuple(i64_const(0) for _ in target.type.shape)
+            return _View(target, zeros, tuple(target.type.shape), desired, "value", whole_tensor=True)
+        layout = resolve_layout(_plain_layout(target.type), target.type.shape)
+        placed = relation.apply_range(_layout_addresses(tuple(target.type.shape), layout))
+        try:
+            affine = as_multi_aff(placed).get_at(0)
+            if isinstance(layout, ComposedLayout) and any(
+                   affine.get_domain_local_space().get_div(div).get_coefficient_val(isl.dim_type.IN, axis).sgn()
+                   for div in range(affine.dim(isl.dim_type.DIV))
+                   for axis in range(len(desired.shape))):
+                raise ValueError("address contains coordinate-dependent divisions")
+            strides = tuple(int(affine.get_coefficient_val(isl.dim_type.IN, axis).num_si())
+                            for axis in range(len(desired.shape)))
+        except (ValueError, isl.Error) as error:
+            if not isinstance(layout, ComposedLayout):
+                raise LoweringError(f"non-affine address {relation}: {error}") from error
+            strides = None
+        values = {name: self._dim(value) for name, value in address.relation.values.items()}
+        origin = relation
+        for axis in range(relation.dim(isl.dim_type.IN)):
             origin = origin.fix_val(isl.dim_type.IN, axis, isl.val(0))
-        image = origin.range()
-        values = {name: self._dim(value) for name, value in alias.relation.values.items()}
-        starts = tuple(
-            i64_const(start) if isinstance(start, int) else start
-            for axis in range(image.dim(isl.dim_type.SET))
-            for start in (isl_to_dim(image.dim_min(axis).gist_params(image.params()), values),)
-        )
-        desired = self._window_type(target, starts, desired)
-        return _View(target, starts, tuple(desired.shape), desired, "window")
+        point = origin.range()
+        starts = tuple(isl_to_dim(point.dim_min(axis).gist_params(point.params()), values)
+                       for axis in range(point.dim(isl.dim_type.SET)))
+        starts = tuple(i64_const(start) if isinstance(start, int) else start for start in starts)
+        whole = all(static_dim_value(start) == 0 for start in starts)
+        if isinstance(layout, ComposedLayout):
+            candidate = desired.layout
+            if isinstance(candidate, ComposedLayout) or whole:
+                if not isinstance(candidate, ComposedLayout):
+                    candidate = replace(layout, outer=Layout(tuple(desired.shape), strides))
+                if strides is not None and not affine.dim(isl.dim_type.PARAM):
+                    candidate = replace(layout, offset=int(affine.get_constant_val().num_si()),
+                                        outer=Layout(tuple(desired.shape), strides))
+                elif strides is None:
+                    linear = relation.apply_range(_layout_addresses(tuple(target.type.shape), Layout(
+                        tuple(target.type.shape), compact_row_major(tuple(target.type.shape))
+                    )))
+                    linear = as_multi_aff(linear).get_at(0)
+                    steps = tuple(int(linear.get_coefficient_val(isl.dim_type.IN, axis).num_si())
+                                  for axis in range(len(desired.shape)))
+                    offset = as_multi_aff(origin.apply_range(_layout_addresses(
+                        tuple(target.type.shape), layout
+                    ))).get_at(0).get_constant_val().num_si()
+                    candidate = replace(layout, outer=composition(layout.outer, Layout(
+                        tuple(desired.shape), steps
+                    ), major="row"), offset=int(offset))
+                declared = _layout_addresses(tuple(desired.shape), candidate).intersect_domain(relation.domain())
+                if candidate.inner != layout.inner or not declared.is_equal(placed):
+                    raise LoweringError(f"composed view does not preserve exact address {relation}")
+                desired = replace(desired, layout=candidate)
+                whole = True
+                starts = tuple(i64_const(0) for _ in starts)
+            else:
+                desired = self._window_type(target, starts, desired)
+        else:
+            offset = isl.map.from_domain_and_range(relation.domain(), origin.apply_range(
+                _layout_addresses(tuple(target.type.shape), layout)
+            ).range())
+            declared = _layout_addresses(tuple(desired.shape), Layout(tuple(desired.shape), strides))
+            declared = declared.flat_range_product(offset).apply_range(isl.map("{ [a, b] -> [a + b] }"))
+            if not declared.is_equal(placed):
+                raise LoweringError(f"non-affine address {relation}")
+            if not isinstance(desired.layout, ShardLayout):
+                desired = replace(desired, layout=Layout(tuple(desired.shape), strides))
+        sizes = [1] * len(starts)
+        shard = shard_layout_of(target.type.layout)
+        while shard is not None:
+            for axis in split_target_axes(shard, tuple(target.type.shape)):
+                if axis is None:
+                    continue
+                if static_dim_value(starts[axis]) != 0:
+                    raise LoweringError(f"nonzero pointer origin on split axis {axis}: {relation}")
+                sizes[axis] = target.type.shape[axis]
+            shard = shard_layout_of(shard.layout)
+        return _View(target, starts, tuple(sizes), desired, "value", whole_tensor=whole)
 
-    def _emit_instruction(self, call, op, operands, mesh, output_window, written, projection):
+    def _emit_instruction(self, call, op, operands, mesh, written, projection):
         atom = getattr(op, "atom", None)
-        if atom is not None and output_window is not None:
-            raise LoweringError(f"{_label(call)} cannot issue an atom into an output window")
         if atom is None:
             if mesh is None:
                 raise LoweringError(f"{_label(call)} instruction issue has no lexical mesh")
@@ -1254,15 +1267,10 @@ class Lowering(ValuationVisitor[Expr | _View]):
                 frame = self.ctx.frame
                 issued = []
                 for role, value in operands:
-                    if value is None:
-                        value = self._output_window(output_window, call.type)
-                        self.logical[id(value)], written = call.type, value
                     desired = self.logical.get(id(value), value.type)
                     issued.append(self._whole_operand(value, desired, frame, f"{role}_frame"))
                 self.ctx.add(Evaluate(self._issued_op(op), tuple(issued)))
             return written
-        if any(value is None for _, value in operands):
-            raise LoweringError(f"{_label(call)} cannot issue an atom into an output window")
         logical = tuple(self.logical.get(id(value), value.type) for _, value in operands)
         try:
             relations = operand_relations(op, logical)
@@ -1382,9 +1390,14 @@ class Lowering(ValuationVisitor[Expr | _View]):
             return known[1]
         desired = value.desired
         if isinstance(desired.layout, ShardLayout):
-            if self.ctx.frame is None:
-                raise LoweringError("a sharded view requires an issuing mesh")
-            desired = _with_frame(desired, self.ctx.frame)
+            holder = self._holder_mesh(desired)
+            frame = next((
+                scope.frame for scope in reversed(self.ctx.blocks)
+                if scope.frame is not None and scope.frame.topologies == holder.topologies
+            ), None)
+            if frame is None:
+                raise LoweringError(f"a sharded view requires an issuing mesh: {desired.layout!r}")
+            desired = _with_frame(desired, frame)
         if isinstance(value.base, Constant) and isinstance(value.base.type, PointerType):
             result = self.ctx.bind(
                 Var(value.stem, type=desired),
@@ -1462,10 +1475,6 @@ class Lowering(ValuationVisitor[Expr | _View]):
             raise LoweringError(
                 f"a rank-{len(held.shape)} buffer is windowed by {len(starts)} starts"
             )
-        if prod(tuple(sizes)) != prod(tuple(desired.shape)):
-            raise LoweringError(
-                f"a window of {tuple(sizes)} cannot be viewed as {tuple(desired.shape)}"
-            )
         if desired.layout is None:
             desired = replace(
                 desired,
@@ -1503,13 +1512,13 @@ class Lowering(ValuationVisitor[Expr | _View]):
         layout = type_.layout
         return participant_layout(layout).mesh if isinstance(layout, ShardLayout) else None
 
-    def _emit_fill(self, target, logical_type: TensorType) -> None:
+    def _emit_fill(self, target, logical_type: TensorType, value) -> None:
         mesh = self._holder_mesh(logical_type)
         frame = None if mesh is None else self._physical_frame(mesh)
-        zero = Constant(0.0, type=TensorType.scalar(logical_type.dtype))
+        scalar = Constant(value, type=TensorType.scalar(logical_type.dtype))
         with self._issue_scope(frame):
             written = self._operand(target)
-            self.ctx.add(Evaluate(Fill(), (written, zero)))
+            self.ctx.add(Evaluate(Fill(), (written, scalar)))
 
     def _emit_copy(
         self,
@@ -1543,20 +1552,9 @@ class Lowering(ValuationVisitor[Expr | _View]):
             self.ctx.add(Evaluate(Copy(), (read, written)))
 
     def _finish(self, result: Expr | _View) -> None:
-        for path, output in self.outputs:
-            leaf = result
-            for index in path:
-                leaf = (
-                    leaf.elements[index]
-                    if isinstance(leaf, Tuple)
-                    else Call(
-                        TupleGetItem(), (leaf, i64_const(index)), type=leaf.type.fields[index]
-                    )
-                )
-            if leaf is not output:
-                raise LoweringError(
-                    f"return leaf {path!r} lowered to different storage than its output"
-                )
+        for index, (path, _output) in enumerate(self.outputs):
+            if SSAValue(self.function.body, index) not in self.addresses:
+                raise LoweringError(f"return leaf {path!r} cannot be placed on its output: None")
 
 
 @dataclass
