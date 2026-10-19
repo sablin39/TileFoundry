@@ -208,3 +208,72 @@ def test_a_mesh_names_what_holds_a_tile_three_ways() -> None:
     assert torch.allclose(out_scalar, a + 0.5, rtol=0, atol=0)
     assert torch.allclose(level_out, rows * rows, rtol=0, atol=0)
     assert torch.equal(level_out, axis_out)
+
+
+@module(topologies=(Topology("cta", _CTAS), Topology("thread", _THREADS)))
+class CastWindow:
+    """Each CTA narrows its own window and clears a parameter in place.
+
+    The window start is mesh-coordinate arithmetic, as a multi-CTA schedule
+    writes it; ``(c // 2) * 16 + (c % 2) * 8`` is ``c * 8``.
+    """
+
+    @prim_func(target=_CUDA)
+    def cast_window_device(
+        a: Tensor[(_ROWS,), "f32"], out: Tensor[(_ROWS,), "f16"], filled: Tensor[(_ROWS,), "f32"]
+    ):
+        with Mesh((Topology("cta", _CTAS),), layout=(_CTAS,), names=("d0",)) as cta:
+            with Mesh((Topology("thread", _THREADS),), layout=(_THREADS,), names=("d0",)) as thread:
+                row = ShardLayout(Layout((_THREADS,), (1,)), (Split(0),), thread)
+                source = T.tensor_view(
+                    T.ptr_of(a[(cta.d0 // 2) * 16 + (cta.d0 % 2) * 8:(cta.d0 // 2) * 16 + (cta.d0 % 2) * 8 + 1]),
+                    layout=row,
+                    shape=(_THREADS,),
+                )
+                written = T.tensor_view(
+                    T.ptr_of(out[(cta.d0 // 2) * 16 + (cta.d0 % 2) * 8:(cta.d0 // 2) * 16 + (cta.d0 % 2) * 8 + 1]),
+                    layout=row,
+                    shape=(_THREADS,),
+                )
+                held = T.alloc_tensor(Tensor[(_THREADS,), "f32", row, "rmem"])
+                narrowed = T.alloc_tensor(Tensor[(_THREADS,), "f16", row, "rmem"])
+                T.copy(source, held)
+                T.cast(held, narrowed, dtype="f16")
+                T.copy(narrowed, written)
+                T.fill(filled, 0.5)
+
+
+@module(entry="cast_window_host", target=_CUDA)
+class CastWindowHost:
+    """Launch one CTA per window."""
+
+    window = CastWindow
+
+    @prim_func(target=CpuTarget())
+    def cast_window_host(
+        a: Tensor[(_ROWS,), "f32"], out: Tensor[(_ROWS,), "f16"], filled: Tensor[(_ROWS,), "f32"]
+    ):
+        launch(  # noqa: F821
+            window.cast_window_device,  # noqa: F821
+            a,
+            out,
+            filled,
+            grid=(_CTAS, 1, 1),
+            block=(_THREADS, 1, 1),
+        )
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires CUDA")
+def test_a_cast_window_and_a_filled_parameter_emit_and_execute() -> None:
+    """Effect-form Cast, Fill on a kernel parameter, and a mesh-coordinate window."""
+    rm = tilefoundry.compile(CastWindowHost, target=_CUDA)
+    torch.manual_seed(0)
+    a = torch.randn(_ROWS, dtype=torch.float32, device="cuda")
+    out = torch.zeros(_ROWS, dtype=torch.float16, device="cuda")
+    filled = torch.zeros(_ROWS, dtype=torch.float32, device="cuda")
+
+    rm(a, out, filled)
+    torch.cuda.synchronize()
+
+    assert torch.equal(out, a.half())
+    assert torch.equal(filled, torch.full_like(filled, 0.5))

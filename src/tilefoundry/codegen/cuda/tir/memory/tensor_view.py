@@ -117,6 +117,17 @@ def _scope_mesh_value(mesh, ctx) -> "str | None":
     return alias[: -len("_mesh_t")] + "_mesh" if alias.endswith("_mesh_t") else None
 
 
+def _mesh_coord_value(call: Call, ctx) -> str:
+    """This unit's coordinate along one static axis of its enclosing mesh."""
+    axis = static_dim_value(call.args[0])
+    if axis is None:
+        raise NotImplementedError("CUDA MeshCoord requires a static axis")
+    mesh = _scope_mesh_value(call.target.mesh, ctx)
+    if mesh is None:
+        raise ValueError("CUDA MeshCoord requires its enclosing mesh binding")
+    return f"cute::get<{axis}>(cute::flatten(tilefoundry::mesh_coords({mesh}, tilefoundry::program_ids())))"
+
+
 def _render_mesh_type(mesh, ctx=None) -> str:
     """tilefoundry::Mesh<...> — uses scope alias if registered in ctx."""
     inline = mesh_type(mesh)
@@ -323,13 +334,7 @@ class _CoordinateVisitor(ExprVisitor[str]):
             lhs, rhs = (self.visit(arg, ctx) for arg in expr.args)
             return f"({lhs} {operator} {rhs})"
         if isinstance(expr.target, MeshCoord):
-            axis = static_dim_value(expr.args[0])
-            if axis is None:
-                raise NotImplementedError("CUDA MeshCoord requires a static axis")
-            mesh = _scope_mesh_value(expr.target.mesh, ctx)
-            if mesh is None:
-                raise ValueError("CUDA MeshCoord requires its enclosing mesh binding")
-            return f"cute::get<{axis}>(cute::flatten(tilefoundry::mesh_coords({mesh}, tilefoundry::program_ids())))"
+            return _mesh_coord_value(expr, ctx)
         raise NotImplementedError(
             f"local_tile coordinate: Call target {type(expr.target).__name__!r} is not supported"
         )
@@ -357,7 +362,8 @@ def _coord_ref(index_var, ctx: CudaCodegenContext) -> str:
     native names; one-element offset tensors read element zero. Dim arithmetic
     renders as the arithmetic itself: a multiplication preserves grid output
     placement after an ordinal is converted to an element start, and an addition
-    moves a window's base by a compile-time offset. Other forms fail closed.
+    moves a window's base by a compile-time offset. A mesh coordinate reads this
+    unit's position along its axis. Other forms fail closed.
     """
     return _CoordinateVisitor().visit(index_var, ctx)
 

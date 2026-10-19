@@ -199,12 +199,18 @@ def _emit_binary(call, ctx: CudaCodegenContext) -> None:
 
 
 @register_codegen(CudaTarget, Role.EMIT, Unary)
+@register_codegen(CudaTarget, Role.EMIT, Cast)
 def _emit_unary(call, ctx: CudaCodegenContext) -> None:
-    """One source, always the bare tag -- a unary needs no lambda."""
+    """One source, always the bare tag -- a unary needs no lambda.
+
+    An effect-form ``Cast`` is ``UnaryKind.CAST``: the store into the
+    destination converts, so its functor is the identity.
+    """
     src, dst = call.args
     src_n = _tensor_expr(src, ctx)
     dst_n = _tensor_expr(dst, ctx)
-    tag = _UNARY_TAG[call.target.kind]
+    kind = UnaryKind.CAST if isinstance(call.target, Cast) else call.target.kind
+    tag = _UNARY_TAG[kind]
     n = _dyn_clip(dst, (src,), ctx)
     if n is None:
         ctx.emit(f"tilefoundry::ops::elementwise({dst_n}, {tag}{{}}, {src_n});")
@@ -215,31 +221,5 @@ def _emit_unary(call, ctx: CudaCodegenContext) -> None:
     ctx.emit(f"auto tilefoundry_elementwise_dst = cute::make_tensor({dst_n}.data(), tilefoundry_elementwise_n);")
     ctx.emit(f"auto tilefoundry_elementwise_src = cute::make_tensor({src_n}.data(), tilefoundry_elementwise_n);")
     ctx.emit(f"tilefoundry::ops::elementwise(tilefoundry_elementwise_dst, {tag}{{}}, tilefoundry_elementwise_src);")
-    ctx.dedent()
-    ctx.emit("}")
-
-
-@register_codegen(CudaTarget, Role.EMIT, Cast)
-def _emit_cast(call, ctx: CudaCodegenContext) -> None:
-    """Effect-form Cast: the store into the destination converts, so the
-    elementwise functor is the identity, as for ``UnaryKind.CAST``."""
-    src, dst = call.args
-    src_n = _tensor_expr(src, ctx)
-    dst_n = _tensor_expr(dst, ctx)
-    n = _dyn_clip(dst, (src,), ctx)
-    if n is None:
-        ctx.emit(
-            f"tilefoundry::ops::elementwise({dst_n}, tilefoundry::primitive::identity_op{{}}, {src_n});"
-        )
-        return
-    ctx.emit("{")
-    ctx.indent()
-    ctx.emit(f"auto tilefoundry_elementwise_n = cute::make_layout({n});")
-    ctx.emit(f"auto tilefoundry_elementwise_dst = cute::make_tensor({dst_n}.data(), tilefoundry_elementwise_n);")
-    ctx.emit(f"auto tilefoundry_elementwise_src = cute::make_tensor({src_n}.data(), tilefoundry_elementwise_n);")
-    ctx.emit(
-        "tilefoundry::ops::elementwise(tilefoundry_elementwise_dst, "
-        "tilefoundry::primitive::identity_op{}, tilefoundry_elementwise_src);"
-    )
     ctx.dedent()
     ctx.emit("}")

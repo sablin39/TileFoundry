@@ -1,13 +1,12 @@
 """Shared scalar Expr to C renderer for TIR statement emitters."""
 
 from tilefoundry.codegen.cuda.context import CudaCodegenContext
-from tilefoundry.codegen.cuda.tir.memory.tensor_view import _scope_mesh_value
+from tilefoundry.codegen.cuda.tir.memory.tensor_view import _mesh_coord_value
 from tilefoundry.codegen.signature import tensor_signature_of
 from tilefoundry.ir.core import Call, Constant, Var
 from tilefoundry.ir.core.kinds import BinaryKind
 from tilefoundry.ir.hir.sharding.mesh_coord import MeshCoord
 from tilefoundry.ir.tir.shape import ShapeOf
-from tilefoundry.ir.types.utils import static_dim_value
 from tilefoundry.ir.visitor import ExprVisitor
 
 _SCALAR_BINARY_OP = {
@@ -45,13 +44,7 @@ class _PredicateVisitor(ExprVisitor[str]):
 
     def visit_Call(self, expr: Call, ctx: CudaCodegenContext) -> str:
         if isinstance(expr.target, MeshCoord):
-            axis = static_dim_value(expr.args[0])
-            if axis is None:
-                raise NotImplementedError("CUDA MeshCoord requires a static axis")
-            mesh = _scope_mesh_value(expr.target.mesh, ctx)
-            if mesh is None:
-                raise ValueError("CUDA MeshCoord requires its enclosing mesh binding")
-            return f"cute::get<{axis}>(cute::flatten(tilefoundry::mesh_coords({mesh}, tilefoundry::program_ids())))"
+            return _mesh_coord_value(expr, ctx)
         kind = getattr(expr.target, "kind", None)
         if not isinstance(kind, BinaryKind) or kind not in _SCALAR_BINARY_OP:
             raise NotImplementedError(
