@@ -22,7 +22,7 @@ from tilefoundry.visitor_registry.access_relation import (
 class Fill(Op):
     """Fills ``tensor`` element-wise with ``value`` (rank-0 scalar)."""
 
-    execution_mesh = utils.thread_execution_mesh()
+    execution_mesh = utils.memory_execution_mesh()
 
     tensor = ParamDef(
         kind="input",

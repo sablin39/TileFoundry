@@ -56,6 +56,7 @@ def registered_targets() -> Mapping[str, type[Target]]: ...
     by inheriting a backend-specific analysis base class. A missing Facts
     projection MUST fail when the selected analyzer requests it.
   - `facts_result`, `TargetFactsError`, `TopologyFacts`, `TopologyLevelFacts`,
+    `MemoryExecutionFacts`,
     `MemoryHierarchyFacts`, `ThroughputFacts`, and `PerformanceServiceFacts`
     MUST be importable from `tilefoundry.target` for provider implementations.
   - `name` MUST be a non-empty class variable declared directly by every
@@ -583,6 +584,9 @@ class AppleM2Pro:
     unified_memory_bandwidth_bytes_per_second: int
     _unit_flops: tuple[tuple[str, tuple[tuple[DType, int], ...]], ...]
 
+    performance_amx_f16: int | None
+    performance_host_lane_events: int | None
+
     def throughput_for(self, unit: str, dtype: DType) -> int: ...
 ```
 
@@ -608,6 +612,17 @@ class AppleM2Pro:
   - `throughput_for` MUST return a measured per-unit throughput recorded in the
     installed document, and MUST raise an actionable error for a unit or compute
     DType with no measured entry rather than return an estimate.
+  - `performance_amx_f16` and `performance_host_lane_events` MUST read their
+    available or unavailable entries from the installed document. Estimates MUST
+    state their sources and assumptions separately from measured throughput and
+    MUST NOT populate `throughput_for`'s measured-rate map.
+  - AMX `PerformanceServiceFacts` MUST use the measured NEON FP32 rate for host
+    arithmetic. FP16 service MUST divide the documented per-AMX-unit estimate
+    across core streams using the AMX unit count and performance-core count.
+    Non-FLOP work MUST use the documented per-core lane-event estimate.
+    Global-memory bandwidth MUST be shared across the same core streams.
+    Unrecorded DTypes and services MUST remain absent.
+
 
 ## 9. `AmxTarget`
 
@@ -822,9 +837,19 @@ class TopologyFacts:
 
     def level(self, name: str | None) -> TopologyLevelFacts | None: ...
     def parallel(self) -> TopologyLevelFacts | None: ...
+
+
+class MemoryExecutionFacts:
+    topologies: tuple[str, ...]
 ```
 
 - constraints:
+  - `MemoryExecutionFacts.topologies` MUST list the Target's execution levels
+    admitted for synchronous Copy and Fill. Each name MUST occur in
+    `TopologyFacts.topologies`. CUDA admits its thread level; AMX admits its
+    core and coprocessor levels. An empty list admits no memory execution scope.
+    Shared instruction matching MUST specialize the memory mesh wildcard from
+    this projection before checking operands.
   - `max_logical_units` is the program-side declaration limit.
     `max_physical_units` is the machine-side count of positions the level
     divides over. For CUDA CTAs it counts one CTA per SM for this model; it is

@@ -47,6 +47,7 @@ from tilefoundry.visitor_registry.instruction import (
     operand_relations,
     project,
 )
+from tilefoundry.visitor_registry.registries import cost_evaluator_registry
 
 
 @dataclass(frozen=True)
@@ -170,6 +171,9 @@ def _schedule_access_relation(call: Call, ctx) -> tuple[AccessRelation, ...]:
 
 @register_cost_evaluator(ScheduleOp)
 def _schedule_cost(call: Call, ctx) -> Cost:
+    evaluator = cost_evaluator_registry.lookup(type(call.target.op))
+    if evaluator is not None:
+        return evaluator(Call(call.target.op, call.args, type=call.type), ctx)
     stated = relations_of(call, ctx)
     local = projected(stated, call, ctx)
     types = (*(ctx.local_type_of(arg) for arg in call.args), ctx.local_output_type(call))
@@ -216,7 +220,7 @@ def match_instruction(op_type, attributes, operand_types, mesh, *, frame, repeat
         raise ScheduleRefusal(f"{op_type.__name__} schedule operands must be tensors", op=op)
     atom = getattr(op, "atom", None)
     if not isinstance(atom, type):
-        admit_fields(op, operand_types, mesh, PatternMatcher(dict(getattr(atom, "bindings", {}))))
+        admit_fields(op, operand_types, mesh, PatternMatcher(dict(getattr(atom, "bindings", {}))), target=None if frame is None else frame.target)
         tiles = project(op, operand_types, mesh, repeat=repeat, order=order)
         bindings, _tiles = check_call(
             op, operand_types, mesh, frame=frame, repeat=repeat, order=order, projection=tiles
@@ -241,7 +245,7 @@ def match_instruction(op_type, attributes, operand_types, mesh, *, frame, repeat
     for seed in partial:
         matcher = PatternMatcher(seed)
         try:
-            admit_fields(op, operand_types, mesh, matcher)
+            admit_fields(op, operand_types, mesh, matcher, target=None if frame is None else frame.target)
         except ScheduleRefusal as error:
             refusal = refusal or error
             continue
@@ -306,7 +310,7 @@ def _infer_schedule(call: Call, ctx) -> TensorType:
                 attributes,
                 tuple(ctx.type_of(arg) for arg in call.args),
                 ctx.current_mesh,
-                frame=ctx.frame,
+                frame=ctx,
                 repeat=call.target.repeat,
                 order=call.target.order,
             )
@@ -316,6 +320,7 @@ def _infer_schedule(call: Call, ctx) -> TensorType:
                 tuple(ctx.type_of(arg) for arg in call.args),
                 ctx.current_mesh,
                 PatternMatcher(dict(getattr(getattr(op, "atom", None), "bindings", {}))),
+                target=ctx.target,
             )
             tiles = project(
                 op,
@@ -328,7 +333,7 @@ def _infer_schedule(call: Call, ctx) -> TensorType:
                 op,
                 tuple(ctx.type_of(arg) for arg in call.args),
                 ctx.current_mesh,
-                frame=ctx.frame,
+                frame=ctx,
                 repeat=call.target.repeat,
                 order=call.target.order,
                 projection=tiles,

@@ -28,7 +28,7 @@ class Copy(Op):
 
     capability = OpCapability(None)
 
-    execution_mesh = utils.thread_execution_mesh()
+    execution_mesh = utils.memory_execution_mesh()
 
     src = ParamDef(
         kind="input",
