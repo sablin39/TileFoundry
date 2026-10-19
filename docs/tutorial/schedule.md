@@ -392,8 +392,10 @@ from tilefoundry.target import CudaTarget
 def gemm(
     a: Tensor[(8192, 5120), "bf16"], b: Tensor[(5120, 17408), "bf16"], scratch: Tensor[(32768,), "bf16"], scratch_1: Tensor[(142606336,), "bf16"], out: Tensor[(8192, 17408), "bf16"]
 ):
-    with Mesh((Topology("cta", 132),), layout=(132,), names=("d0",)) as cta:
-        with Mesh((Topology("thread", 384),), layout=(3, 128), names=("d0", "d1")) as scope:
+    with Mesh((Topology("cta", 132),), layout=(132,), names=("persistent",)) as cta:
+        with Mesh(
+            (Topology("thread", 384),), layout=(3, 128), names=("warpgroup", "participant")
+        ) as scope:
             T.fill(out, 0.0)
             lhs_ring_stages = (
                 T.tensor_view(98304, dtype="bf16", storage="smem", layout=Layout(((2, 8, 8), (4, 16)), ((4096, 512, 64), (16, 1))) | Swizzle(3, 4, 3), shape=(128, 64)),
@@ -405,7 +407,7 @@ def gemm(
                 T.tensor_view(32768, dtype="bf16", storage="smem", layout=Layout(((4, 2, 8), (4, 64)), ((4096, 512, 64), (1024, 1))) | Swizzle(3, 4, 3), shape=(64, 256)),
                 T.tensor_view(65536, dtype="bf16", storage="smem", layout=Layout(((4, 2, 8), (4, 64)), ((4096, 512, 64), (1024, 1))) | Swizzle(3, 4, 3), shape=(64, 256)),
             )
-            for task in range(cta.d0, 4352, 132):
+            for task in range(cta.persistent, 4352, 132):
                 acc = T.alloc_tensor(
                     tensor_type=Tensor[
                         (128, 256),
@@ -417,13 +419,13 @@ def gemm(
                                 inner=None,
                                 offset=128,
                                 outer=Layout((2, 4, 8, 4), (128, 32, 4, 1)),
-                            ), names=("d0", "d1", "d2", "d3")),
+                            ), names=("group", "warp", "lane8", "lane4")),
                         ),
                         "rmem",
                     ]
                 )
                 with Mesh(
-                    scope[1:], layout=(2, 4, 8, 4), names=("d0", "d1", "d2", "d3")
+                    scope[1:], layout=(2, 4, 8, 4), names=("group", "warp", "lane8", "lane4")
                 ) as scope_1:
                     T.fill(acc, 0.0)
                 for k in range(0, 5120, 64):
@@ -433,64 +435,62 @@ def gemm(
                             layout=((128, 64), (5120, 1)),
                             shape=(128, 64),
                         )
-                        value_1 = T.tensor_view(
-                            T.ptr_of(lhs_ring_stages[((((task - cta.d0) // 132) * 80) + (k // 64)) % 3]),
-                            layout=Layout(((2, 8, 8), (4, 16)), ((4096, 512, 64), (16, 1))) | Swizzle(3, 4, 3),
-                            shape=(128, 64),
+                        T.copy_async_tensor(
+                            value,
+                            lhs_ring_stages[((((task - cta.persistent) // 132) * 80) + (k // 64)) % 3],
                         )
-                        T.copy_async_tensor(value, value_1)
-                        value_2 = T.tensor_view(
+                        value_1 = T.tensor_view(
                             T.ptr_of(b[k:k + 1, ((task // 16) % 68) * 256:((task // 16) % 68) * 256 + 1]),
                             layout=((64, 256), (17408, 1)),
                             shape=(64, 256),
                         )
-                        value_3 = T.tensor_view(
-                            T.ptr_of(rhs_ring_stages[((((task - cta.d0) // 132) * 80) + (k // 64)) % 3]),
-                            layout=Layout(((4, 2, 8), (4, 64)), ((4096, 512, 64), (1024, 1))) | Swizzle(3, 4, 3),
-                            shape=(64, 256),
+                        T.copy_async_tensor(
+                            value_1,
+                            rhs_ring_stages[((((task - cta.persistent) // 132) * 80) + (k // 64)) % 3],
                         )
-                        T.copy_async_tensor(value_2, value_3)
                     with Mesh(
-                        scope[1:], layout=(2, 4, 8, 4), names=("d0", "d1", "d2", "d3")
+                        scope[1:], layout=(2, 4, 8, 4), names=("group", "warp", "lane8", "lane4")
                     ) as scope_3:
-                        for o_m in range(0, 128, 128):
-                            for o_n in range(0, 256, 256):
-                                for o_k in range(0, 64, 64):
-                                    value_4 = T.tensor_view(
-                                        T.ptr_of(acc),
-                                        layout=((2 @ scope_3.d0, 4 @ scope_3.d1, 2, 8 @ scope_3.d2, 32, 4 @ scope_3.d3, 2), (16384, 16, 8, 1, 512, 128, 64)),
-                                        shape=(128, 256),
-                                    )
-                                    value_5 = T.tensor_view(
-                                        T.ptr_of(lhs_ring_stages[((((task - cta.d0) // 132) * 80) + (k // 64)) % 3]),
-                                        layout=Layout(((2, 8, 8), (4, 16)), ((4096, 512, 64), (16, 1))) | Swizzle(3, 4, 3),
-                                        shape=(128, 64),
-                                    )
-                                    lhs_view = T.tensor_view(
-                                        T.ptr_of(value_5[o_m:o_m + 128, o_k:o_k + 16]),
-                                        layout=(Layout(((2, 8, 8), 16), ((4096, 512, 64), 1)) | Swizzle(3, 4, 3)) @ {B()},
-                                        shape=(128, 16),
-                                    )
-                                    value_6 = T.tensor_view(
-                                        T.ptr_of(rhs_ring_stages[((((task - cta.d0) // 132) * 80) + (k // 64)) % 3]),
-                                        layout=Layout(((4, 2, 8), (4, 64)), ((4096, 512, 64), (1024, 1))) | Swizzle(3, 4, 3),
-                                        shape=(64, 256),
-                                    )
-                                    rhs_view = T.tensor_view(
-                                        T.ptr_of(value_6[o_k:o_k + 16, o_n:o_n + 256]),
-                                        layout=(Layout(((2, 8), (4, 64)), ((512, 64), (1024, 1))) | Swizzle(3, 4, 3)) @ {B()},
-                                        shape=(16, 256),
-                                    )
-                                    T.tiled_mma(
-                                        value_4,
-                                        lhs_view,
-                                        rhs_view,
-                                        atom=T.cuda.sm90.Wgmma(n=256, dtype="bf16", form=T.cuda.sm90.Form.SS, a_major=T.cuda.sm90.Major.K, b_major=T.cuda.sm90.Major.MN),
-                                    )
-                                    lhs_view_1 = T.tensor_view(
-                                        T.ptr_of(value_5[o_m:o_m + 128, o_k + 16:o_k + 16 + 16]),
-                                        layout=(Layout(((2, 8, 8), 16), ((4096, 512, 64), 1)) + 16 | Swizzle(3, 4, 3)) @ {B()},
-                                        shape=(128, 16),
+                        acc_view = T.tensor_view(
+                            T.ptr_of(acc[0:0 + 128, 0:0 + 256]),
+                            layout=((2 @ scope_3.group, 4 @ scope_3.warp, 2, 8 @ scope_3.lane8, 32, 4 @ scope_3.lane4, 2), (16384, 16, 8, 1, 512, 128, 64)),
+                            shape=(128, 256),
+                        )
+                        lhs_view = T.tensor_view(
+                            T.ptr_of(lhs_ring_stages[((((task - cta.persistent) // 132) * 80) + (k // 64)) % 3][0:0 + 128, 0:0 + 16]),
+                            layout=(Layout(((2, 8, 8), 16), ((4096, 512, 64), 1)) | Swizzle(3, 4, 3)) @ {B()},
+                            shape=(128, 16),
+                        )
+                        rhs_view = T.tensor_view(
+                            T.ptr_of(rhs_ring_stages[((((task - cta.persistent) // 132) * 80) + (k // 64)) % 3][0:0 + 16, 0:0 + 256]),
+                            layout=(Layout(((2, 8), (4, 64)), ((512, 64), (1024, 1))) | Swizzle(3, 4, 3)) @ {B()},
+                            shape=(16, 256),
+                        )
+                        T.tiled_mma(
+                            acc_view,
+                            lhs_view,
+                            rhs_view,
+                            atom=T.cuda.sm90.Wgmma(n=256, dtype="bf16", form=T.cuda.sm90.Form.SS, a_major=T.cuda.sm90.Major.K, b_major=T.cuda.sm90.Major.MN),
+                        )
+                        acc_view_1 = T.tensor_view(
+                            T.ptr_of(acc[0:0 + 128, 0:0 + 256]),
+                            layout=((2 @ scope_3.group, 4 @ scope_3.warp, 2, 8 @ scope_3.lane8, 32, 4 @ scope_3.lane4, 2), (16384, 16, 8, 1, 512, 128, 64)),
+                            shape=(128, 256),
+                        )
+                        lhs_view_1 = T.tensor_view(
+                            T.ptr_of(lhs_ring_stages[((((task - cta.persistent) // 132) * 80) + (k // 64)) % 3][0:0 + 128, 16:16 + 16]),
+                            layout=(Layout(((2, 8, 8), 16), ((4096, 512, 64), 1)) + 16 | Swizzle(3, 4, 3)) @ {B()},
+                            shape=(128, 16),
+                        )
+                        rhs_view_1 = T.tensor_view(
+                            T.ptr_of(rhs_ring_stages[((((task - cta.persistent) // 132) * 80) + (k // 64)) % 3][16:16 + 16, 0:0 + 256]),
+                            layout=(Layout(((2, 8), (4, 64)), ((512, 64), (1024, 1))) | Swizzle(3, 4, 3)) @ {B()},
+                            shape=(16, 256),
+                        )
+                        T.tiled_mma(
+                            acc_view_1,
+                            lhs_view_1,
+                            rhs_view_1,
 ```
 
 The three `g / bn / mi` loops and `cta.d0` survive lowering. The three RHS slots
