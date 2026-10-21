@@ -58,6 +58,15 @@ class Ordered(argparse.Action):
         stated.append((self.dest, values))
 
 
+def _json_target(value: str) -> str:
+    """A ``--json`` PATH whose parent directory exists, checked at parse time."""
+    if not Path(value).expanduser().resolve().parent.is_dir():
+        raise argparse.ArgumentTypeError(
+            f"{value}: its parent directory does not exist"
+        )
+    return value
+
+
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     """Declare `check`'s own arguments, bounds included, off the registry."""
     parser.add_argument(
@@ -105,7 +114,12 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
             "defaults to the device the selection's Target declares"
         ),
     )
-    parser.add_argument("--json", metavar="PATH", help="write the machine-readable report to PATH")
+    parser.add_argument(
+        "--json",
+        metavar="PATH",
+        type=_json_target,
+        help="write the machine-readable report to PATH",
+    )
 
 
 def guidance() -> str:

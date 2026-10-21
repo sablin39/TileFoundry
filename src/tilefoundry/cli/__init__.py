@@ -163,7 +163,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_source_argument(analyze)
     analyze.add_argument(
-        "out", metavar="PATH", help="write the report here; stdout carries none of it"
+        "out", metavar="PATH", help="write the report here; '-' writes to stdout instead"
     )
     for analysis in _ANALYSES:
         analyze.add_argument(f"--{analysis}", action="store_true", help=EVIDENCE[analysis])
@@ -190,7 +190,7 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     analyze.add_argument(
-        "--json", action="store_true", help="print the report as JSON instead of text"
+        "--json", action="store_true", help="render the report as JSON instead of text"
     )
     analyze.set_defaults(_command_parser=analyze)
 

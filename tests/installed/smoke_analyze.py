@@ -47,7 +47,7 @@ def test_logical_analyses_run(tf, cmine, tmp_path) -> None:
     assert done.returncode == 0, done.stderr
     assert done.stdout == ""
     report = (tmp_path / "logical.py").read_text(encoding="utf-8")
-    for conclusion in ("# compute-cost flops=", "# memory traffic=", "# roofline ideal-ns="):
+    for conclusion in ("# compute-cost flops=", "# memory function=", "# roofline ideal-ns="):
         assert conclusion in report, conclusion
 
 
@@ -117,7 +117,7 @@ def test_mega_kernel_reports_four_families_with_retained_occurrences(tf, tmp_pat
     for conclusion in (
         "# selection requested=compute-cost,memory,roofline,performance",
         "# compute-cost flops=f32:",
-        "# memory traffic=",
+        "# memory function=",
         "# roofline ideal-ns=",
         "# performance root=MoEMegaKernel::experts predicted-ns=",
     ):

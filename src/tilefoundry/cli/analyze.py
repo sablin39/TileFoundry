@@ -139,7 +139,7 @@ def run_authored_analysis(
                 as_script(frame.function, options=PythonPrintOptions(show_types=True))
                 for frame in ValuationVisitor.definitions(ValuationContext(checked, root))
             )
-            Path(out_path).write_text(annotated, encoding="utf-8")
+            _write_report(out_path, annotated)
             return 0
 
         result = analyze(
@@ -150,18 +150,24 @@ def run_authored_analysis(
         )
         rendered = render_analysis(result, operands=operands and not as_json)
         if as_json:
-            Path(out_path).write_text(
+            _write_report(
+                out_path,
                 f"{render_json({**rendered.data, 'source': rendered.annotated})}\n",
-                encoding="utf-8",
             )
             return 0
 
-        Path(out_path).write_text(
-            f"{render_text(rendered)}\n\n{rendered.annotated}", encoding="utf-8"
-        )
+        _write_report(out_path, f"{render_text(rendered)}\n\n{rendered.annotated}")
         return 0
     finally:
         disarmed.set()
+
+
+def _write_report(out_path: str, text: str) -> None:
+    """Write the report to PATH, or to stdout when PATH is ``-``."""
+    if out_path == "-":
+        sys.stdout.write(text)
+        return
+    Path(out_path).write_text(text, encoding="utf-8")
 
 
 __all__ = ["ANALYSES", "EVIDENCE", "guidance", "run_authored_analysis"]

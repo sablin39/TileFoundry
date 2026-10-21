@@ -1080,14 +1080,22 @@ class MemoryHierarchyFacts:
 
 ##### Printed and JSON surface
 
-Requesting memory adds one Function line and one line per finding:
+Requesting memory adds one line per reached Function, with that Function's
+findings indented beneath it:
 
 ```text
-memory traffic=<memory-level>:r<bytes>/w<bytes>@logical,r<bytes>/w<bytes>@total,r<bytes>/w<bytes>@<topology>[,...] footprint=<buffer>:<bytes>[;<buffer>:<bytes>] footprint-precision=<exact|upper_bound|lower_bound|unknown> peak=<level>:<bytes>[,...] persistent=<level>:<bytes>[,...]
+memory function=<module.function> role=<entry|stage> covers=self+reached traffic=<memory-level>:r<bytes>/w<bytes>@logical,r<bytes>/w<bytes>@total,r<bytes>/w<bytes>@<topology>[,...] footprint=<buffer>:<bytes>[;<buffer>:<bytes>] footprint-precision=<exact|upper_bound|lower_bound|unknown> peak=<level>:<bytes>[,...] persistent=<level>:<bytes>[,...]
   buffer=<buffer> holds=<bytes> time=<loop|none> space=<mesh-axis|none> reuse=<bytes> fits=<yes|no>
   error="<text>"
   advisory="<text>"
 ```
+
+The Function line names whose record it is. `role` is `entry` for the requested
+root and `stage` for every other reached Function. `covers=self+reached` states
+the aggregation rule: a record counts its Function and every occurrence the
+Function reaches, transitively, so the entry's line is the program total and
+the per-Function lines MUST NOT be summed. The line's `@total` figures are the
+same whole-program counts JSON states under the Function's `totals`.
 
 The `<bytes>` form selects the largest of `B`, `KB`, `MB`, and `GB` whose unit
 the value reaches, with 1024 between adjacent units. `B` is an integer; every

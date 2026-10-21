@@ -395,6 +395,31 @@ def test_inputs_must_be_stated(capsys) -> None:
     assert "no inputs stated" in capsys.readouterr().err
 
 
+def test_a_json_target_without_a_parent_is_a_usage_error(capsys) -> None:
+    """A misspelt report path is refused at parse time, before any comparison runs."""
+    with pytest.raises(SystemExit) as stopped:
+        cli.main(
+            [
+                "check",
+                DISPATCHING,
+                "--inputs",
+                "random",
+                "--out",
+                "output",
+                "--fn",
+                "nan_inf",
+                "--json",
+                "/nonexistent-dir/report.json",
+            ]
+        )
+
+    assert stopped.value.code == 2
+    refused = capsys.readouterr()
+    assert refused.out == ""
+    assert refused.err.startswith("usage: tilefoundry check")
+    assert "/nonexistent-dir/report.json: its parent directory does not exist" in refused.err
+
+
 def test_without_a_reference_only_a_one_sided_predicate_is_admitted(capsys) -> None:
     """Running the evaluator alone measures the candidate, and says only that."""
     assert (
