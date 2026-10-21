@@ -12,24 +12,29 @@ from operator import mul
 
 from tilefoundry.codegen.cuda.context import (
     CudaCodegenContext,
+    scalar_read,
     topology_scope_str,
 )
+from tilefoundry.codegen.cuda.tir.cute_layout import render_layout_type, render_layout_value
 from tilefoundry.codegen.cuda.tir.reduce import REDUCE_TAG
 from tilefoundry.codegen.cuda.tir.stmts.mesh_scope import (
     mesh_type,
     program_topologies,
 )
-from tilefoundry.ir.core import Call, Constant, Tuple
+from tilefoundry.codegen.cuda.tir.tuple_get_item import constant_index, render_tuple_choice
+from tilefoundry.ir.core import Call, Constant, Tuple, Var
 from tilefoundry.ir.core.kinds import ReduceKind
 from tilefoundry.ir.hir.sharding.mesh_coord import MeshCoord
 from tilefoundry.ir.hir.tensor.slice import Slice
+from tilefoundry.ir.hir.tensor.tuple_get_item import TupleGetItem
 from tilefoundry.ir.tir.memory.ptr_of import PtrOf
 from tilefoundry.ir.tir.memory.tensor_view import TensorView
 from tilefoundry.ir.tir.stmts import LetStmt
 from tilefoundry.ir.tir.sync import participation
 from tilefoundry.ir.types import ComposedLayout
 from tilefoundry.ir.types.dim import DimAdd, DimFloorDiv, DimMod, DimMul, DimSub, DimVar
-from tilefoundry.ir.types.layout import Layout, LayoutBase, flatten, get, resolve_layout
+from tilefoundry.ir.types.layout import Layout, LayoutBase, flatten, resolve_layout
+from tilefoundry.ir.types.mesh import flattened_levels
 from tilefoundry.ir.types.shard_layout import (
     Broadcast,
     Dynamic,
@@ -58,7 +63,8 @@ def _render_layout_type(layout: LayoutBase) -> str:
     A swizzled composed layout keeps its shape: CuTe states it as a
     ``ComposedLayout`` of the swizzle, a static offset and the layout
     underneath. The XOR mapping is not expressible as strides, so there is no
-    affine form to fall back to.
+    affine form to fall back to. CuTe encodes the single rank-0 address as a
+    singleton mode.
     """
     layout = resolve_layout(layout)
     swizzle = get_swizzle_portion(layout)
@@ -70,9 +76,7 @@ def _render_layout_type(layout: LayoutBase) -> str:
     if isinstance(layout, Layout):
         if not layout.shape:
             return "cute::Layout<cute::Shape<cute::Int<1>>, cute::Stride<cute::Int<0>>>"
-        shape_args = ", ".join(f"cute::Int<{s}>" for s in layout.shape)
-        stride_args = ", ".join(f"cute::Int<{s}>" for s in layout.strides)
-        return f"cute::Layout<cute::Shape<{shape_args}>, cute::Stride<{stride_args}>>"
+        return render_layout_type(layout.shape, layout.strides)
     raise NotImplementedError(f"tensor_view: no CuTe layout type for {type(layout).__name__}")
 
 
@@ -95,11 +99,7 @@ def _render_layout_value(layout: LayoutBase, dim, stride) -> str:
     if isinstance(layout, Layout):
         if not layout.shape:
             return "cute::make_layout(cute::Shape<cute::Int<1>>{}, cute::Stride<cute::Int<0>>{})"
-        shape_args = ", ".join(dim(d) for d in layout.shape)
-        stride_args = ", ".join(stride(s) for s in layout.strides)
-        return (
-            f"cute::make_layout(cute::make_shape({shape_args}), cute::make_stride({stride_args}))"
-        )
+        return render_layout_value(layout.shape, layout.strides, dim, stride)
     raise NotImplementedError(f"tensor_view: no CuTe layout value for {type(layout).__name__}")
 
 
@@ -298,34 +298,21 @@ def render_shard_layout_value(var_name: str, sl: SL, dynamic_extents=None, stora
             return "tilefoundry::program_dim<tilefoundry::TopologyScope::cta>()"
         return _static_dim(d, "mesh layout dim")
 
-    def _level_nest(topology):
-        """One level's arrangement as CuTe shape/stride value nests."""
-        index = [t.name for t in sl.mesh.topologies].index(topology.name)
-        arrangement = get(stated, index)
-        level_shape = tuple(flatten(arrangement.shape))
-        level_strides = tuple(flatten(arrangement.strides))
-        if not level_shape:
-            level_shape, level_strides = (1,), (0,)
-        shape_args = ", ".join(_mesh_dim(d) for d in level_shape)
-        stride_args = ", ".join(_static_dim(s, "mesh layout stride") for s in level_strides)
-        return f"cute::make_shape({shape_args})", f"cute::make_stride({stride_args})"
+    def _mesh_stride(s):
+        return _static_dim(s, "mesh layout stride")
 
     sl_var = f"{var_name}__sl_layout"
     ml_var = f"{var_name}__mesh_layout"
     mesh_var = f"{var_name}__mesh"
 
     if len(topos) == 1:
-        shape_args = ", ".join(_mesh_dim(d) for d in mesh_axes.shape)
-        stride_args = ", ".join(_static_dim(s, "mesh layout stride") for s in mesh_axes.strides)
+        mesh_shape, mesh_strides = mesh_axes.shape, mesh_axes.strides
     else:
-        shape_nests, stride_nests = zip(*(_level_nest(t) for t in topos))
-        shape_args = ", ".join(shape_nests)
-        stride_args = ", ".join(stride_nests)
+        arrangements = flattened_levels(replace(sl.mesh, layout=stated))
+        mesh_shape = tuple(shape for shape, _ in arrangements)
+        mesh_strides = tuple(strides for _, strides in arrangements)
     scope = ", ".join(topology_scope_str(t.name) for t in topos)
-    positions = (
-        f"cute::make_layout(cute::make_shape({shape_args}), "
-        f"cute::make_stride({stride_args}))"
-    )
+    positions = render_layout_value(mesh_shape, mesh_strides, _mesh_dim, _mesh_stride)
     mesh_layout = _composed_mesh_layout(positions, ml_base)
 
     attrs = ", ".join(_render_attr(a) for a in sl.attrs)
@@ -367,13 +354,12 @@ class _CoordinateVisitor(ExprVisitor[str]):
         )
 
     def _leaf(self, expr, ctx: CudaCodegenContext) -> str:
-        name = ctx.name_for(expr)
         shape = getattr(getattr(expr, "type", None), "shape", ()) or ()
         dims = tuple(getattr(d, "value", d) for d in shape)
         if dims == ():
-            return name
+            return ctx.name_for(expr)
         if dims == (1,):
-            return f"{name}_tensor(0)" if ctx.is_kernel_param(expr) else f"{name}(0)"
+            return scalar_read(expr, ctx)
         raise NotImplementedError(
             f"local_tile coordinate from a rank-{len(dims)} offset {dims} is not supported"
         )
@@ -400,6 +386,53 @@ def _tensor_ref(var, ctx: CudaCodegenContext) -> str:
     return f"{name}_tensor" if ctx.is_kernel_param(var) else name
 
 
+def _tensor_value_ref(element, ctx: CudaCodegenContext) -> str:
+    """The tensor one tuple element names: its bound name, or the view it calls.
+
+    An inline ``T.tensor_view(...)`` element has no binding of its own -- a
+    Tuple lowers at its consumers -- so the view expression is rendered in
+    place, in the words a plain ``TensorView`` let would have used.
+    """
+    if isinstance(element, Call) and isinstance(element.target, TensorView):
+        pointer_ref, _ = _pointer_ref(element.args[0], ctx)
+        layout = resolve_layout(element.target.layout, element.type.shape)
+        if isinstance(layout, SL):
+            raise NotImplementedError(
+                "CUDA TupleGetItem pointer: an inline shard-layout tensor_view "
+                "element emits several statements and has no inline expression"
+            )
+        return f"tilefoundry::ops::tensor_view({pointer_ref}, {_plain_layout_value(layout)})"
+    return _tensor_ref(element, ctx)
+
+
+def _tuple_pointer_ref(call: Call, ctx: CudaCodegenContext) -> tuple[str, object | None]:
+    """Render a pointer chosen among a tuple's elements.
+
+    A constant index is decided here; anything else is decided on the card as
+    one array subscript, over the elements' tensors with ``.data()`` taking
+    the chosen one's pointer, or over the pointers themselves when the
+    elements name raw smem offsets. A runtime choice has no single syntactic
+    source, so no ``memory_var`` comes back for the coordinate forms to bind
+    to.
+    """
+    held, index = call.args
+    if isinstance(held, Var):
+        held = ctx.tuple_for(held)
+    if not isinstance(held, Tuple):
+        raise ValueError("CUDA TupleGetItem pointer requires a tuple value")
+    if isinstance(index, Constant):
+        selected = constant_index(index)
+        return _pointer_ref(Call(PtrOf(), (held.elements[selected],), type=call.type), ctx)
+    if any(isinstance(element, Constant) for element in held.elements):
+        refs = tuple(
+            _pointer_ref(Call(PtrOf(), (element,), type=call.type), ctx)[0]
+            for element in held.elements
+        )
+        return render_tuple_choice(refs, index, ctx), None
+    tensors = tuple(_tensor_value_ref(element, ctx) for element in held.elements)
+    return f"{render_tuple_choice(tensors, index, ctx)}.data()", None
+
+
 def _pointer_ref(pointer, ctx: CudaCodegenContext) -> tuple[str, object | None]:
     """Render a TensorView pointer and return its syntactic source tensor, if any."""
     if isinstance(pointer, Call) and isinstance(pointer.target, PtrOf):
@@ -415,6 +448,12 @@ def _pointer_ref(pointer, ctx: CudaCodegenContext) -> tuple[str, object | None]:
             offset = f"{_plain_layout_value(layout)}(cute::make_coord({coords}))"
             pointer, root = _pointer_ref(Call(PtrOf(), (base,), type=pointer.type), ctx)
             return f"({pointer} + {offset})", root
+        if isinstance(source, Call) and isinstance(source.target, TupleGetItem):
+            return _tuple_pointer_ref(source, ctx)
+        if isinstance(source, Call) and isinstance(source.target, TensorView):
+            return _pointer_ref(source.args[0], ctx)
+        if isinstance(source, Constant):
+            return _pointer_ref(source, ctx)
         return f"{_tensor_ref(source, ctx)}.data()", source
     if isinstance(pointer, Constant):
         cpp_type = ctx.dtype_to_cpp(pointer.type.dtype.name)
@@ -426,14 +465,18 @@ def _pointer_ref(pointer, ctx: CudaCodegenContext) -> tuple[str, object | None]:
     return ctx.name_for(pointer), None
 
 
+def _envelope_dim(value) -> str:
+    """A shape entry at its static envelope bound, as a CuTe value."""
+    return f"cute::Int<{int(upper_bound(value))}>{{}}"
+
+
+def _static_value(value) -> str:
+    """A static stride entry as a CuTe value."""
+    return f"cute::Int<{int(value)}>{{}}"
+
+
 def _plain_layout_value(layout: LayoutBase) -> str:
-    def dim(value):
-        return f"cute::Int<{int(upper_bound(value))}>{{}}"
-
-    def stride(value):
-        return f"cute::Int<{int(value)}>{{}}"
-
-    return _render_layout_value(layout, dim, stride)
+    return _render_layout_value(layout, _envelope_dim, _static_value)
 
 
 @register_codegen(CudaTarget, Role.EMIT, TensorView)
@@ -477,21 +520,14 @@ def _emit(let: LetStmt, ctx: CudaCodegenContext) -> None:
             else:
                 tensor_ref = f"{mem_name}_tensor" if ctx.is_kernel_param(memory_var) else mem_name
                 source_shape = tuple(memory_var.type.shape)
-                source_shape_args = ", ".join(
-                    f"cute::Int<{int(upper_bound(dim))}>{{}}" for dim in source_shape
-                )
-                source_stride_args = ", ".join(
-                    f"cute::Int<{stride}>{{}}"
-                    for stride in resolve_layout(
-                        None, tuple(int(upper_bound(dim)) for dim in source_shape)
-                    ).strides
-                )
+                source_strides = resolve_layout(
+                    None, tuple(int(upper_bound(dim)) for dim in source_shape)
+                ).strides
                 source_name = f"{var_name}__source"
                 ctx.emit(
                     f"auto {source_name} = cute::make_tensor("
-                    f"{tensor_ref}.data(), cute::make_layout("
-                    f"cute::make_shape({source_shape_args}), "
-                    f"cute::make_stride({source_stride_args})));"
+                    f"{tensor_ref}.data(), "
+                    f"{render_layout_value(source_shape, source_strides, _envelope_dim, _static_value)});"
                 )
                 tensor_ref = source_name
                 shape = tuple(let.var.type.shape)

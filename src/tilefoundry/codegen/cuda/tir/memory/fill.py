@@ -1,7 +1,7 @@
 """Codegen for ``tir.memory.Fill`` — the zero-source ``elementwise``."""
 from __future__ import annotations
 
-from tilefoundry.codegen.cuda.context import CudaCodegenContext
+from tilefoundry.codegen.cuda.context import CudaCodegenContext, float_literal
 from tilefoundry.codegen.cuda.tir.memory.tensor_view import _tensor_ref
 from tilefoundry.ir.core import Constant
 from tilefoundry.ir.tir.memory import Fill
@@ -14,6 +14,4 @@ def _emit(call, ctx: CudaCodegenContext) -> None:
     tensor, value = call.args[0], call.args[1]
     dst_n = _tensor_ref(tensor, ctx)
     val = value.value if isinstance(value, Constant) else 0.0
-    ctx.emit(
-        f"tilefoundry::ops::elementwise({dst_n}, []() {{ return {val}f; }});"
-    )
+    ctx.emit(f"tilefoundry::ops::elementwise({dst_n}, []() {{ return {float_literal(val)}; }});")

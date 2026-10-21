@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from tilefoundry.codegen.cuda.context import CudaCodegenContext
+from tilefoundry.codegen.cuda.context import CudaCodegenContext, scalar_read
 from tilefoundry.ir.core import Call, Constant, Tuple, Var
 from tilefoundry.ir.hir.tensor.tuple_get_item import TupleGetItem
 from tilefoundry.ir.types.dim import DimAdd, DimFloorDiv, DimMod, DimMul, DimSub
+from tilefoundry.ir.types.storage import StorageKind
 from tilefoundry.target import CudaTarget
 from tilefoundry.visitor_registry.registries import Role, register_codegen
 
@@ -31,7 +32,10 @@ def _index(expr, ctx: CudaCodegenContext) -> str:
     if isinstance(expr, Constant) and isinstance(expr.value, int):
         return str(expr.value)
     if isinstance(expr, Var):
-        return ctx.name_for(expr)
+        type_ = getattr(expr, "type", None)
+        if getattr(type_, "storage", None) in (None, StorageKind.UMAT):
+            return ctx.name_for(expr)
+        return scalar_read(expr, ctx)
     if isinstance(expr, Call):
         for op_type, symbol in _DIM_SYMBOLS.items():
             if isinstance(expr.target, op_type):
@@ -40,6 +44,26 @@ def _index(expr, ctx: CudaCodegenContext) -> str:
     raise NotImplementedError(
         f"CUDA TupleGetItem index {type(expr).__name__} is not scalar dimension arithmetic"
     )
+
+
+def constant_index(index: Constant) -> int:
+    """The element a constant TupleGetItem index selects."""
+    selected = index.value
+    if not isinstance(selected, int) or isinstance(selected, bool):
+        raise ValueError("CUDA TupleGetItem constant index must be an integer")
+    return selected
+
+
+def render_tuple_choice(rendered: tuple[str, ...], index, ctx: CudaCodegenContext) -> str:
+    """One runtime choice among *rendered* elements, subscripted by *index*.
+
+    The choice is decided on the card: one ``cute::array`` of the elements,
+    subscripted by the index this function renders. ``cute::array`` has no
+    deduction guide, so the element type and count come from the first
+    element's spelling.
+    """
+    array = f"cute::array<decltype({rendered[0]}), {len(rendered)}>{{{', '.join(rendered)}}}"
+    return f"{array}[{_index(index, ctx)}]"
 
 
 @register_codegen(CudaTarget, Role.EMIT, TupleGetItem)
@@ -52,10 +76,7 @@ def _emit(let_stmt, ctx: CudaCodegenContext) -> None:
         raise ValueError("CUDA TupleGetItem requires a tuple value")
     result = ctx.name_for(let_stmt.var)
     if isinstance(index, Constant):
-        selected = index.value
-        if not isinstance(selected, int) or isinstance(selected, bool):
-            raise ValueError("CUDA TupleGetItem constant index must be an integer")
-        ctx.emit(f"auto {result} = {_value(held.elements[selected], ctx)};")
+        ctx.emit(f"auto {result} = {_value(held.elements[constant_index(index)], ctx)};")
         return
-    elements = ", ".join(_value(element, ctx) for element in held.elements)
-    ctx.emit(f"auto {result} = cute::array{{{elements}}}[{_index(index, ctx)}];")
+    rendered = tuple(_value(element, ctx) for element in held.elements)
+    ctx.emit(f"auto {result} = {render_tuple_choice(rendered, index, ctx)};")

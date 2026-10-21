@@ -240,6 +240,22 @@ def levels(mesh: Mesh) -> tuple[Layout, ...]:
     return tuple(get(stated, index) for index in range(_rank(stated)))
 
 
+def flattened_levels(mesh: Mesh) -> tuple[tuple[tuple, tuple], ...]:
+    """Each level's arrangement as flat (shape, strides) int-tuples.
+
+    A level stating no axes reads as one mode of one, so a consumer
+    subscripting the levels still has something to pick.
+    """
+    arrangements = []
+    for level in levels(mesh):
+        shape = tuple(flatten(level.shape))
+        strides = tuple(flatten(level.strides))
+        if not shape:
+            shape, strides = (1,), (0,)
+        arrangements.append((shape, strides))
+    return tuple(arrangements)
+
+
 def starts(mesh: Mesh) -> tuple[int, ...]:
     """Where each level's run starts, decoded from the device-numbered offset."""
     offset = mesh.layout.offset if isinstance(mesh.layout, ComposedLayout) else 0

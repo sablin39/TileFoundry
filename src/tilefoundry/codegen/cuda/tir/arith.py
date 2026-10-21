@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from tilefoundry.codegen.cuda.context import CudaCodegenContext
+from tilefoundry.codegen.cuda.tir.cute_layout import render_layout_value
 from tilefoundry.ir.tir.arith import Binary, BinaryKind, Unary, UnaryKind
 from tilefoundry.ir.tir.cast import Cast
 from tilefoundry.ir.types.shard_layout import ShardLayout, shard_layout_local_shape
@@ -87,6 +88,11 @@ def _extent(e) -> str:
     return f"cute::Int<{int(e)}>{{}}" if isinstance(e, int) else str(e)
 
 
+def _stride(e) -> str:
+    """A cute stride entry: broadcast modes are always static."""
+    return f"cute::Int<{int(e)}>{{}}"
+
+
 def _broadcast_modes(dst_shape, rhs_shape, n_dst_runtime) -> tuple | None:
     """The destination-shaped layout *rhs* is read through, or ``None``.
 
@@ -123,12 +129,9 @@ def broadcast_view(rhs_n: str, modes, ctx: CudaCodegenContext) -> str:
     shape, stride = modes
     ctx._counter += 1
     name = f"bcast_{ctx._counter}"
-    shape_args = ", ".join(_extent(s) for s in shape)
-    stride_args = ", ".join(f"cute::Int<{int(s)}>{{}}" for s in stride)
     ctx.emit(
         f"auto {name} = tilefoundry::local_tensor({rhs_n}).compose("
-        f"cute::make_layout(cute::make_shape({shape_args}), "
-        f"cute::make_stride({stride_args})));"
+        f"{render_layout_value(shape, stride, _extent, _stride)});"
     )
     return name
 

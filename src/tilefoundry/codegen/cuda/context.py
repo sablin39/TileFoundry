@@ -48,6 +48,17 @@ def topology_scope_str(name: str) -> str:
         ) from None
 
 
+def float_literal(value) -> str:
+    """A C++ float literal spelling of a Python number."""
+    return repr(float(value)) + "f"
+
+
+def scalar_read(var, ctx: "CudaCodegenContext") -> str:
+    """Read element zero of a one-element tensor variable, as a scalar."""
+    name = ctx.name_for(var)
+    return f"{name}_tensor(0)" if ctx.is_kernel_param(var) else f"{name}(0)"
+
+
 class CudaCodegenContext(EmitContext):
     """A compile writing CUDA: the shared context plus what only CUDA states."""
 

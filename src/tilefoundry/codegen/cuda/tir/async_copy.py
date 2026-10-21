@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 
-from tilefoundry.codegen.cuda.context import CudaCodegenContext
+from tilefoundry.codegen.cuda.context import CudaCodegenContext, float_literal
 from tilefoundry.ir.tir.async_copy import (
     CopyAsync,
     CpAsyncCommit,
@@ -41,7 +41,7 @@ def _emit_copy_async(call, ctx: CudaCodegenContext) -> None:
             elif math.isnan(fill):
                 literal = "__int_as_float(0x7fc00000)"
             else:
-                literal = repr(float(fill)) + "f"
+                literal = float_literal(fill)
             suffix = f", {literal}"
         ctx.emit(
             f"tilefoundry::ops::copy_async<{mesh_type}, {width}>({src}, {dst}, {index}{suffix});"
