@@ -950,6 +950,10 @@ CUTE_HOST_DEVICE auto program_ids() noexcept;
 // include/tilefoundry/runtime/cuda/layout/cute_ext.cuh
 template <class Shape, class Stride>
 CUTE_HOST_DEVICE constexpr auto reverse(cute::Layout<Shape, Stride> const &l);
+
+template <class A, class O, class B>
+CUTE_HOST_DEVICE constexpr auto
+reverse(cute::ComposedLayout<A, O, B> const &l);
 ```
 <!-- /generated -->
 

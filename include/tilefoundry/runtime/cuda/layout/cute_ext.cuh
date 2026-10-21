@@ -15,3 +15,12 @@ CUTE_HOST_DEVICE constexpr auto reverse(cute::Layout<Shape, Stride> const &l) {
     return cute::make_layout(cute::reverse(cute::shape(l)),
                              cute::reverse(cute::stride(l)));
 }
+
+/// A swizzled layout turns the same way, the swizzle kept in front of the
+/// modes it acts on.
+template <class A, class O, class B>
+CUTE_HOST_DEVICE constexpr auto
+reverse(cute::ComposedLayout<A, O, B> const &l) {
+    return cute::make_composed_layout(l.layout_a(), l.offset(),
+                                      reverse(cute::flatten(l.layout_b())));
+}

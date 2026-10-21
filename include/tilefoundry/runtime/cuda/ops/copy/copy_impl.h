@@ -4,13 +4,49 @@
 
 namespace copy_impl {
 
+/// The slice of a plain operand that pairs with one shard operand.
+///
+/// An operand with no shard layout of its own is not therefore whole for
+/// every instance: when the other operand is sharded, the plain side moves
+/// exactly the slice that instance owns, projected through the shard side's
+/// layout, whose shape refines the shared logical domain. The projection's
+/// window and origin are row-major logical steps, and the plain layout is
+/// reversed before they index it, so CuTe's first-mode-fastest decode reads
+/// them as the row-major index they are.
+template <class T, class L, class A, class M>
+CUTE_HOST_DEVICE auto local_as(T &&t,
+                               tilefoundry::ShardLayout<L, A, M> const &sl) {
+    auto logical =
+        cute::make_layout(cute::shape(sl.layout_value), cute::GenRowMajor{});
+    tilefoundry::ShardLayout<decltype(logical), A, M> as_logical{logical,
+                                                                 sl.mesh_value};
+    auto const [window, origin] = tilefoundry::detail::local_layout_and_offset(
+        as_logical,
+        tilefoundry::mesh_coords(sl.mesh_value, tilefoundry::program_ids()));
+    auto const plain = reverse(cute::flatten(t.layout()));
+    return cute::make_tensor(t.data() + plain(origin),
+                             cute::composition(plain, window));
+}
+
 /// ``copy`` is ``cute::copy`` with the operands resolved to this slice first.
 struct Copy {
     template <class TSrc, class TDst>
     __device__ void operator()(TSrc const &src, TDst &dst) const {
-        auto &&s = tilefoundry::local_tensor(src);
-        auto &&d = tilefoundry::local_tensor(dst);
-        cute::copy(s, d);
+        if constexpr (tilefoundry::ShardTensorLike<TSrc> &&
+                      !tilefoundry::ShardTensorLike<TDst>) {
+            auto &&s = tilefoundry::local_tensor(src);
+            auto d = local_as(dst, src.shard_layout);
+            cute::copy(s, d);
+        } else if constexpr (!tilefoundry::ShardTensorLike<TSrc> &&
+                             tilefoundry::ShardTensorLike<TDst>) {
+            auto s = local_as(src, dst.shard_layout);
+            auto &&d = tilefoundry::local_tensor(dst);
+            cute::copy(s, d);
+        } else {
+            auto &&s = tilefoundry::local_tensor(src);
+            auto &&d = tilefoundry::local_tensor(dst);
+            cute::copy(s, d);
+        }
     }
 };
 
