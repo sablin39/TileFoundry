@@ -8,13 +8,11 @@
 namespace reduce_impl {
 
 /// ── Reduce tier-2: cross-warp within a CTA (smem workspace) ───────
-/// This tier's contract has a single group output per thread (the reduced
-/// ``n_cells == 1``): each thread folds its *entire* per-thread tensor via
-/// ``local_fold`` (its ``step == cute::size(s)`` whole-tensor path — correct
-/// however many cute axes the per-thread layout carries, see
-/// reduce_common_impl.h), then a warp butterfly + ``cta_combine_via_workspace``
-/// combine across warps; ``reduce_traits<Op>`` finalises. MEAN divides by
-/// ``step × 32 × warps_per_group``.
+/// This tier's contract has one group output per kept cell: each thread folds
+/// its per-thread tensor cell by cell via ``local_fold``, then a warp
+/// butterfly + ``cta_combine_via_workspace`` combine across warps, reusing the
+/// one-slot-per-warp workspace from cell to cell; ``reduce_traits<Op>``
+/// finalises. MEAN divides by ``step × lanes_reduced × warps_per_group``.
 template <class Op, class Axes> struct IntraCta {
     template <class SrcT, class DstT, class WorkspaceT>
     __device__ void operator()(SrcT const &src, DstT &dst,
@@ -30,21 +28,20 @@ template <class Op, class Axes> struct IntraCta {
         auto &&ws = tilefoundry::local_tensor(workspace);
         using value_type = cute::remove_cvref_t<decltype(d(0))>;
 
-        static_assert(kept_cells<Axes, decltype(s)>() == 1,
-                      "ops::reduce (intra-CTA tier): kept axes must form "
-                      "one cell");
+        constexpr int kCells = kept_cells<Axes, decltype(s)>();
         constexpr int kSpan = reduced_span<Axes, decltype(s)>();
-        const float local = local_fold<Op, Axes>(s, 0);
-        const float warp_partial =
-            tilefoundry::warp_reduce<typename reduce_traits<Op>::combine_op,
-                                     plan.lanes_reduced>(local);
-        const float cta_partial =
-            cta_combine_via_workspace<Op>(warp_partial, ws, warps_per_group);
-        const float total_n =
-            float(kSpan) * float(plan.lanes_reduced) * float(warps_per_group);
-        const float result = reduce_traits<Op>::finalize(cta_partial, total_n);
-        for (int i = 0; i < static_cast<int>(cute::size(d)); ++i) {
-            d(i) = static_cast<value_type>(result);
+        CUTE_UNROLL
+        for (int j = 0; j < kCells; ++j) {
+            const float local = local_fold<Op, Axes>(s, j);
+            const float warp_partial =
+                tilefoundry::warp_reduce<typename reduce_traits<Op>::combine_op,
+                                         plan.lanes_reduced>(local);
+            const float cta_partial = cta_combine_via_workspace<Op>(
+                warp_partial, ws, warps_per_group);
+            const float total_n = float(kSpan) * float(plan.lanes_reduced) *
+                                  float(warps_per_group);
+            d(j) = static_cast<value_type>(
+                reduce_traits<Op>::finalize(cta_partial, total_n));
         }
     }
 };

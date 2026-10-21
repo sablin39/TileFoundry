@@ -29,7 +29,7 @@ from tilefoundry.ir.tir.stmts import LetStmt
 from tilefoundry.ir.tir.sync import participation
 from tilefoundry.ir.types import ComposedLayout
 from tilefoundry.ir.types.dim import DimAdd, DimFloorDiv, DimMod, DimMul, DimSub, DimVar
-from tilefoundry.ir.types.layout import Layout, LayoutBase, flatten, resolve_layout
+from tilefoundry.ir.types.layout import Layout, LayoutBase, flatten, get, resolve_layout
 from tilefoundry.ir.types.shard_layout import (
     Broadcast,
     Dynamic,
@@ -238,9 +238,19 @@ def render_shard_layout_value(var_name: str, sl: SL, dynamic_extents=None, stora
             )
         mesh_base = sl.mesh.layout.offset
         participation(sl.mesh)
-    mesh_axes = flatten(sl.mesh.layout)
-    ml_shape, ml_strides, ml_base = mesh_axes.shape, mesh_axes.strides, int(mesh_base)
-    topo = program_topologies(sl.mesh)[0]
+    stated = resolve_layout(sl.mesh.layout)
+    if isinstance(stated, ComposedLayout):
+        stated = stated.outer
+    topos = program_topologies(sl.mesh)
+    if len(topos) > 1 and mesh_base:
+        raise NotImplementedError(
+            "render_shard_layout_value: a mesh naming several levels cannot also "
+            "be sliced; the slice and the level boundary would both be deciding "
+            "which positions these are"
+        )
+    ml_base = int(mesh_base)
+    mesh_axes = flatten(stated)
+    topo = topos[0]
 
     def _static_dim(value, what):
         if not isinstance(value, int):
@@ -267,7 +277,7 @@ def render_shard_layout_value(var_name: str, sl: SL, dynamic_extents=None, stora
             return scalar
         raise NotImplementedError(f"render_shard_layout_value: unsupported layout dim {d!r}")
 
-    n_dynamic = sum(1 for d in ml_shape if d is None)
+    n_dynamic = sum(1 for d in mesh_axes.shape if d is None)
     if n_dynamic > 1:
         raise NotImplementedError(
             "render_shard_layout_value: at most one dynamic (launch-provided) "
@@ -288,16 +298,33 @@ def render_shard_layout_value(var_name: str, sl: SL, dynamic_extents=None, stora
             return "tilefoundry::program_dim<tilefoundry::TopologyScope::cta>()"
         return _static_dim(d, "mesh layout dim")
 
+    def _level_nest(topology):
+        """One level's arrangement as CuTe shape/stride value nests."""
+        index = [t.name for t in sl.mesh.topologies].index(topology.name)
+        arrangement = get(stated, index)
+        level_shape = tuple(flatten(arrangement.shape))
+        level_strides = tuple(flatten(arrangement.strides))
+        if not level_shape:
+            level_shape, level_strides = (1,), (0,)
+        shape_args = ", ".join(_mesh_dim(d) for d in level_shape)
+        stride_args = ", ".join(_static_dim(s, "mesh layout stride") for s in level_strides)
+        return f"cute::make_shape({shape_args})", f"cute::make_stride({stride_args})"
+
     sl_var = f"{var_name}__sl_layout"
     ml_var = f"{var_name}__mesh_layout"
     mesh_var = f"{var_name}__mesh"
 
-    ml_shape_args = ", ".join(_mesh_dim(d) for d in ml_shape)
-    ml_stride_args = ", ".join(_static_dim(s, "mesh layout stride") for s in ml_strides)
-
-    scope = topology_scope_str(topo.name)
+    if len(topos) == 1:
+        shape_args = ", ".join(_mesh_dim(d) for d in mesh_axes.shape)
+        stride_args = ", ".join(_static_dim(s, "mesh layout stride") for s in mesh_axes.strides)
+    else:
+        shape_nests, stride_nests = zip(*(_level_nest(t) for t in topos))
+        shape_args = ", ".join(shape_nests)
+        stride_args = ", ".join(stride_nests)
+    scope = ", ".join(topology_scope_str(t.name) for t in topos)
     positions = (
-        f"cute::make_layout(cute::make_shape({ml_shape_args}), cute::make_stride({ml_stride_args}))"
+        f"cute::make_layout(cute::make_shape({shape_args}), "
+        f"cute::make_stride({stride_args}))"
     )
     mesh_layout = _composed_mesh_layout(positions, ml_base)
 

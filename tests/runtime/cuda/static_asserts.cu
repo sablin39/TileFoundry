@@ -285,28 +285,6 @@ __global__ void k(float *p) {
 }
 #endif
 
-#if CASE == 13
-/// Item 9: an intra-CTA reduce whose source keeps two cells.
-__global__ void k(float *p) {
-    __shared__ float ws[8];
-    auto mesh = tmesh<8, 32>();
-    auto slay = cute::make_layout(
-        cute::make_shape(cute::Int<2>{}, cute::Int<8>{}, cute::Int<32>{}),
-        cute::make_stride(cute::Int<256>{}, cute::Int<32>{}, cute::Int<1>{}));
-    auto st = make_shard_tensor(
-        cute::make_tensor(cute::make_gmem_ptr(p), slay), slay,
-        make_shard_layout(slay, mesh,
-                          cute::make_tuple(shard::S<1>{}, shard::S<2>{})));
-    auto dlay = cute::make_layout(cute::make_shape(cute::Int<2>{}));
-    auto dt = make_shard_tensor(
-        cute::make_tensor(cute::make_gmem_ptr(p + 512), dlay), dlay,
-        make_shard_layout(dlay, mesh,
-                          cute::make_tuple(shard::B{}, shard::B{})));
-    auto slots = cute::make_tensor(cute::make_smem_ptr(ws), cute::Int<8>{});
-    reduce<add_op, cute::tuple<cute::Int<1>, cute::Int<2>>>(st, dt, slots);
-}
-#endif
-
 #if CASE == 14
 /// Item 6: a pair of views cp.async cannot move a wide word of.
 __global__ void k(float *g, int n) {

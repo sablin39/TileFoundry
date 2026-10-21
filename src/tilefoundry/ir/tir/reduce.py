@@ -21,7 +21,8 @@ from tilefoundry.ir.pattern import (
 from tilefoundry.ir.pattern import predicates as P
 from tilefoundry.ir.tir.sync import WARP_SIZE
 from tilefoundry.ir.types import DType, ShardLayout, StorageKind, TensorType, UnitType
-from tilefoundry.ir.types.layout import flatten
+from tilefoundry.ir.types.layout import ComposedLayout, flatten
+from tilefoundry.ir.types.mesh import _named, levels
 from tilefoundry.ir.types.utils import static_dim_value
 from tilefoundry.visitor_registry import register_typeinfer, register_verify_stmt
 from tilefoundry.visitor_registry.access_relation import (
@@ -103,13 +104,22 @@ def _(call: "Call", ctx: "TypeInferContext") -> UnitType:
 
 
 def _workspace_slots(source) -> int:
-    """One slot per warp of the thread mesh ``source`` is sharded over.
+    """One slot per warp of the thread level ``source`` is sharded over.
 
     The runtime posts each warp's partial at its warp index and reads its group
-    back (`cta_combine_via_workspace`); which warp takes which slot is its choice.
+    back (`cta_combine_via_workspace`); which warp takes which slot is its
+    choice. A mesh naming several levels counts only its thread level: each
+    CTA combines its own partials in its own shared memory.
     """
+    mesh = source.layout.mesh
+    names = _named(mesh)
+    if "thread" in names:
+        level = levels(mesh)[names.index("thread")]
+    else:
+        stated = mesh.layout.outer if isinstance(mesh.layout, ComposedLayout) else mesh.layout
+        level = stated
     threads = 1
-    for extent in flatten(source.layout.mesh.layout).shape:
+    for extent in flatten(level).shape:
         value = static_dim_value(extent)
         if value is None or value <= 0:
             raise ValueError(

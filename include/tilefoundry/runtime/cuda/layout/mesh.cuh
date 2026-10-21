@@ -24,6 +24,32 @@ template <class TLayout, TopologyScope... Topos> struct Mesh {
     static constexpr int level_count = sizeof...(Topos);
     static constexpr TopologyScope scope = detail::first_scope<Topos...>::value;
     TLayout layout;
+
+    /// The scope flat axis ``I`` runs at. A mesh naming one level
+    /// answers its own scope for every axis. A mesh naming several
+    /// groups its layout one nest per level, and the nest holding
+    /// flat axis ``I`` states its level.
+    template <int I>
+    CUTE_HOST_DEVICE static constexpr TopologyScope axis_scope() {
+        if constexpr (sizeof...(Topos) == 1) {
+            return scope;
+        } else {
+            constexpr TopologyScope scopes[] = {Topos...};
+            TopologyScope found = scope;
+            int first = 0;
+            [&]<size_t... Ls>(std::index_sequence<Ls...>) {
+                (([&] {
+                     constexpr int width =
+                         int(cute::rank(cute::get<Ls>(cute::shape(TLayout{}))));
+                     if (I >= first && I < first + width)
+                         found = scopes[Ls];
+                     first += width;
+                 }()),
+                 ...);
+            }(std::make_index_sequence<sizeof...(Topos)>{});
+            return found;
+        }
+    }
 };
 
 namespace detail {

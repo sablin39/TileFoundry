@@ -156,7 +156,9 @@ CUTE_HOST_DEVICE constexpr int reduced_span() {
 
 /// Combine one partial per warp, with the reduction's own combine.
 ///
-/// Combine shared-workspace partials by warp group.
+/// Combine shared-workspace partials by warp group. The trailing barrier
+/// leaves every thread past its reads, so the workspace is safe to reuse for
+/// the next group's partials.
 template <class Op, class WorkspaceT>
 __device__ float cta_combine_via_workspace(float warp_partial,
                                            WorkspaceT &workspace,
@@ -174,6 +176,7 @@ __device__ float cta_combine_via_workspace(float warp_partial,
     for (int w = 0; w < warps_per_group; ++w) {
         acc = combine<Op>(acc, static_cast<float>(workspace(group_start + w)));
     }
+    __syncthreads();
     return acc;
 }
 
@@ -205,44 +208,52 @@ struct reduce_dispatch_info {
 };
 using plan_t = reduce_dispatch_info;
 
-/// Derive, from the (src, dst) operand ShardLayouts, the active reduction level
-/// and its ``warps_per_group``. Pure compile-time so the caller can select the
-/// tier with ``if constexpr`` — otherwise the untaken tier still instantiates
-/// and, e.g., ``CrossWarp<mean_op>`` would trip its supported-op guard.
-/// Requires a static mesh layout (the reduce mesh is a thread-scoped static
-/// mesh); a reduced axis on a non-thread mesh scope yields the cross-warp tier.
 /// Lanes of one warp this thread mesh hands out, and zero when its ids state
 /// no ``(lanes, warps)`` at all.
 template <class TMesh> CUTE_HOST_DEVICE constexpr int lanes_of_mesh() {
-    if constexpr (TMesh::scope == TopologyScope::thread &&
-                  tilefoundry::is_warped(TMesh{}))
+    using mesh_t = cute::remove_cvref_t<TMesh>;
+    if constexpr (mesh_t::scope == TopologyScope::thread &&
+                  tilefoundry::is_warped(mesh_t{}))
         return kWarpSize;
     else
         return 0;
 }
 
+/// Derive, from the (src, dst) operand ShardLayouts, the active reduction level
+/// and its ``warps_per_group``. Pure compile-time so the caller can select the
+/// tier with ``if constexpr`` — otherwise the untaken tier still instantiates
+/// and, e.g., ``CrossWarp<mean_op>`` would trip its supported-op guard.
+/// Requires a static mesh layout; each mesh axis is classified by the level it
+/// belongs to, so a composed cta×thread mesh spends the lane budget only on
+/// its thread-level axes.
 template <class SrcSL, class DstSL>
 CUTE_HOST_DEVICE constexpr reduce_dispatch_info reduce_dispatch() {
     using src_attrs = typename SrcSL::attrs;
     using dst_attrs = typename DstSL::attrs;
-    using mesh_t = typename SrcSL::mesh;
+    using mesh_t = cute::remove_cvref_t<typename SrcSL::mesh>;
     static_assert(mesh_t::scope == TopologyScope::thread ||
                       mesh_t::scope == TopologyScope::cta,
                   "ops::reduce: mesh must name cta or thread");
-    constexpr bool is_thread = mesh_t::scope == TopologyScope::thread;
     using m_layout_t = typename mesh_t::layout_type;
     constexpr int m_rank = cute::tuple_size<src_attrs>::value;
+    /// Levels order coarsest first, so a thread level is the last nest when
+    /// the mesh names one, and the last flat axis's scope answers for it.
+    constexpr bool has_thread =
+        mesh_t::template axis_scope<m_rank - 1>() == TopologyScope::thread;
     static_assert(detail::shard_attrs_match_mesh<SrcSL>() &&
                       detail::shard_attrs_match_mesh<DstSL>(),
                   "ops::reduce: both operands need one attr per mesh axis");
     static_assert(std::is_same_v<typename SrcSL::mesh, typename DstSL::mesh>,
                   "ops::reduce: the two operands must name one mesh");
-    static_assert(is_thread || mesh_t::scope == TopologyScope::cta,
+    static_assert(has_thread || mesh_t::scope == TopologyScope::cta,
                   "ops::reduce: a reduce mesh's scope must be cta or thread");
 
+    /// The attrs answer for the mesh's axes end to end, whatever grouping the
+    /// levels state, so extents and scopes read off the flattened shape.
     int m_ext[m_rank] = {};
     bool reduced[m_rank] = {};
-    auto const m_shape = cute::shape(m_layout_t{});
+    bool thread_axis[m_rank] = {};
+    auto const m_shape = cute::flatten(cute::shape(m_layout_t{}));
     [&]<size_t... Is>(std::index_sequence<Is...>) {
         ((m_ext[Is] = int(cute::get<Is>(m_shape))), ...);
         ((reduced[Is] =
@@ -252,32 +263,44 @@ CUTE_HOST_DEVICE constexpr reduce_dispatch_info reduce_dispatch() {
                   cute::remove_cvref_t<decltype(cute::get<Is>(dst_attrs{}))>,
                   shard::B>),
          ...);
+        ((thread_axis[Is] =
+              mesh_t::template axis_scope<int(Is)>() == TopologyScope::thread),
+         ...);
     }(std::make_index_sequence<m_rank>{});
 
-    /// How each mesh axis divides into lanes and warps.
+    /// How each mesh axis divides into lanes and warps. A thread-level axis
+    /// spends the lane budget, fastest axis first; a cta-level axis reduces
+    /// across CTAs rather than warp lanes. The thread level's own mesh, which
+    /// ``get`` picks out of a mesh naming several levels, states the lanes.
     int lanes_of[m_rank] = {};
     int warps_of[m_rank] = {};
+    constexpr int kLanes = [] {
+        if constexpr (has_thread)
+            return lanes_of_mesh<cute::remove_cvref_t<
+                decltype(tilefoundry::get<TopologyScope::thread>(mesh_t{}))>>();
+        else
+            return 0;
+    }();
     int stride = 1;
     for (int i = m_rank - 1; i >= 0; --i) {
-        if (is_thread) {
-            const int room = lanes_of_mesh<mesh_t>() / stride;
+        if (thread_axis[i]) {
+            const int room = kLanes / stride;
             const int lanes =
                 room <= 1 ? 1 : (m_ext[i] < room ? m_ext[i] : room);
             lanes_of[i] = lanes;
             warps_of[i] = m_ext[i] / lanes;
+            stride *= m_ext[i];
         } else {
-            /// CTA meshes reduce across CTAs rather than warp lanes.
             lanes_of[i] = 1;
             warps_of[i] = m_ext[i];
         }
-        stride *= m_ext[i];
     }
 
     bool lane_reduced = false;
     bool mesh_reduced = false;
     /// A mesh whose ids state no (lanes, warps) divides into neither, so it
     /// fails the same check a ragged axis does and says the same thing.
-    bool warp_aligned = !is_thread || lanes_of_mesh<mesh_t>() > 0;
+    bool warp_aligned = !has_thread || kLanes > 0;
     int warps_per_group = 1;
     int lanes_reduced = 1;
     for (int i = 0; i < m_rank; ++i) {

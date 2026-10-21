@@ -968,6 +968,12 @@ template <class TLayout, TopologyScope... Topos> struct Mesh {
     static constexpr int level_count;
     static constexpr TopologyScope scope;
     TLayout layout;
+    /// The scope flat axis ``I`` runs at. A mesh naming one level
+    /// answers its own scope for every axis. A mesh naming several
+    /// groups its layout one nest per level, and the nest holding
+    /// flat axis ``I`` states its level.
+    template <int I>
+    CUTE_HOST_DEVICE static constexpr TopologyScope axis_scope();
 };
 
 template <TopologyScope S, class L, TopologyScope... Topos>
