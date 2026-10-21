@@ -344,6 +344,17 @@ counts one slice per index as an upper bound.
     sharded projects to the whole of itself: that is what makes a broadcast
     operand cost its own size and a `Reshard` the distinct coordinates it
     reaches rather than a full source per participant.
+  - A write every position performs alike is billed once at a level the target
+    owns. An `InsertSlice` whose offsets name no mesh coordinate -- directly,
+    through a captured binding, or through the bounds of an enclosing loop --
+    and a `Zeros` of a mesh-replicated buffer, state the same whole window for
+    every executing position, so one position's share of that window MUST be the
+    window divided among the positions, rounding up, and `total` then counts it
+    once. Offsets that do name a mesh coordinate give each position a window of
+    its own, and at a level a topology unit owns the bytes are physically each
+    position's own store: both MUST keep the whole window as one position's
+    share. The relation itself is not narrowed for this -- footprint and
+    liveness legitimately need the whole window per position.
   - Each leaf's bytes are charged at the level that leaf sits at. A `UMAT` leaf
     in `Call.args` charges its own bytes at `rmem` and one appearing only in an
     Op attribute charges nothing, so a whole traffic amount and an `operands`
@@ -1419,8 +1430,11 @@ model.
     the number of positions in the enclosing execution scope. This multiplier
     counts copied or replicated work: an unsharded operation inside a scope is
     performed independently by every position and therefore contributes once
-    per position to the total. The per-unit quantity already includes work
-    projected through finer levels.
+    per position to the total, except where the memory family has already
+    divided a shared write among the positions -- an `InsertSlice` window whose
+    offsets name no mesh coordinate, or a `Zeros` of a mesh-replicated buffer,
+    at a level the target owns -- so that window contributes once. The per-unit
+    quantity already includes work projected through finer levels.
   - A `MeshRegion` evaluates its boundary arguments outside the region and
     executes its body once per enclosing position. Argument work is charged at
     its defining site; body work is charged per enclosing position.

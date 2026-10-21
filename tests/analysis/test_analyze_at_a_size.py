@@ -598,7 +598,7 @@ def _assert_reported(case: ConcreteCase, report: dict) -> None:
     if case.id == "qwen3_1_7b_pd.PrefillLayer.layer_decode[ctx_len=128,seq=128]":
         gmem = reported["traffic"]["storage"]["gmem"]
         assert gmem["logical"]["read"] + gmem["logical"]["write"] == 102_172_180
-        assert gmem["total"]["read"] + gmem["total"]["write"] == 13_678_348_800
+        assert gmem["total"]["read"] + gmem["total"]["write"] == 13_653_469_696
     over_bound: set[tuple[str, str]] = set()
     for peak in reported["peaks"]:
         memory_level = peak["memory_level"]

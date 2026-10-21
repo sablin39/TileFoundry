@@ -11,6 +11,7 @@ from tilefoundry.ir.core import (
     Call,
     Expr,
     SSAValue,
+    Var,
     VerifyError,
     describe_expr,
     get_metadata,
@@ -18,6 +19,9 @@ from tilefoundry.ir.core import (
 from tilefoundry.ir.core import attach_metadata as attach
 from tilefoundry.ir.hir.function import Function
 from tilefoundry.ir.hir.mesh_region import MeshRegion
+from tilefoundry.ir.hir.sharding.mesh_coord import MeshCoord
+from tilefoundry.ir.hir.tensor.insert_slice import InsertSlice
+from tilefoundry.ir.hir.tensor.zeros import Zeros
 from tilefoundry.ir.types import TensorType, TupleType, Type
 from tilefoundry.ir.types.mesh import Mesh, separate, within_scope
 from tilefoundry.ir.types.shard_layout import shard_layout_of
@@ -28,6 +32,7 @@ from tilefoundry.ir.types.utils import (
     leaves_of,
     participant_layout,
 )
+from tilefoundry.ir.visitor import expr_children
 from tilefoundry.target.facts import TopologyFacts
 from tilefoundry.utils.units import format_bytes
 from tilefoundry.visitor_registry.access_relation import (
@@ -228,6 +233,93 @@ def _movement(
     return levels, traffic
 
 
+def _shared_levels(ctx: CostContext) -> frozenset[str]:
+    """The levels whose bytes every position of a unit shares one store for.
+
+    A level owned by a topology unit is private to each of that unit's
+    positions -- forty positions filling their own smem fill forty windows. A
+    level the target owns is the one store behind them all, so a window one
+    position writes there is bytes no other position has to write again.
+    """
+    if ctx.target is None:
+        return frozenset()
+    facts = ctx.target.get_facts(MemoryHierarchyFacts)
+    return frozenset(
+        level.name for level in facts.explicit_levels if level.owner == TARGET_MEMORY_OWNER
+    )
+
+
+def _placed_per_position(call: Call, scope: IterationScope | None) -> bool:
+    """Whether the window offsets give each executing position a window of its own.
+
+    An offset naming a mesh coordinate -- directly, through arithmetic, through
+    a captured binding, or through the bounds of the loop whose induction
+    variable it is -- writes a window the other positions do not, and that
+    window is each position's own bill. Literals, loop induction variables
+    whose bounds are position-invariant, and captured values with no mesh
+    coordinate in them land every position on the same window instead.
+    """
+    seen: set[int] = set()
+    frontier: list[Expr] = [call.args[2]]
+    loops = scope.loop_scopes if scope is not None else ()
+    while frontier:
+        node = frontier.pop()
+        if isinstance(node, Var) and scope is not None:
+            node = scope.capture_root(node)
+        if id(node) in seen:
+            continue
+        seen.add(id(node))
+        if isinstance(node, Call) and isinstance(node.target, MeshCoord):
+            return True
+        if isinstance(node, Var):
+            for loop in loops:
+                if node is loop.owner.induction_var:
+                    frontier.extend(
+                        bound
+                        for bound in (loop.owner.start, loop.owner.extent, loop.owner.step)
+                        if isinstance(bound, Expr)
+                    )
+            continue
+        frontier.extend(expr_children(node))
+    return False
+
+
+def _bill_shared_window_once(
+    expr: Call,
+    storage_whole: dict[str, TrafficBytes],
+    storage_per_unit: dict[str, dict[str, TrafficBytes]],
+    counted: str,
+    factor: int,
+    shared: frozenset[str],
+    scope: IterationScope | None,
+) -> None:
+    """Count a window every position writes alike once, not once per position.
+
+    An insert_slice whose offsets never name a mesh coordinate, and a zeros of
+    a mesh-replicated buffer, state the same whole window for every executing
+    position; at a level the target owns there is one store behind them and the
+    write happens once, so one position's share is the window divided among
+    them. Mesh-placed windows, topology-owned levels, and shares already
+    smaller than the whole keep per-position billing. The relation is not
+    narrowed: footprint and liveness need the whole window per position.
+    """
+    if factor <= 1 or not shared:
+        return
+    if not isinstance(expr.target, Zeros) and not (
+        isinstance(expr.target, InsertSlice) and not _placed_per_position(expr, scope)
+    ):
+        return
+    for name in shared:
+        moved = storage_per_unit.get(name, {}).get(counted)
+        if moved is None or not moved.total_bytes:
+            continue
+        if storage_whole.get(name) != moved:
+            continue
+        storage_per_unit[name][counted] = TrafficBytes(
+            -(-moved.read // factor), -(-moved.write // factor)
+        )
+
+
 def call_traffic(
     expr: Call,
     whole: CostContext,
@@ -275,6 +367,15 @@ def call_traffic(
             operands = positional
     positions = scope.mesh_positions if scope is not None else lambda _unit: 1
     counted = counted or next(iter(locals_by_unit))
+    _bill_shared_window_once(
+        expr,
+        storage_whole,
+        storage_per_unit,
+        counted,
+        positions(counted),
+        _shared_levels(whole),
+        scope,
+    )
     return MemoryMetadata(
         topologies=tuple(locals_by_unit),
         traffic=Traffic(

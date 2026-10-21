@@ -71,7 +71,7 @@ def test_invariant_gemm_operands_repeat_in_total_traffic() -> None:
 
     assert gmem is not None
     assert gmem.logical == TrafficBytes(read=27_262_976, write=16_777_216)
-    assert gmem.total == TrafficBytes(read=18_824_036_352, write=2_214_592_512)
+    assert gmem.total == TrafficBytes(read=17_725_137_408, write=1_115_693_568)
 
 
 def test_reshard_compares_address_boxes_without_participant_ownership() -> None:
