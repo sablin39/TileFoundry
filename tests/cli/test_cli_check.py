@@ -14,6 +14,7 @@ import pytest
 import torch
 from safetensors.torch import load_file, save_file
 
+from tests.fixtures.logical import callee_dim
 from tests.fixtures.placed import gqa_decode, leaf_weights
 from tests.fixtures.shapes.composed_leaf_source import composed_leaf_source
 from tests.models.corpus import MODELS_ROOT
@@ -441,6 +442,39 @@ def test_without_a_reference_only_a_one_sided_predicate_is_admitted(capsys) -> N
     reported = capsys.readouterr().out
     assert "reference: none" in reported
     assert "nan 0 inf 0" in reported
+
+
+def test_a_dim_only_a_callee_declares_is_bound_at_evaluation(tmp_path, capsys) -> None:
+    """--dim names the helper's own axis; the run resolves it where it is declared."""
+    x = torch.arange(4, dtype=torch.float32)
+    inputs_path = tmp_path / "inputs.pt"
+    expected_path = tmp_path / "expected.pt"
+    torch.save(x, inputs_path)
+    torch.save(x, expected_path)
+    assert (
+        cli.main(
+            [
+                "check",
+                f"{callee_dim.__file__}:Staged.main",
+                "--inputs",
+                f"files:{inputs_path}",
+                "--expected",
+                str(expected_path),
+                "--out",
+                "output",
+                "--fn",
+                "allclose",
+                "--atol",
+                "1e-6",
+                "--rtol",
+                "1e-6",
+                "--dim",
+                "BT=8",
+            ]
+        )
+        == 0
+    )
+    assert "PASS" in capsys.readouterr().out
 
 
 def test_a_dimension_left_as_a_range_is_refused(capsys) -> None:

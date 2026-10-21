@@ -237,8 +237,16 @@ def check_program(
         raise AnalysisError(f"cannot analyze Function {name!r} without a body at {path!r}")
     unknown = sorted(set(supplied) - declared.keys())
     if unknown:
+        if declared:
+            reached = ", ".join(
+                f"{name} ({collector.declared_by.get(name, function.name)})"
+                for name in sorted(declared)
+            )
+            detail = f"the dimensions it reaches are {reached}"
+        else:
+            detail = "no function it reaches declares a dimension"
         raise SpecializationError(
-            f"{function.name!r} has no dimension named {unknown!r}; it states {sorted(declared)}"
+            f"{function.name!r} has no dimension named {unknown!r}; {detail}"
         )
     for name, extent in supplied.items():
         substitute_shape_dim(declared[name], {name: extent})

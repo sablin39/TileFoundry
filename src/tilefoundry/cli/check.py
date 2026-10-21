@@ -6,7 +6,8 @@ import argparse
 import json
 import sys
 import textwrap
-from dataclasses import dataclass, replace
+from collections.abc import Mapping
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -211,6 +212,7 @@ class CheckRequest:
     expected: tuple[Any, ...] | None
     device: str
     expectations: dict[str, tuple[Predicate, ...]]
+    dims: Mapping[str, int] = field(default_factory=dict)
 
 
 def _refuse_orchestration(module: Module, method: str) -> None:
@@ -299,7 +301,7 @@ def _scope(resource: RuntimeResource, children: Sequence[str]) -> RuntimeResourc
 def check_concrete(request: CheckRequest):
     loaded = request.module.load(request.weights)
     def reference_run(*args):
-        return evaluate(loaded, *args)
+        return evaluate(loaded, *args, dims=request.dims)
     if request.expected is not None:
         expected = request.expected[0] if len(request.expected) == 1 else request.expected
         def expected_run(*_args):
@@ -608,6 +610,7 @@ def run_check(arguments: argparse.Namespace) -> int:
                 expected,
                 device,
                 expect,
+                dims=dims,
             )
         )
         declared = tuple(

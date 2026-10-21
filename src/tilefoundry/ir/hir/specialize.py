@@ -328,6 +328,7 @@ class _DimVarCollector(ExprVisitor[None]):
         super().__init__()
         self.found = found
         self.dims = dims
+        self.declared_by: dict[str, str] = {}
         self.seen_functions = set()
         self.active_functions = set()
         self.functions = []
@@ -338,6 +339,14 @@ class _DimVarCollector(ExprVisitor[None]):
     def default_visit_leaf(self, expr, operands, ctx):
         return None
 
+    def _record(self, found: dict[str, object]) -> None:
+        """Note declarations, remembering which function stated each name first."""
+        owner = self.path[-1] if self.path else None
+        for name in found:
+            if name not in self.found and owner is not None:
+                self.declared_by[name] = owner
+        self.found.update(found)
+
     def _collect_expr(self, expr: Expr, ctx=None) -> None:
         from tilefoundry.ir.types.substitute import _collect  # noqa: PLC0415
 
@@ -346,11 +355,15 @@ class _DimVarCollector(ExprVisitor[None]):
             if isinstance(expr, ModuleList) and ctx is not None
             else expr
         )
-        _collect(current.type, self.found)
+        staging: dict[str, object] = {}
+        _collect(current.type, staging)
+        self._record(staging)
 
     def _collect_bounds(self, expr: Expr) -> None:
+        staging: dict[str, object] = {}
         for bound in ("extent", "step", "start"):
-            _collect_entries(getattr(expr, bound, None), self.found)
+            _collect_entries(getattr(expr, bound, None), staging)
+        self._record(staging)
 
     def _visit_children(self, expr: Expr, ctx=None) -> None:
         if isinstance(expr, Call) and isinstance(expr.target, Call):
@@ -367,8 +380,6 @@ class _DimVarCollector(ExprVisitor[None]):
             self.visit(body, ctx)
 
     def visit_function(self, fn: Function, frame=None) -> None:
-        if frame is not None:
-            self.found.update(dim_vars_by_name(frame.topologies))
         if id(fn) in self.active_functions:
             self.cycles.append("/".join((*self.path, fn.name)))
             return
@@ -381,9 +392,11 @@ class _DimVarCollector(ExprVisitor[None]):
         self.path.append(fn.name)
         previous_memo, self._memo = self._memo, {}
         try:
+            if frame is not None:
+                self._record(dim_vars_by_name(frame.topologies))
             for param in fn.params:
-                self.found.update(dim_vars_by_name(param.type))
-            self.found.update(dim_vars_by_name(fn.return_type))
+                self._record(dim_vars_by_name(param.type))
+            self._record(dim_vars_by_name(fn.return_type))
             if self.dims is None:
                 for variant in fn.variants:
                     self.visit_function(variant, frame)
@@ -409,9 +422,11 @@ class _DimVarCollector(ExprVisitor[None]):
         if isinstance(callee, Function):
             self.visit_function(callee, inner)
         else:
+            staging: dict[str, object] = {}
             for attribute in getattr(type(target), "params", lambda: ())():
                 if attribute.kind == "attribute":
-                    _collect_entries(getattr(target, attribute.name, None), self.found)
+                    _collect_entries(getattr(target, attribute.name, None), staging)
+            self._record(staging)
 
     def visit_Tuple(self, expr: Tuple, ctx=None) -> None:
         self._collect_expr(expr, ctx)
