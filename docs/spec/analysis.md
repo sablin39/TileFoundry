@@ -54,9 +54,12 @@ Every compact text summary begins with these two lines:
 
 ```text
 # example
-# analysis target=<target> module=<module> function=<function> topology=<level> wave=<counted>/<declared>
+# analysis target=<target> module=<module> function=<function> topology=<level> wave=<counted>/<declared> lanes=<occupied>/<declared>
 # selection requested=<selector>[,<selector>...] executed=<selector>[,<selector>...]
 ```
+
+`lanes` is stated only when `occupied` differs from `declared`: a full fill is
+the silence case, so most identity lines carry no `lanes`.
 
 Every summary line is one record walked exactly as an annotated equation is
 ([inspection §2.8](./inspection.md#28-record-comment-forms)), so the two surfaces
@@ -65,7 +68,8 @@ are records of the report rather than of the IR; every other summary line is a
 record of the selected Function.
 
 The JSON report carries `target`, `module`, `topology`, `wave`, `requested`,
-and `executed` once. `wave` holds `counted` and `declared`. Its `functions` list
+and `executed` once. `wave` holds `counted`, `declared`, and `occupied`. Its
+`functions` list
 contains each reached definition once in root-first DFS order. Each entry has
 `function` (`Module.fn`), `function_records`, operand-first `calls`, authored
 `loops`, and `totals` when compute cost or roofline work evidence is selected.
@@ -972,7 +976,15 @@ once. A buffer with neither states no row.
 The report identity, not `RegionMemoryMetadata`, states the program-dependent
 machine context. Its wave is `min(declared units, units the target runs at
 once)` over the level selected by `TopologyFacts.parallel_level`; it is the top-level
-`wave` field in JSON and appears once on the `analysis` text line. Cache level
+`wave` field in JSON and appears once on the `analysis` text line. Beside it the
+identity states the program's fill of the declared lanes: `occupied` is the most
+positions any mesh the selected Function executes activates at that level and
+the coarser ones, and 1 when the Function states no mesh. JSON always states it;
+the text line prints it as `lanes=<occupied>/<declared>` only when it differs
+from `declared`. An under-fill the wave cannot show -- 40 positions on a
+132-unit level reads `wave=132/132 lanes=40/132` -- is a statement about where
+the program's placement reaches, not an occupancy guarantee ([§1.2.4](#124-performance)).
+Cache level
 and capacity remain Target facts and appear in this report only when they decide
 a cache-capacity finding.
 
@@ -1126,7 +1138,8 @@ under `function_records.memory`:
 - constraints:
   - Text and JSON MUST project analysis conclusions from these records. The
     report identity's `wave` is read from the resolved Module Target and the
-    program's declared units and MUST NOT be copied into the memory record.
+    program's declared units, and its `occupied` from the meshes the selected
+    Function executes; neither is copied into the memory record.
   - A missing footprint MUST be JSON `null`; it MUST NOT be represented by an
     empty `Footprint`.
 

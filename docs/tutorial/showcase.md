@@ -195,7 +195,7 @@ for needle in ("matmul(hidden, w_q", "cache_update(k_cache", ", w_o)"):
 ```
 
 ```text
-# analysis target=nvidia.h200_sxm module=Stage0_Naive function=gqa_decode topology=cta wave=132/132
+# analysis target=nvidia.h200_sxm module=Stage0_Naive function=gqa_decode topology=cta wave=132/132 lanes=1/132
 # selection requested=compute-cost,memory,roofline executed=compute-cost,memory,roofline
 # compute-cost flops=bf16:328896@logical,328896@total,328896@cta;f32:200448@logical,200448@total,200448@cta other-ops=special:1024@logical,1024@total,1024@cta precision=exact
 # memory traffic=gmem:r1.12MB/w787.69KB@logical,r1.12MB/w787.69KB@total,r1.12MB/w787.69KB@cta footprint=hidden:512B;w_q:128.00KB;v0:1.00KB;w_k:32.00KB;v2:256B;cos_cache:1.00KB;sin_cache:1.00KB;pos_ids:4B;rope[0]:1.00KB;rope[1]:256B;q_f32:2.00KB;v8:1.00KB;scaled_q:2.00KB;cur_pos:4B;write_len:4B;k_all:16.12KB;k_heads:128.00KB;k_heads_2:128.00KB;k_f32:256.00KB;v18:256.00KB;scores:8.00KB;peak:64B;v21:8.00KB;weights:8.00KB;w_v:32.00KB;v23:256B;v_all:16.12KB;v_heads:128.00KB;v_heads_2:128.00KB;v_f32:256.00KB;v30:256.00KB;weighted:2.00KB;normalizer:64B;attended:2.00KB;attended_bf16:1.00KB;w_o:128.00KB;v36:512B footprint-precision=upper_bound peak=gmem:1.54MB persistent=gmem:1.34MB
@@ -421,7 +421,7 @@ print(report.partition("\n\n")[0].rstrip())
 ```
 
 ```text
-# analysis target=nvidia.h200_sxm module=Stage2_Sharded function=gqa_decode topology=cta wave=132/132
+# analysis target=nvidia.h200_sxm module=Stage2_Sharded function=gqa_decode topology=cta wave=132/132 lanes=8/132
 # selection requested=compute-cost,memory,roofline executed=compute-cost,memory,roofline
 # compute-cost flops=bf16:2203264@logical,4503744@total,562968@cta;f32:44352@logical,44352@total,5544@cta other-ops=special:14528@logical,14528@total,1816@cta precision=exact
 # memory traffic=gmem:r4.31MB/w3.55MB@logical,r22.05MB/w28.39MB@total,r2.76MB/w3.55MB@cta;rmem:r315.19KB/w201.69KB@logical,r315.19KB/w201.69KB@total,r39.40KB/w25.21KB@cta;smem:r3.55MB/w3.55MB@logical,r3.55MB/w3.55MB@total,r454.62KB/w454.62KB@cta footprint=hidden:512B;w_q:128.00KB;v0:1.00KB;w_k:32.00KB;v2:256B;cos_cache:1.00KB;sin_cache:1.00KB;pos_ids:4B;rope[0]:1.00KB;rope[1]:256B;cur_pos:4B;write_len:4B;k_all:227.12KB;v16:1.77MB;k_heads:1.77MB;w_v:32.00KB;v25:256B;v_all:227.12KB;v28:1.77MB;v_heads:1.77MB;attended_2:1.00KB;w_o:128.00KB;v39:512B footprint-precision=upper_bound peak=gmem:3.53MB;rmem:10.77KB;smem:227.12KB persistent=gmem:1.76MB
@@ -457,7 +457,7 @@ print(report.partition("\n\n")[0].rstrip())
 ```
 
 ```text
-# analysis target=nvidia.h200_sxm module=Stage2_Sharded function=gqa_decode topology=cta wave=132/132
+# analysis target=nvidia.h200_sxm module=Stage2_Sharded function=gqa_decode topology=cta wave=132/132 lanes=8/132
 # selection requested=compute-cost,memory,roofline executed=compute-cost,memory,roofline
 # compute-cost flops=bf16:2207392@logical,4507872@total,563484@cta;f32:44448@logical,44448@total,5556@cta other-ops=special:14560@logical,14560@total,1820@cta precision=exact
 # memory traffic=gmem:r4.32MB/w3.56MB@logical,r22.09MB/w28.45MB@total,r2.76MB/w3.56MB@cta;rmem:r315.88KB/w202.12KB@logical,r315.88KB/w202.12KB@total,r39.48KB/w25.27KB@cta;smem:r3.56MB/w3.56MB@logical,r3.56MB/w3.56MB@total,r455.62KB/w455.62KB@cta footprint=hidden:512B;w_q:128.00KB;v0:1.00KB;w_k:32.00KB;v2:256B;cos_cache:1.00KB;sin_cache:1.00KB;pos_ids:4B;rope[0]:1.00KB;rope[1]:256B;cur_pos:4B;write_len:4B;k_all:227.62KB;v16:1.78MB;k_heads:1.78MB;w_v:32.00KB;v25:256B;v_all:227.62KB;v28:1.78MB;v_heads:1.78MB;attended_2:1.00KB;w_o:128.00KB;v39:512B footprint-precision=upper_bound peak=gmem:3.53MB;rmem:10.79KB;smem:227.62KB persistent=gmem:1.76MB
@@ -753,7 +753,7 @@ print(next(line.rstrip() for line in annotated.splitlines() if "cache_update(k_c
 ```
 
 ```text
-# analysis target=nvidia.h200_sxm module=Stage3_Fused function=gqa_decode topology=cta wave=132/132
+# analysis target=nvidia.h200_sxm module=Stage3_Fused function=gqa_decode topology=cta wave=132/132 lanes=32/132
 # selection requested=compute-cost,memory,roofline executed=compute-cost,memory,roofline
 # compute-cost flops=bf16:2983360@logical,8628160@total,461024@cta;f32:94080@logical,127488@total,3984@cta other-ops=integer:9@logical,512@total,16@cta;special:33056@logical,33152@total,1036@cta precision=exact
 # memory traffic=gmem:r2.32MB/w4.00MB@logical,r9.21MB/w4.02MB@total,r1.44MB/w4.00MB@cta;rmem:r64.64KB/w64.07KB@logical,r184.00KB/w164.00KB@total,r5.75KB/w5.12KB@cta;smem:r2.62MB/w2.46MB@logical,r8.90MB/w8.61MB@total,r284.71KB/w275.41KB@cta footprint=hidden:512B;w_q:128.00KB;v0:1.00KB;w_k:32.00KB;v2:256B;cos_cache:1.00KB;sin_cache:1.00KB;pos_ids:4B;rope[0]:1.00KB;rope[1]:256B;cur_pos:4B;write_len:4B;k_all:512.12KB;k_heads:2.25MB;w_v:32.00KB;v11:256B;v_all:512.12KB;v_heads:2.25MB;attended_3:1.00KB;w_o:128.00KB;v91:512B footprint-precision=upper_bound peak=gmem:6.81MB;rmem:520B;smem:16.91KB persistent=gmem:2.31MB
@@ -890,7 +890,7 @@ for needle in ("reshard(w_q", "reshard(w_o"):
 ```
 
 ```text
-# analysis target=nvidia.h200_sxm module=Stage4_WeightPrepared function=gqa_decode topology=cta wave=132/132
+# analysis target=nvidia.h200_sxm module=Stage4_WeightPrepared function=gqa_decode topology=cta wave=132/132 lanes=8/132
 # selection requested=compute-cost,memory,roofline executed=compute-cost,memory,roofline
 # compute-cost flops=bf16:329536@logical,338048@total,42256@cta;f32:6390528@logical,51124224@total,6390528@cta other-ops=special:32768@logical,262144@total,32768@cta precision=exact
 # memory traffic=gmem:r25.95MB/w24.38MB@logical,r205.39MB/w195.05MB@total,r25.67MB/w24.38MB@cta;rmem:r3.75KB/w3.75KB@logical,r3.75KB/w3.75KB@total,r480B/w480B@cta;smem:r322.00KB/w321.00KB@logical,r336.00KB/w328.00KB@total,r42.00KB/w41.00KB@cta footprint=hidden:512B;w_q:128.00KB;q_projected_2:1.00KB;w_k:32.00KB;k_projected_2:256B;cos_cache:1.00KB;sin_cache:1.00KB;pos_ids:4B;rope[0]:1.00KB;rope[1]:256B;q_f32:2.00KB;v15:1.00KB;scaled_q:2.00KB;cur_pos:4B;write_len:4B;k_all:512.12KB;v21:4.00MB;k_heads:4.00MB;k_f32:8.00MB;v25:8.00MB;scores:256.00KB;peak:64B;v28:256.00KB;weights:256.00KB;w_v:32.00KB;v_projected_2:256B;v_all:512.12KB;v36:4.00MB;v_heads:4.00MB;v_f32:8.00MB;v40:8.00MB;weighted:2.00KB;normalizer:64B;v43:2.00KB;attended:1.00KB;w_o:128.00KB;v50:512B footprint-precision=upper_bound peak=gmem:8.44MB;rmem:128B;smem:16.50KB persistent=gmem:2.31MB
@@ -1065,7 +1065,7 @@ for needle in ("slice(k_cache", "cache_update(k_cache"):
 ```
 
 ```text
-# analysis target=nvidia.h200_sxm module=Stage5_CachePrepared function=gqa_decode topology=cta wave=132/132
+# analysis target=nvidia.h200_sxm module=Stage5_CachePrepared function=gqa_decode topology=cta wave=132/132 lanes=8/132
 # selection requested=compute-cost,memory,roofline executed=compute-cost,memory,roofline
 # compute-cost flops=bf16:4557512@logical,5482952@total,858241@cta;f32:117288@logical,117288@total,14661@cta other-ops=integer:32@logical,256@total,32@cta;special:33040@logical,33040@total,4130@cta precision=exact
 # memory traffic=gmem:r5.32MB/w4.00MB@logical,r13.20MB/w32.02MB@total,r1.82MB/w4.00MB@cta;rmem:r163.53KB/w161.03KB@logical,r181.03KB/w161.03KB@total,r22.63KB/w20.13KB@cta;smem:r8.82MB/w8.55MB@logical,r8.85MB/w8.57MB@total,r1.11MB/w1.07MB@cta footprint=hidden:512B;w_q:128.00KB;v0:1.00KB;w_k:32.00KB;v2:256B;cos_cache:1.00KB;sin_cache:1.00KB;pos_ids:4B;rope[0]:1.00KB;rope[1]:256B;cur_pos:4B;write_len:4B;k_all:256B;w_v:32.00KB;v10:256B;v_all:256B;v71:256B;k_current:1.00KB;v84:256B;v_current:1.00KB;attended_2:1.00KB;w_o:128.00KB;v100:512B;k_cache:16.00KB;v38:128.00KB;v_cache:16.00KB;v59:128.00KB footprint-precision=upper_bound peak=gmem:3.38MB;rmem:512B;smem:16.91KB persistent=gmem:2.31MB

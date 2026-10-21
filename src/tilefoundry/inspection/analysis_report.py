@@ -96,6 +96,7 @@ def _summary(
     wave = data["wave"]
     counted = wave["counted"]
     declared = wave["declared"]
+    occupied = wave["occupied"]
     views: list[IRMetadata] = [
         ReportIdentity(
             target=data["target"],
@@ -103,6 +104,11 @@ def _summary(
             function=function_name,
             topology=data["topology"] or "none",
             wave=f"{counted}/{declared}" if counted and declared else "",
+            lanes=(
+                f"{occupied}/{declared}"
+                if occupied and declared and occupied != declared
+                else ""
+            ),
         ),
         ReportSelection(requested=tuple(data["requested"]), executed=tuple(data["executed"])),
     ]

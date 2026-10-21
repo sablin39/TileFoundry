@@ -15,7 +15,7 @@ from tilefoundry.ir.types import Mesh, Topology
 from tilefoundry.ir.types.dim import DimSub, simplify_dim
 from tilefoundry.ir.types.layout import ComposedLayout, get, size
 from tilefoundry.ir.types.utils import leaf_rank, leaf_span, static_dim_value
-from tilefoundry.ir.visitor import expr_children
+from tilefoundry.ir.visitor import collect_exprs, expr_children
 from tilefoundry.visitor_registry.access_relation import (
     AccessRelation,
     access_relation_registry,
@@ -58,6 +58,26 @@ def _positions_at(mesh: Mesh, unit: str, topologies: tuple[Topology, ...]) -> in
             )
         positions *= count
     return positions
+
+
+def occupied_positions(
+    function, unit: str, topologies: tuple[Topology, ...]
+) -> int:
+    """The most positions any of one Function's meshes activates at *unit* or coarser.
+
+    The Function's own execution mesh and every mesh region it enters count;
+    1 when the Function states no mesh at all.
+    """
+    meshes = [
+        expr.mesh for expr in collect_exprs(function.body) if isinstance(expr, MeshRegion)
+    ]
+    execution = get_metadata(function, ExecutionMeshMetadata)
+    if execution is not None and execution.mesh is not None:
+        meshes.append(execution.mesh)
+    return max(
+        (_positions_at(mesh, unit, topologies) for mesh in meshes),
+        default=1,
+    )
 
 
 @dataclass(frozen=True)

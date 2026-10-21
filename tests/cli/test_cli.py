@@ -777,7 +777,7 @@ def test_analyze_reports_retained_occurrences_from_one_rendering(tmp_path) -> No
         "shared_expert::placed": 33280,
         "v2": 30720,
     }
-    assert payload["wave"] == {"counted": 132, "declared": 132}
+    assert payload["wave"] == {"counted": 132, "declared": 132, "occupied": 132}
     assert "cache" not in payload
     assert (
         not {

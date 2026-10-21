@@ -35,6 +35,7 @@ class ReportIdentity(IRMetadata):
     function: str = ""
     topology: str = "none"
     wave: str = ""
+    lanes: str = ""
 
 
 @dataclass(frozen=True)
@@ -248,6 +249,7 @@ class CommentPrinter:
                 ("function", record.function, ""),
                 ("topology", record.topology, "none"),
                 ("wave", record.wave, ""),
+                ("lanes", record.lanes, ""),
             ),
         )
 
