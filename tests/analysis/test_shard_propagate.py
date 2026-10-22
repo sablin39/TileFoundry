@@ -208,3 +208,30 @@ def test_an_input_partial_propagates_on_its_own_mesh_axis():
         "max",
     )
     assert partial_reductions_by_axis(make_tensor_type((4, 8))) == ()
+
+
+def test_an_input_whole_at_one_level_keeps_that_level_aligned():
+    """Rows split over CTAs and threads, times a gamma every CTA holds whole.
+
+    The gamma states the CTA level as all Broadcast. It must keep that level, so
+    its thread split sits on the same mesh axis as the rows' thread split.
+    """
+    mesh = Mesh((Topology("cta", 2), Topology("thread", 4)), layout=(2, 4), names=("tile", "y"))
+    rows = make_tensor_type(
+        (2, 16),
+        layout=ShardLayout(Layout((2, 16), (16, 1)), (Split(0), Split(1)), mesh),
+    )
+    gamma = make_tensor_type(
+        (1, 16),
+        layout=ShardLayout(Layout((1, 16), (16, 1)), (Broadcast(), Split(1)), mesh),
+    )
+    relation = (
+        AccessRelation(isl.map("{ [m, n] -> [m, n] }")),
+        AccessRelation(isl.map("{ [m, n] -> [0, n] }")),
+        AccessRelation(isl.map("{ [m, n] -> [m, n] }")),
+    )
+
+    out = derive_output_shard_layout((rows, gamma), relation, (2, 16))
+
+    assert out.attrs == (Split(0), Split(1))
+    assert out.mesh == mesh

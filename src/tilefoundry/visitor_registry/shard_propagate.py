@@ -227,12 +227,21 @@ def derive_output_shard_layout(
     complete_reduction_dims: "frozenset[int]" = frozenset(),
     fresh_strides: bool = False,
 ):
-    """Derive the output ``ShardLayout`` from the input shards and the Op's relations."""
+    """Derive the output ``ShardLayout`` from the input shards and the Op's relations.
+
+    Every input is projected onto the same participating levels -- each level
+    any input distributes -- so mesh axes keep one index across the inputs.
+    """
+    layouts = tuple(shard_layout_of(type_.layout) for type_ in input_types)
+    required = {
+        getattr(topology, "name", topology)
+        for layout in (participant_layout(item) for item in layouts if item is not None)
+        if any(not isinstance(attr, Broadcast) for attr in layout.attrs)
+        for topology in layout.mesh.topologies
+    }
     input_types = tuple(
-        replace(type_, layout=participant_layout(layout))
-        if (layout := shard_layout_of(type_.layout)) is not None
-        else type_
-        for type_ in input_types
+        type_ if layout is None else replace(type_, layout=participant_layout(layout, required or None))
+        for type_, layout in zip(input_types, layouts, strict=True)
     )
     sharded = [
         (i, t.layout)
@@ -243,6 +252,8 @@ def derive_output_shard_layout(
     if not sharded:
         return None
     mesh = sharded[0][1].mesh
+    if any(layout.mesh != mesh for _index, layout in sharded):
+        raise ValueError("inputs distribute over different meshes; their mesh axes do not align")
     mesh_rank = len(flatten(mesh.layout).shape)
 
     *input_maps, output_map = (access.relation for access in relations)
