@@ -131,7 +131,7 @@ def test_usage_errors_print_usage_before_error(tf) -> None:
     assert done.stdout == ""
     assert done.stderr.startswith("usage: tilefoundry analyze")
     assert (
-        "tilefoundry analyze: error: the following arguments are required: SOURCE, PATH"
+        "tilefoundry analyze: error: the following arguments are required: SOURCE"
         in done.stderr
     )
     assert "SOURCE" in done.stderr

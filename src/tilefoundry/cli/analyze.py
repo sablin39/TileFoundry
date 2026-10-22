@@ -110,7 +110,7 @@ def guidance() -> str:
 def run_authored_analysis(
     source: str,
     analyses: tuple[str, ...],
-    out_path: str,
+    out_path: str | None,
     *,
     topology: str | None = None,
     as_json: bool = False,
@@ -162,9 +162,9 @@ def run_authored_analysis(
         disarmed.set()
 
 
-def _write_report(out_path: str, text: str) -> None:
-    """Write the report to PATH, or to stdout when PATH is ``-``."""
-    if out_path == "-":
+def _write_report(out_path: str | None, text: str) -> None:
+    """Write the report to PATH, or to stdout when no PATH was given."""
+    if out_path is None:
         sys.stdout.write(text)
         return
     Path(out_path).write_text(text, encoding="utf-8")

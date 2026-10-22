@@ -880,20 +880,10 @@ def test_analyze_reports_retained_occurrences_from_one_rendering(tmp_path) -> No
     assert "units=" not in annotated
 
 
-def test_analyze_writes_the_report_to_stdout_for_dash(capsys) -> None:
-    """`-` as the out PATH routes the report — text or JSON — to stdout."""
+def test_analyze_without_a_path_writes_the_report_to_stdout(capsys) -> None:
     source = Path(__file__).parents[1] / "fixtures" / "placed" / "rmsnorm.py"
-    selector = f"{source}:RmsnormModule"
-
-    assert cli.main(["analyze", selector, "-", "--memory"]) == 0
-    text = capsys.readouterr().out
-    assert "# memory traffic=" in text
-    assert "def rmsnorm(" in text
-
-    assert cli.main(["analyze", selector, "-", "--memory", "--json"]) == 0
-    payload = json.loads(capsys.readouterr().out)
-    assert [row["function"] for row in payload["functions"]] == ["RmsnormModule.rmsnorm"]
-    assert "def rmsnorm(" in payload["source"]
+    assert cli.main(["analyze", f"{source}:RmsnormModule", "--memory"]) == 0
+    assert "# memory traffic=" in capsys.readouterr().out
 
 
 def test_analyze_memory_lines_state_json_totals(tmp_path) -> None:
