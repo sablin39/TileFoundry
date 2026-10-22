@@ -603,8 +603,9 @@ so their work is bf16 work: each head CTA adds `2 * 2 * 128 * 32 = 16384` matmul
 plus 160 for the two casts that narrow their f32 inputs. Only the softmax arithmetic stays
 in f32, 480 flops per CTA, and the special work divides by the eight head CTAs. The remaining bf16 work
 is the projection, placement and gather work that is not head-shardable. `ideal-ns` also
-changes because the authored storage choices change the traffic seen by the roofline
-calculation.
+falls, for two reasons: eight head CTAs keep eight times the bytes in flight, so the
+roofline's global-memory rate is eight times one CTA's, and the authored storage choices
+change the traffic that rate divides.
 
 ## 4. Keep the scan state on chip
 

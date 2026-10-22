@@ -29,6 +29,10 @@ done
 `rms_norm_quant` quantizes them. A `@func` boundary is a real handover, so those rows are
 written where the next function can read them.
 
+Both versions place the rows the same way: 264 of them, two per CTA on 132 CTAs, so the
+grid fills the H200's 132 SMs in one wave. `ROWS @ (cta.tile, m.x)` hands each CTA its
+pair and each row of the pair to one group of 128 threads.
+
 <!-- tilefoundry-source: rms_norm_quant.py -->
 
 ```python
@@ -38,7 +42,9 @@ written where the next function can read them.
 from tilefoundry.dsl import *
 from tilefoundry.target import CudaTarget
 
-ROWS = 2
+PAIR = 2  # rows one CTA normalizes
+CTAS = 132  # one CTA per SM of the H200, so the grid is one wave
+ROWS = PAIR * CTAS
 H = 7168  # this example's row width, not a field of any model
 BLOCK = 128  # config.json: quantization_config.weight_block_size[1]
 BLOCKS = H // BLOCK
@@ -46,8 +52,8 @@ FP8_MAX = 448.0  # the largest finite fp8e4m3, because fmt says e4m3
 EPS = 1e-6  # config.json: rms_norm_eps
 
 _H200 = CudaTarget("nvidia.h200_sxm")
-_CTA = Topology("cta", 1)
-_THREAD = Topology("thread", ROWS * 4 * 32)
+_CTA = Topology("cta", CTAS)
+_THREAD = Topology("thread", PAIR * 4 * 32)
 
 
 @module(entry="rms_norm_quant", target=_H200, topologies=(_CTA, _THREAD))
@@ -56,9 +62,9 @@ class Naive:
 
     @func
     def norm(a: Tensor[(ROWS, H), "bf16"], gamma: ConstTensor[(1, H), "bf16"]):
-        with Mesh(("cta",), (1,), ("tile",)) as _cta:
-            with Mesh(("thread",), (ROWS, 4, 32), ("x", "y", "t")) as m:
-                held = tf.reshard(a, (ROWS @ m.x, BLOCKS @ m.y, BLOCK @ m.t), "rmem")
+        with Mesh(("cta",), (CTAS,), ("tile",)) as cta:
+            with Mesh(("thread",), (PAIR, 4, 32), ("x", "y", "t")) as m:
+                held = tf.reshard(a, (ROWS @ (cta.tile, m.x), BLOCKS @ m.y, BLOCK @ m.t), "rmem")
                 scaling = tf.reshard(gamma, (1, BLOCKS @ m.y, BLOCK @ m.t), "rmem")
                 rows = tf.cast(held, "f32")
                 mean = tf.reduce(tf.square(rows), (-1,), True, ReduceKind.MEAN)
@@ -67,10 +73,10 @@ class Naive:
 
     @func
     def rms_norm_quant(a: Tensor[(ROWS, H), "bf16"], gamma: ConstTensor[(1, H), "bf16"]):
-        with Mesh(("cta",), (1,), ("tile",)) as _cta:
+        with Mesh(("cta",), (CTAS,), ("tile",)) as cta:
             normed = norm(a, gamma)  # noqa: F821
-            with Mesh(("thread",), (ROWS, 4, 32), ("x", "y", "t")) as m:
-                held = tf.reshard(normed, (ROWS @ m.x, BLOCKS @ m.y, BLOCK @ m.t), "rmem")
+            with Mesh(("thread",), (PAIR, 4, 32), ("x", "y", "t")) as m:
+                held = tf.reshard(normed, (ROWS @ (cta.tile, m.x), BLOCKS @ m.y, BLOCK @ m.t), "rmem")
                 blocks = tf.reshape(tf.cast(held, "f32"), (ROWS, BLOCKS, BLOCK))
                 scale = tf.reduce(blocks, (-1,), True, ReduceKind.ABS_MAX) * (1.0 / FP8_MAX)
                 quant = tf.cast(tf.clamp(blocks / scale, -FP8_MAX, FP8_MAX), "fp8e4m3")
@@ -87,16 +93,16 @@ grep -E '^# (memory|roofline) ' Naive.txt
 ```
 
 ```text
-# memory traffic=gmem:r70.00KiB/w42.44KiB@logical,r70.00KiB/w42.44KiB@total,r70.00KiB/w42.44KiB@cta,r336B/w224B@thread;rmem:r589.35KiB/w476.90KiB@logical,r589.35KiB/w476.90KiB@total,r589.35KiB/w476.90KiB@cta,r2.54KiB/w2.04KiB@thread footprint=a:28.00KiB;gamma:14.00KiB;norm::v11:56.00KiB;v13:14.00KiB;v15:448B footprint-precision=exact peak=gmem:70.00KiB;rmem:112.01KiB persistent=gmem:42.00KiB
-# roofline ideal-ns=9923 bound-by=memory
-# memory traffic=gmem:r42.00KiB/w28.00KiB@logical,r42.00KiB/w28.00KiB@total,r42.00KiB/w28.00KiB@cta,r224B/w112B@thread;rmem:r322.03KiB/w266.02KiB@logical,r322.03KiB/w266.02KiB@total,r322.03KiB/w266.02KiB@cta,r1.33KiB/w1.11KiB@thread footprint=a:28.00KiB;gamma:14.00KiB;v11:28.00KiB footprint-precision=exact
-# roofline ideal-ns=6178 bound-by=memory
+# memory traffic=gmem:r7.23MiB/w5.47MiB@logical,r9.02MiB/w5.47MiB@total,r70.00KiB/w42.44KiB@cta,r336B/w224B@thread;rmem:r74.18MiB/w59.68MiB@logical,r75.97MiB/w61.48MiB@total,r589.35KiB/w476.90KiB@cta,r2.54KiB/w2.04KiB@thread footprint=a:3.61MiB;gamma:14.00KiB;norm::v11:7.22MiB;v13:1.80MiB;v15:57.75KiB footprint-precision=exact peak=gmem:7.23MiB;rmem:112.01KiB persistent=gmem:3.62MiB
+# roofline ideal-ns=8697 bound-by=memory
+# memory traffic=gmem:r3.62MiB/w3.61MiB@logical,r5.41MiB/w3.61MiB@total,r42.00KiB/w28.00KiB@cta,r224B/w112B@thread;rmem:r39.72MiB/w32.50MiB@logical,r41.51MiB/w34.29MiB@total,r322.03KiB/w266.02KiB@cta,r1.33KiB/w1.11KiB@thread footprint=a:3.61MiB;gamma:14.00KiB;v11:3.61MiB footprint-precision=exact
+# roofline ideal-ns=4952 bound-by=memory
 ```
 
 `bound-by=memory` says this step waits on memory, not on arithmetic: cutting flops
 would buy nothing here, and cutting traffic is the change worth making. The rows crossing
-the boundary are the traffic to cut -- 2 x 7168 bf16 is 28672 B, written once and read
-back once.
+the boundary are the traffic to cut -- 264 x 7168 bf16 is 3784704 B, written once and
+read back once.
 
 `Fused` is the same arithmetic in one `@func`, so the normalized rows never leave a
 register.
@@ -110,9 +116,9 @@ class Fused:
 
     @func
     def rms_norm_quant(a: Tensor[(ROWS, H), "bf16"], gamma: ConstTensor[(1, H), "bf16"]):
-        with Mesh(("cta",), (1,), ("tile",)) as _cta:
-            with Mesh(("thread",), (ROWS, 4, 32), ("x", "y", "t")) as m:
-                held = tf.reshard(a, (ROWS @ m.x, BLOCKS @ m.y, BLOCK @ m.t), "rmem")
+        with Mesh(("cta",), (CTAS,), ("tile",)) as cta:
+            with Mesh(("thread",), (PAIR, 4, 32), ("x", "y", "t")) as m:
+                held = tf.reshard(a, (ROWS @ (cta.tile, m.x), BLOCKS @ m.y, BLOCK @ m.t), "rmem")
                 scaling = tf.reshard(gamma, (1, BLOCKS @ m.y, BLOCK @ m.t), "rmem")
                 rows = tf.cast(held, "f32")
                 mean = tf.reduce(tf.square(rows), (-1,), True, ReduceKind.MEAN)
@@ -133,13 +139,14 @@ grep -E '^# (memory|roofline) ' Fused.txt
 ```
 
 ```text
-# memory traffic=gmem:r42.00KiB/w14.44KiB@logical,r42.00KiB/w14.44KiB@total,r42.00KiB/w14.44KiB@cta,r224B/w112B@thread;rmem:r561.35KiB/w448.90KiB@logical,r561.35KiB/w448.90KiB@total,r561.35KiB/w448.90KiB@cta,r2.43KiB/w1.93KiB@thread footprint=a:28.00KiB;gamma:14.00KiB;v22:14.00KiB;v24:448B footprint-precision=exact peak=gmem:56.44KiB;rmem:112.01KiB persistent=gmem:42.00KiB
-# roofline ideal-ns=4981 bound-by=memory
+# memory traffic=gmem:r3.62MiB/w1.86MiB@logical,r5.41MiB/w1.86MiB@total,r42.00KiB/w14.44KiB@cta,r224B/w112B@thread;rmem:r70.57MiB/w56.07MiB@logical,r72.36MiB/w57.87MiB@total,r561.35KiB/w448.90KiB@cta,r2.43KiB/w1.93KiB@thread footprint=a:3.61MiB;gamma:14.00KiB;v22:1.80MiB;v24:57.75KiB footprint-precision=exact peak=gmem:5.48MiB;rmem:112.01KiB persistent=gmem:3.62MiB
+# roofline ideal-ns=3755 bound-by=memory
 ```
 
-Reads fall by 28672 B and writes by 28672 B, exactly the rows that no longer make the
-round trip, and `ideal-ns` falls with them. `rmem` traffic is unchanged: the same values
-are still computed, they are just not spilled on the way.
+Reads fall by 3784704 B and writes by 3784704 B, exactly the rows that no longer make the
+round trip, and `ideal-ns` falls with them. `rmem` traffic falls by the same amount, 28672 B
+per CTA in each direction: `Naive` loads the handed-over rows back into registers before
+it quantizes them, and `Fused` already holds them there. The arithmetic is unchanged.
 
 ## 2. A twin, and whether it still agrees
 
@@ -220,9 +227,9 @@ twin.py:Fast
   reference: evaluator on Fused.rms_norm_quant
   inputs:    random (seed 0); activations actual bf16 (declared bf16)
 
-  output[0]   fp8e4m3[2,7168]   ref_norm 12548.9
-    equal                              mismatched 0 elements 14336 PASS
-  output[1]   f32[2,56]   ref_norm 0.156977
+  output[0]   fp8e4m3[264,7168]   ref_norm 149277
+    equal                              mismatched 0 elements 1.89235e+06 PASS
+  output[1]   f32[264,56]   ref_norm 1.2211
     allclose(atol=1e-06 rtol=1e-06)    max_violation 0            PASS
 
 PASS
