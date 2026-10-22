@@ -19,7 +19,7 @@ from tilefoundry.ir.hir.loop_region import LoopRegion
 from tilefoundry.ir.hir.math.binary import Binary
 from tilefoundry.ir.hir.mesh_region import MeshRegion
 from tilefoundry.ir.visitor import collect_exprs
-from tilefoundry.target import CudaTarget, ThroughputFacts
+from tilefoundry.target import CudaTarget
 from tilefoundry.visitor_registry.contexts import TypeInferContext
 from tilefoundry.visitor_registry.typeinfer import TypeInferVisitor
 
@@ -66,9 +66,8 @@ def _cost(owner) -> tuple[int, int, int, int]:
     footprint_total = sum(
         held.of("gmem").total for _buffer, _ownership, held in memory.footprint.buffers
     )
-    rate = _TARGET.get_facts(ThroughputFacts, ("thread", result.wave[0]))
     assert get_metadata(result.function, RooflineMetadata).memory_ns == -(
-        -(footprint_total * 1_000_000_000) // rate.memory_bandwidth_bytes_per_second
+        -(footprint_total * 1_000_000_000) // 4_800_000_000_000
     )
     return (
         shares(record.flops, record.topologies)["f32"],

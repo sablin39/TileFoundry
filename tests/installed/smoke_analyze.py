@@ -211,7 +211,6 @@ def test_performance_resolves_derived_execution_geometry(tf, derived_prefill, tm
             "trips": 1,
             "stride_ns": 0,
         },
-        "waves": 1,
     }
 
 

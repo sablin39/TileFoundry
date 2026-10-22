@@ -10,7 +10,7 @@ from tilefoundry.ir.core import attach_metadata as attach
 from tilefoundry.ir.hir.function import Function
 from tilefoundry.ir.hir.math.binary import Binary
 from tilefoundry.target import UnsupportedCapabilityError
-from tilefoundry.target.facts import TopologyFacts
+from tilefoundry.target.facts import TopologyFacts, TopologyLevelFacts
 from tilefoundry.visitor_registry.valuation import ValuationVisitor
 
 from .compute_cost import local_duration_ns
@@ -37,6 +37,7 @@ class PerformanceContext(AnalyzeContext):
     facts: ThroughputFacts | None = None
     services: PerformanceServiceFacts | None = None
     active: int = 1
+    parallel: TopologyLevelFacts | None = None
     occurrences: list[tuple[IterationScope, Call, int]] = field(default_factory=list)
 
 
@@ -51,7 +52,8 @@ class PerformanceVisitor(ValuationVisitor[None]):
         summary = get_metadata(callee, PerformanceSummaryMetadata, ctx=ctx)
         if summary is None:
             raise AnalysisError(f"performance: missing summary for {callee.name!r}")
-        duration = (summary.timeline.end_ns - summary.timeline.start_ns) // summary.waves
+        waves = _waves(ctx.definitions[id(callee)], ctx.parallel)
+        duration = (summary.timeline.end_ns - summary.timeline.start_ns) // waves
         ctx.occurrences.append((ctx.scope, call, duration))
 
     def default_visit_leaf(
@@ -75,6 +77,11 @@ class PerformanceVisitor(ValuationVisitor[None]):
             positions=min(scope.mesh_positions(ctx.topology_level), ctx.active),
         )
         ctx.occurrences.append((scope, expr, duration))
+
+
+def _waves(scope, level) -> int:
+    """Whole waves of *level*'s physical units the positions *scope* runs need."""
+    return -(-scope.active_positions(level.name) // level.max_physical_units)
 
 
 def schedule(occurrences, context, *, origin):
@@ -156,7 +163,7 @@ def analyze_performance(function: Function, context: AnalyzeContext) -> None:
     facts = context.target.get_facts(ThroughputFacts)
     services = context.target.get_facts(PerformanceServiceFacts, (context.topology_level, active))
     performance_context = PerformanceContext(
-        **vars(context), facts=facts, services=services, active=active
+        **vars(context), facts=facts, services=services, active=active, parallel=level
     )
     PerformanceVisitor().visit(function.body, performance_context)
     total_cursor = schedule(performance_context.occurrences, context, origin=context.scope.root)
@@ -164,12 +171,12 @@ def analyze_performance(function: Function, context: AnalyzeContext) -> None:
     roofline = get_metadata(function, RooflineMetadata)
     if function is context.entry and roofline is not None:
         summary_end = max(summary_end, roofline.ideal_ns)
-    waves = -(-context.scope.active_positions(level.name) // level.max_physical_units)
     attach(
         function,
         PerformanceSummaryMetadata(
-            timeline=TimelineMetadata(start_ns=0, end_ns=summary_end * waves),
-            waves=waves,
+            timeline=TimelineMetadata(
+                start_ns=0, end_ns=summary_end * _waves(context.scope, level)
+            ),
         ),
     )
 

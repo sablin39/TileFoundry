@@ -13,7 +13,7 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import Mapping
 
-from tilefoundry.ir.core import Call, Constant, Expr, Op, Tuple, Var
+from tilefoundry.ir.core import Call, Constant, Expr, Op, Tuple, Var, VerifyError
 from tilefoundry.ir.core.module import Module, ModuleList
 from tilefoundry.ir.hir.loop_region import LoopRegion
 from tilefoundry.ir.pattern import Pattern, RangePattern
@@ -267,17 +267,15 @@ def instantiate(
     signature of *function*; a name that nothing reachable declares is refused.
     The authored Module and Function are untouched.
     """
-    from tilefoundry.analysis.errors import AnalysisError  # noqa: PLC0415
-
     supplied = {} if dims is None else dict(dims)
     declared = {}
     collector = _DimVarCollector(declared, supplied)
     collector.visit_function(function, ValuationContext(module, function))
     if collector.cycles:
-        raise AnalysisError(f"recursive call path through {collector.cycles[0]!r}")
+        raise VerifyError(f"recursive call path through {collector.cycles[0]!r}")
     if collector.missing_bodies:
         name, path = collector.missing_bodies[0]
-        raise AnalysisError(f"cannot analyze Function {name!r} without a body at {path!r}")
+        raise VerifyError(f"cannot analyze Function {name!r} without a body at {path!r}")
     unknown = sorted(set(supplied) - declared.keys())
     if unknown:
         if declared:

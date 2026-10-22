@@ -26,7 +26,15 @@ from tilefoundry.analysis.errors import AnalysisError
 from tilefoundry.analysis.metadata import ComputeCostMetadata, MemoryMetadata, RegionMemoryMetadata
 from tilefoundry.analysis.registry import Analyzer
 from tilefoundry.dsl import *
-from tilefoundry.ir.core import Call, Constant, Tuple, Var, attach_metadata, get_metadata
+from tilefoundry.ir.core import (
+    Call,
+    Constant,
+    Tuple,
+    Var,
+    VerifyError,
+    attach_metadata,
+    get_metadata,
+)
 from tilefoundry.ir.core.module import Module
 from tilefoundry.ir.hir.function import Function
 from tilefoundry.ir.hir.loop_region import LoopRegion
@@ -444,10 +452,10 @@ def test_recursive_call_paths_and_missing_callee_bodies_are_diagnosed():
     param = Var("x", type=type_)
     callee = Function.build(name="helper", params=(param,), body=None, return_type=type_)
     root = _direct_program(callee, (param,), (Call(callee, (param,), type=type_),))
-    with pytest.raises(AnalysisError, match="cannot analyze Function 'helper' without a body"):
+    with pytest.raises(VerifyError, match="cannot analyze Function 'helper' without a body"):
         check_program(root, root.entry_function())
     callee.body = Call(callee, (param,), type=type_)
-    with pytest.raises(AnalysisError, match="recursive call path through 'root/helper/helper'"):
+    with pytest.raises(VerifyError, match="recursive call path through 'root/helper/helper'"):
         check_program(root, root.entry_function())
 
 

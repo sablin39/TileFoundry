@@ -1345,11 +1345,9 @@ class PerformanceSummaryMetadata(IRMetadata):
 
     Attributes:
         timeline: attribute; Whole-Function envelope from zero, in ns.
-        waves: attribute; Physical waves the Function's executing mesh requires.
     """
 
     timeline: TimelineMetadata
-    waves: int
 ```
 
 `TimelineMetadata` is a value, not a record: it MUST NOT be attached to a Call or
@@ -1368,8 +1366,7 @@ Function summary fields are:
 
 | Field | How it is computed | Reads the target |
 |---|---|---|
-| `timeline` | `[0, local makespan * waves)`, where the local makespan is the end of the CTA-local timeline, or zero with no work. Its duration is the prediction. | Through `waves` |
-| `waves` | `ceil(N / P)`, where `N` is the most positions the Function's meshes run at the level selected by `TopologyFacts.parallel_level` and `P` is that level's `max_physical_units`. | `TopologyFacts` |
+| `timeline` | `[0, local makespan * waves)`, where the local makespan is the end of the CTA-local timeline, or zero with no work, and `waves` is `ceil(N / P)`: `N` is the most positions the Function's meshes run at the level selected by `TopologyFacts.parallel_level` and `P` is that level's `max_physical_units`. Its duration is the prediction; `waves` is not a field. | `TopologyFacts` |
 
 Occurrence intervals remain CTA-local. They are not copied once per wave, and
 neither the executing positions nor `max_physical_units` changes them. The capacity
@@ -1408,8 +1405,7 @@ Reported Call and Function records use distinct projections under their
 Call: {"timeline": {"start_ns": <int>, "end_ns": <int>, "trips": <int>,
                     "stride_ns": <int>}}
 Function: {"timeline": {"start_ns": 0, "end_ns": <int>, "trips": 1,
-                        "stride_ns": 0},
-           "waves": <int>}
+                        "stride_ns": 0}}
 ```
 
 The summary envelope's duration is a deterministic comparison estimate, not a
@@ -1553,7 +1549,7 @@ class AnalysisCheckContext(ValuationContext):
     resolved through the current family context and accumulated like primitive
     records. The entry is the final definition, without a second aggregation;
     enclosing trip counts multiply work and traffic. Recursion and a callee
-    without a body MUST raise `AnalysisError` naming the function and call path.
+    without a body MUST raise `VerifyError` naming the function and call path.
   - One definition MUST receive one argument-type signature and one current
     mesh. Different shape, dtype, layout, storage, or mesh MUST raise
     `AnalysisError` naming the callee, both call paths, and both signatures.

@@ -66,7 +66,8 @@ def test_external_v100_documents_analyse_a_copied_installed_model(tf, tmp_path) 
     )
     assert gmem["peak_bytes"] < 32_000_000_000
     record = report["functions"][0]['function_records']["performance"]
-    assert record["waves"] == 2
+    waves = -(-report["wave"]["active"] // report["wave"]["physical"])
+    assert waves == 2
     assert report["functions"][0]['function_records']["memory"]["solver_status"] in (
         "optimal",
         "feasible",
@@ -83,7 +84,7 @@ def test_external_v100_documents_analyse_a_copied_installed_model(tf, tmp_path) 
     per_wave_end = max(per_wave_end, report["functions"][0]['function_records']["roofline"]["ideal_ns"])
     assert record["timeline"] == {
         "start_ns": 0,
-        "end_ns": record["waves"] * per_wave_end,
+        "end_ns": waves * per_wave_end,
         "trips": 1,
         "stride_ns": 0,
     }

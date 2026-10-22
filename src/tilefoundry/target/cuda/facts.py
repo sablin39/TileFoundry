@@ -111,11 +111,11 @@ def parallel_units(target: CudaTarget, unit: str) -> int:
 
 
 def _asked(target: CudaTarget, query: object) -> tuple[str, int]:
-    """A query's level and its running units: ``(level, active)`` capped, a bare level all."""
+    """A query's level and its running units: ``("cta", active)`` capped, any other all."""
     unit, active = query if isinstance(query, tuple) else (query, None)
     unit = "cta" if unit is None else str(unit)
     share = parallel_units(target, unit)
-    return unit, share if active is None else min(active, share)
+    return unit, share if active is None or unit != "cta" else min(active, share)
 
 
 def rates(target: CudaTarget, unit: str, active: int) -> PerformanceServiceFacts:
@@ -124,9 +124,9 @@ def rates(target: CudaTarget, unit: str, active: int) -> PerformanceServiceFacts
     The one source of every CUDA rate: the roofline reads it whole and the
     timeline divides it among the *active* units. Float, service and
     shared-memory rates are the deployment's in proportion to the units that
-    run. Global memory is the HBM peak, but no more than the active units' L1
-    data paths carry: an SM moves at most its per-clock shared-memory width per
-    clock (128 B/clk on sm90, about 254 GB/s at 1.98 GHz), a theoretical cap.
+    run. Global memory is the HBM peak, but at ``cta`` no more than the active
+    CTAs' L1 data paths carry: an SM moves at most its per-clock shared-memory
+    width per clock (128 B/clk on sm90, about 254 GB/s at 1.98 GHz).
     """
     architecture = target.architecture
     device = target.device
@@ -146,7 +146,7 @@ def rates(target: CudaTarget, unit: str, active: int) -> PerformanceServiceFacts
             * active
             // share
         )
-        bandwidth = [("gmem", min(gmem, smem)), ("smem", smem)]
+        bandwidth = [("gmem", min(gmem, smem) if unit == "cta" else gmem), ("smem", smem)]
     return PerformanceServiceFacts(
         unit_flops=tuple(
             (dtype, peak * cards * active // share)

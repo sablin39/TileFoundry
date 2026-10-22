@@ -216,8 +216,9 @@ class CudaTarget(Target):
   - CUDA's `ThroughputFacts` and `PerformanceServiceFacts` MUST both read
     `rates(target, unit, active)`, the one source of CUDA rates: what `active`
     units of `unit` get through together. A query is a level name or
-    `(level, active)`; `active` MUST be capped at the units the deployment
-    holds and defaults to all of them. `ThroughputFacts` is `rates` itself, the
+    `(level, active)`. `active` counts only at `cta`, where it MUST be capped at
+    the units the deployment holds; any other level, and a bare level, runs all
+    of its units. `ThroughputFacts` is `rates` itself, the
     whole deployment when asked about no level; `PerformanceServiceFacts` is
     `rates` divided by `active`, rounding down. CUDA MUST name its default unit
     `cta`; `TopologyLevelFacts.max_physical_units` MUST NOT enter this
@@ -226,7 +227,7 @@ class CudaTarget(Target):
     (`unit_ops` from the device document, per SM) and the shared-memory
     bandwidth (the architecture's byte/clock/SM rate times the device's typed SM
     clock) by `active` over the units the deployment holds. Global-memory
-    bandwidth MUST be the HBM peak, but no more than the active units'
+    bandwidth MUST be the HBM peak, and at `cta` no more than the active CTAs'
     shared-memory bandwidth: an SM's L1 data path moves at most its per-clock
     shared-memory width per clock (128 B/clk on sm90, about 254 GB/s at
     1.98 GHz), so a program that runs too few units cannot reach the device
