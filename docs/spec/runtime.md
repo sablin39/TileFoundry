@@ -393,6 +393,11 @@ Launch geometry (grid / block extents) is embedded into the generated host entry
 or supplied by an authored `launch(...)`; it is never carried as metadata past
 codegen.
 
+A launch the device refuses raises `RuntimeError` from the call, naming the
+kernel and the CUDA error; the call never returns as though the kernel ran. A
+fault while the kernel runs is asynchronous and surfaces at the next
+synchronizing CUDA call.
+
 ### 1.6 `compile.py`
 
 <!-- generated: py-compile -->

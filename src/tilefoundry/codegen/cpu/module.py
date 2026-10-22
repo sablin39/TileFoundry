@@ -195,7 +195,10 @@ def _forwarded(entry: PrimFunction, launch: Evaluate, signature: CallableSignatu
 def _one_launch(
     entry: PrimFunction, launch: Evaluate, callee: PrimFunction, ctx: CpuCodegenContext
 ) -> list[str]:
-    """The lines one ``Launch`` becomes: the checks it owes, then the call."""
+    """The lines one ``Launch`` becomes: the checks it owes, then the call.
+
+    The launcher returns the CUDA error text of a launch the device refused, and the call raises it.
+    """
     _reject_unsupported_config(launch.callable)
     launcher = ctx.signature_of(callee)
     forwarded = _forwarded(entry, launch, launcher)
@@ -204,7 +207,13 @@ def _one_launch(
         _placement_line(var.name, param.type.storage)
         for var, param in zip(forwarded, launcher.params)
     ]
-    lines.append(f"{launcher.name}({ctx.arguments(bound, ctx.codegen_context.targets[id(callee)])});")
+    call = f"{launcher.name}({ctx.arguments(bound, ctx.codegen_context.targets[id(callee)])})"
+    lines.append(f"if (const char* error = {call}) {{")
+    lines.append(
+        f'  TVM_FFI_THROW(RuntimeError) << "tilefoundry: launch of {callee.name} failed: "'
+        " << error;"
+    )
+    lines.append("}")
     return lines
 
 
@@ -215,7 +224,7 @@ def _declare_callee(callee: PrimFunction, ctx: CpuCodegenContext) -> str:
     it cannot come to disagree about what the symbol takes.
     """
     launcher = ctx.signature_of(callee)
-    return f'extern "C" void {launcher.name}({ctx.parameters(launcher, ctx.codegen_context.targets[id(callee)], exported=True)});'
+    return f'extern "C" const char* {launcher.name}({ctx.parameters(launcher, ctx.codegen_context.targets[id(callee)], exported=True)});'
 
 
 def _host_entry(

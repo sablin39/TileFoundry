@@ -54,7 +54,7 @@ def test_a_prototype_becomes_one_kernel_and_one_shim() -> None:
     assert source.count("__global__") == 1
     assert (
         source.count(
-            f'extern "C" void {launcher_symbol(mangle(TirSquare, TirSquare.square_device))}('
+            f'extern "C" const char* {launcher_symbol(mangle(TirSquare, TirSquare.square_device))}('
         )
         == 2
     )

@@ -195,7 +195,7 @@ def test_same_device_function_can_be_launched_twice() -> None:
     source = _source((device,), (_launch(device, a, block=32), _launch(device, a, block=64)), (a,))
     mod, _ = _module((device,), (), ())
     symbol = launcher_symbol(mangle(mod, device))
-    assert source.count(f'extern "C" void {symbol}') == 1
+    assert source.count(f'extern "C" const char* {symbol}') == 1
     assert source.count(f"{symbol}(a.data_ptr()") == 2
 
 
