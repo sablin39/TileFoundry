@@ -110,29 +110,35 @@ def parallel_units(target: CudaTarget, unit: str) -> int:
         ) from None
 
 
-def _asked(target: CudaTarget, query: object) -> tuple[str, int]:
-    """A query's level and its running units: ``("cta", active)`` capped, any other all."""
-    unit, active = query if isinstance(query, tuple) else (query, None)
+def _asked(target: CudaTarget, query: object) -> tuple[str, int, int | None]:
+    """A query's level, running units and bytes in flight; only ``cta`` counts fewer."""
+    unit, active, inflight = (*query, None)[:3] if isinstance(query, tuple) else (query, None, None)
     unit = "cta" if unit is None else str(unit)
     share = parallel_units(target, unit)
-    return unit, share if active is None or unit != "cta" else min(active, share)
+    if active is None or unit != "cta":
+        return unit, share, None
+    return unit, min(active, share), inflight
 
 
-def rates(target: CudaTarget, unit: str, active: int) -> PerformanceServiceFacts:
+def rates(
+    target: CudaTarget, unit: str, active: int, inflight: int | None = None
+) -> PerformanceServiceFacts:
     """What *active* units of *unit* get through together, by kind of work.
 
     The one source of every CUDA rate: the roofline reads it whole and the
     timeline divides it among the *active* units. Float, service and
     shared-memory rates are the deployment's in proportion to the units that
-    run. Global memory is the HBM peak, but at ``cta`` no more than the active
-    CTAs' L1 data paths carry: an SM moves at most its per-clock shared-memory
-    width per clock (128 B/clk on sm90, about 254 GB/s at 1.98 GHz).
+    run. Global memory is the HBM peak, but by Little's law one CTA keeping
+    *inflight* bytes in flight moves no more than *inflight* over the device's
+    global-memory latency; a device stating no latency has no such cap.
     """
     architecture = target.architecture
     device = target.device
     cards = _cards(target)
     share = parallel_units(target, unit)
     gmem = device.hbm_bandwidth_bytes_per_second * cards
+    if unit == "cta" and inflight and device.gmem_latency_ns is not None:
+        gmem = min(gmem, inflight * active * 1_000_000_000 // device.gmem_latency_ns)
     bandwidth = [("gmem", gmem)]
     if (
         architecture.shared_memory_bandwidth_bytes_per_clock_per_sm is not None
@@ -146,7 +152,7 @@ def rates(target: CudaTarget, unit: str, active: int) -> PerformanceServiceFacts
             * active
             // share
         )
-        bandwidth = [("gmem", min(gmem, smem) if unit == "cta" else gmem), ("smem", smem)]
+        bandwidth.append(("smem", smem))
     return PerformanceServiceFacts(
         unit_flops=tuple(
             (dtype, peak * cards * active // share)
@@ -178,8 +184,8 @@ def throughput(target: CudaTarget, query: object = None) -> ThroughputFacts:
 
 def performance_service(target: CudaTarget, query: object = None) -> PerformanceServiceFacts:
     """What one unit of the level asked about gets through: `rates` among its active units."""
-    unit, active = _asked(target, query)
-    whole = rates(target, unit, active)
+    unit, active, inflight = _asked(target, query)
+    whole = rates(target, unit, active, inflight)
     return PerformanceServiceFacts(
         unit_flops=tuple((dtype, rate // active) for dtype, rate in whole.unit_flops),
         unit_ops=tuple((kind, rate // active) for kind, rate in whole.unit_ops),

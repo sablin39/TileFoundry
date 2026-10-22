@@ -48,6 +48,10 @@ origin = "derived"
 source = "CUDA runtime device query on an NVIDIA B200 SXM, driver 590.48.01, CUDA 13.1"
 conditions = "peak: the queried 7680-bit HBM3e bus at its queried 3996 MHz clock, transferring on both edges"
 
+[facts.memory.gmem.latency]
+status = "unavailable"
+conditions = "No cited global-memory load latency is recorded for this product, so no per-CTA in-flight bandwidth cap applies."
+
 [facts.memory.l2.capacity]
 value = 132644864
 unit = "byte"

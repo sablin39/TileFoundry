@@ -37,7 +37,7 @@ from tilefoundry.analysis.access import Access, eliminate_parameters
 from tilefoundry.analysis.allocation import AllocationSummaryMetadata, aligned
 from tilefoundry.analysis.api import _build_context
 from tilefoundry.analysis.check import check_program
-from tilefoundry.analysis.compute_cost import local_duration_ns
+from tilefoundry.analysis.compute_cost import inflight_bytes, local_duration_ns
 from tilefoundry.analysis.errors import AnalysisError
 from tilefoundry.analysis.iteration_scope import IterationScope
 from tilefoundry.analysis.liveness import LivenessMetadata
@@ -510,10 +510,11 @@ def assert_internal_contract(result: AnalysisResult, scopes: tuple[IterationScop
             for scope in scopes if id(expr) in scope.snapshot.definition.locations
         )
         active = min(owner.root.active_positions(result.level), physical)
+        inflight = inflight_bytes(expr, owner, module_target, throughput.bandwidth_level)
         duration = local_duration_ns(
             cost,
             throughput,
-            module_target.get_facts(PerformanceServiceFacts, (result.level, active)),
+            module_target.get_facts(PerformanceServiceFacts, (result.level, active, inflight)),
             moved=get_metadata(expr, MemoryMetadata),
             level=result.level,
             positions=min(owner.mesh_positions(result.level), active),

@@ -48,6 +48,13 @@ origin = "vendor"
 source = "https://www.nvidia.com/en-us/data-center/h200/"
 conditions = "4.8 TB/s peak HBM3e bandwidth, decimal"
 
+[facts.memory.gmem.latency]
+value = 353
+unit = "ns"
+origin = "reference"
+source = "https://arxiv.org/abs/2608.15764"
+conditions = "pointer-chase plateau of H100 SXM5 HBM3 global-memory loads; H200 is the same GH100 die. Cross-checks in cycles: arXiv 2607.19922 reports 554 and 728, arXiv 2507.10789 reports 659"
+
 [facts.memory.l2.capacity]
 value = 50000000
 unit = "byte"

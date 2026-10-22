@@ -49,6 +49,22 @@ def test_builtin_targets_own_their_facts_projections() -> None:
     } == {"host": "target", "gmem": "target", "rmem": "amx"}
 
 
+def test_a_cta_moves_its_bytes_in_flight_per_global_memory_latency() -> None:
+    """Little's law: 1024 threads keeping 16 B each in flight move about 46 GB/s."""
+    h200, b200 = CudaTarget("nvidia.h200_sxm"), CudaTarget("nvidia.b200_sxm")
+    inflight = 1024 * 16
+    one = h200.get_facts(PerformanceServiceFacts, ("cta", 1, inflight)).bandwidth("gmem")
+    assert one == inflight * 1_000_000_000 // 353
+    assert 46_000_000_000 < one < 47_000_000_000
+
+    def mesh(target, active):
+        query = ("cta", active, inflight)
+        return target.get_facts(ThroughputFacts, query).memory_bandwidth_bytes_per_second
+
+    assert mesh(h200, 103) < 4_800_000_000_000 == mesh(h200, 104)
+    assert mesh(b200, 1) == b200.device.hbm_bandwidth_bytes_per_second
+
+
 def test_two_cuda_products_project_the_hardware_each_one_is() -> None:
     """One projection serves both products.
 

@@ -215,8 +215,9 @@ def test_invariant_reuse_matches_the_written_arithmetic() -> None:
     assert _footprint_bytes(memory, "x") == 16
     footprint_total = memory["footprint"]["buffers"]["x"]["gmem"]["total"]
     assert footprint_total == 192
+    four_ctas_in_flight = 4 * 1024 * 16 * 1_000_000_000 // 353
     assert data["functions"][0]["function_records"]["roofline"]["memory_ns"] == -(
-        -(footprint_total * 1_000_000_000) // 4_800_000_000_000
+        -(footprint_total * 1_000_000_000) // four_ctas_in_flight
     )
     assert N // BN == 3
     assert data["functions"][0]["function_records"]["compute-cost"]["flops"]["bf16"] == {

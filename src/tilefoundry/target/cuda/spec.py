@@ -134,6 +134,11 @@ def build_cuda_device(document: HardwareDocument) -> CudaDevice:
         gmem_owner=_memory_owner(reader, "memory.hbm.owner"),
         hbm_bandwidth_bytes_per_second=reader.integer("memory.hbm.bandwidth", unit="byte/s"),
         l2_capacity_bytes=reader.optional_integer("memory.l2.capacity", unit="byte"),
+        gmem_latency_ns=(
+            reader.optional_integer("memory.gmem.latency", unit="ns")
+            if "memory.gmem.latency" in document.facts
+            else None
+        ),
         _dense_flops=tuple(dense_flops),
         _service_ops=tuple(services),
     )

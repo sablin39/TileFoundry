@@ -72,7 +72,8 @@ def test_total_is_every_position_s_share() -> None:
 
 
 def test_the_timeline_prices_one_position_s_share_of_the_footprint() -> None:
-    rate = _TARGET.get_facts(PerformanceServiceFacts, ("cta", _POSITIONS)).bandwidth("gmem")
+    inflight = _TARGET.architecture.max_threads_per_cta * 16
+    rate = _TARGET.get_facts(PerformanceServiceFacts, ("cta", _POSITIONS, inflight)).bandwidth("gmem")
     durations = {}
     for owner, window in ((SharedWindow, 2 * _WINDOW), (PlacedWindow, _WINDOW + _BUFFER)):
         call = _insert(owner)

@@ -13,7 +13,7 @@ from tilefoundry.target import UnsupportedCapabilityError
 from tilefoundry.target.facts import TopologyFacts, TopologyLevelFacts
 from tilefoundry.visitor_registry.valuation import ValuationVisitor
 
-from .compute_cost import local_duration_ns
+from .compute_cost import inflight_bytes, local_duration_ns
 from .errors import AnalysisError
 from .facts import PerformanceServiceFacts, ThroughputFacts
 from .iteration_scope import IterationScope
@@ -35,7 +35,6 @@ class PerformanceContext(AnalyzeContext):
     """State carried through the performance-family expression walk."""
 
     facts: ThroughputFacts | None = None
-    services: PerformanceServiceFacts | None = None
     active: int = 1
     parallel: TopologyLevelFacts | None = None
     occurrences: list[tuple[IterationScope, Call, int]] = field(default_factory=list)
@@ -66,12 +65,13 @@ class PerformanceVisitor(ValuationVisitor[None]):
         moved = get_metadata(expr, MemoryMetadata)
         if cost is None or moved is None:
             raise AnalysisError(f"performance: missing compute/memory record for {expr!r}")
-        if ctx.facts is None or ctx.services is None:
+        if ctx.facts is None:
             raise AnalysisError("performance: visitor context is missing target facts")
+        inflight = inflight_bytes(expr, scope, ctx.target, ctx.facts.bandwidth_level)
         duration = local_duration_ns(
             cost,
             ctx.facts,
-            ctx.services,
+            ctx.target.get_facts(PerformanceServiceFacts, (ctx.topology_level, ctx.active, inflight)),
             moved=moved,
             topology_level=ctx.topology_level,
             positions=min(scope.mesh_positions(ctx.topology_level), ctx.active),
@@ -160,10 +160,11 @@ def analyze_performance(function: Function, context: AnalyzeContext) -> None:
         context.scope.active_positions(context.topology_level),
         topologies.level(context.topology_level).max_physical_units,
     )
-    facts = context.target.get_facts(ThroughputFacts)
-    services = context.target.get_facts(PerformanceServiceFacts, (context.topology_level, active))
     performance_context = PerformanceContext(
-        **vars(context), facts=facts, services=services, active=active, parallel=level
+        **vars(context),
+        facts=context.target.get_facts(ThroughputFacts),
+        active=active,
+        parallel=level,
     )
     PerformanceVisitor().visit(function.body, performance_context)
     total_cursor = schedule(performance_context.occurrences, context, origin=context.scope.root)

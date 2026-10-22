@@ -14,6 +14,7 @@ from tilefoundry.ir.hir.function import Function
 from tilefoundry.ir.types import DType
 from tilefoundry.visitor_registry.valuation import ValuationVisitor
 
+from .compute_cost import inflight_bytes
 from .errors import AnalysisError
 from .facts import ThroughputFacts
 from .metadata import (
@@ -119,11 +120,20 @@ def _cost_bound(
 
 
 class RooflineVisitor(ValuationVisitor[None]):
-    """Attach one bound per Call in expression order."""
+    """Attach one bound per Call in expression order.
 
-    def __init__(self, facts: ThroughputFacts) -> None:
+    Each Call is priced for the bytes it keeps in flight; the Function, for the
+    most any of its own Calls keeps, which keeps its bound a lower bound. A call
+    into another definition is not an access: that definition prices its own.
+    """
+
+    def __init__(self, query) -> None:
         super().__init__()
-        self.facts = facts
+        self.query, self.inflight = query, 0
+
+    def facts(self, ctx: AnalyzeContext, inflight: int | None) -> ThroughputFacts:
+        query = None if self.query is None else (*self.query, inflight)
+        return ctx.target.get_facts(ThroughputFacts, query)
 
     def default_visit_leaf(
         self, expr: Expr, _operands: tuple[None, ...], ctx: AnalyzeContext
@@ -142,7 +152,11 @@ class RooflineVisitor(ValuationVisitor[None]):
                 f"{describe_expr(expr)}: roofline needs the traffic record the "
                 "memory family states for every call it measures"
             )
-        attach(expr, _cost_bound(cost, moved, self.facts))
+        level = ctx.target.get_facts(ThroughputFacts).bandwidth_level
+        callee = ctx._callee_context(expr) is not None
+        inflight = None if callee else inflight_bytes(expr, ctx.scope, ctx.target, level)
+        self.inflight = max(self.inflight, inflight or 0)
+        attach(expr, _cost_bound(cost, moved, self.facts(ctx, inflight)))
 
 
 def analyze_roofline(
@@ -151,10 +165,8 @@ def analyze_roofline(
 ) -> None:
     """Attach a bound to every Call and the normalized Function."""
     unit = context.topology_level
-    facts = context.target.get_facts(
-        ThroughputFacts, None if unit is None else (unit, context.scope.active_positions(unit))
-    )
-    RooflineVisitor(facts).visit(function.body, context)
+    visitor = RooflineVisitor(None if unit is None else (unit, context.scope.active_positions(unit)))
+    visitor.visit(function.body, context)
     total = get_metadata(function, ComputeCostMetadata)
     if total is None:
         raise AnalysisError(
@@ -167,7 +179,7 @@ def analyze_roofline(
             f"function {function.name!r}: roofline needs the traffic root record "
             "the memory family states for every function it measures"
         )
-    attach(function, _cost_bound(total, moved, facts))
+    attach(function, _cost_bound(total, moved, visitor.facts(context, visitor.inflight)))
 
 
 __all__ = ["SELECTOR", "analyze_roofline"]

@@ -216,9 +216,10 @@ class CudaTarget(Target):
   - CUDA's `ThroughputFacts` and `PerformanceServiceFacts` MUST both read
     `rates(target, unit, active)`, the one source of CUDA rates: what `active`
     units of `unit` get through together. A query is a level name or
-    `(level, active)`. `active` counts only at `cta`, where it MUST be capped at
-    the units the deployment holds; any other level, and a bare level, runs all
-    of its units. `ThroughputFacts` is `rates` itself, the
+    `(level, active, inflight)`. `active` counts only at `cta`, where it MUST be
+    capped at the units the deployment holds; any other level, and a bare level,
+    runs all of its units. `inflight` is the bytes one CTA keeps in flight for
+    the access being priced. `ThroughputFacts` is `rates` itself, the
     whole deployment when asked about no level; `PerformanceServiceFacts` is
     `rates` divided by `active`, rounding down. CUDA MUST name its default unit
     `cta`; `TopologyLevelFacts.max_physical_units` MUST NOT enter this
@@ -227,12 +228,12 @@ class CudaTarget(Target):
     (`unit_ops` from the device document, per SM) and the shared-memory
     bandwidth (the architecture's byte/clock/SM rate times the device's typed SM
     clock) by `active` over the units the deployment holds. Global-memory
-    bandwidth MUST be the HBM peak, and at `cta` no more than the active CTAs'
-    shared-memory bandwidth: an SM's L1 data path moves at most its per-clock
-    shared-memory width per clock (128 B/clk on sm90, about 254 GB/s at
-    1.98 GHz), so a program that runs too few units cannot reach the device
-    peak. That cap is the theoretical data path, not a measurement, and it adds
-    no fact. `unit_ops` is not a division of a device peak, because no vendor
+    bandwidth MUST be the HBM peak and, at `cta` on a device stating
+    `gmem_latency_ns`, no more than `active * inflight / gmem_latency_ns`: by
+    Little's law one CTA with `inflight` bytes outstanding moves at most that
+    many bytes per latency. One 1024-thread CTA with 16 B per thread in flight
+    moves about 46 GB/s on H200, so about 103 CTAs reach its 4.8 TB/s. A device
+    without the fact, or a query without `inflight`, has no cap. `unit_ops` is not a division of a device peak, because no vendor
     publishes a device-wide integer, predicate, select, special or local-move
     rate to divide.
   - `topology_limit("cta")` MUST equal `device.sm_count`, and
@@ -407,6 +408,7 @@ class CudaDevice(Device):
     l2_capacity_bytes: int | None
     _dense_flops: tuple[tuple[DType, int], ...]
     _service_ops: tuple[tuple[str, int], ...]
+    gmem_latency_ns: int | None = None
 
     def peak_for(self, dtype: DType) -> int: ...
 
@@ -423,6 +425,12 @@ class CudaDevice(Device):
   - It MUST describe how many SMs the product has and how its memory system and
     compute units perform. Per-SM structural limits belong to the architecture
     ([§4.1](#41-cudaarchitecture)).
+  - `gmem_latency_ns` MUST be the device's global-memory load latency in ns,
+    read from the optional leaf `memory.gmem.latency`. It is a cited figure,
+    not a measurement on the described host: H200 records 353 ns from the
+    pointer-chase plateau of the same GH100 die (arXiv 2608.15764), with the
+    cycle counts of two other studies as cross-checks. A document that omits
+    the leaf or records it unavailable states no latency.
   - `sm_clock_hz` MUST be a typed device fact when a per-clock architecture
     rate needs conversion to a per-second service rate. A clock derived from an
     existing peak MUST record that derivation once; other service evidence MUST
@@ -460,6 +468,8 @@ The installed `nvidia.h200_sxm` device document.
     as the architecture it composes with.
   - It MUST record a dense peak for each of `f32`, `f16`, `bf16`, and
     `fp8e4m3`.
+  - `memory.gmem.latency` MUST record 353 ns as a `reference` figure with its
+    source and cross-checks in `conditions`.
   - `throughput.f4e2m1` MUST be recorded unavailable rather than omitted: the
     Hopper tensor cores have no FP4 mode, so the product has no such rate, which
     is a fact about it and not a number nobody published.
@@ -484,6 +494,8 @@ The installed `nvidia.b200_sxm` device document.
     as the architecture it composes with.
   - It MUST record a dense peak for each of `f32`, `f16`, `bf16`, `fp8e4m3`, and
     `f4e2m1`.
+  - `memory.gmem.latency` MUST be recorded unavailable: no cited figure is
+    recorded for this product, so its global-memory rate has no per-CTA cap.
   - Resource facts the vendor does not publish for this product, its SM count
     and its L2 capacity among them, MUST be recorded as measured on the
     described host rather than estimated or borrowed from a related part

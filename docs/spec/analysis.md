@@ -1176,10 +1176,13 @@ class ThroughputFacts:
     def peak_for(self, dtype: DType) -> int | None: ...
 ```
 
-Roofline asks for `ThroughputFacts` with the query `(topology_level, active)`,
-where `active` is the most positions the Function's meshes run at that level;
-the rates are those of the units the program runs, and a query of no level is
-the whole deployment. What one unit gets through is a separate projection, read
+Roofline asks for `ThroughputFacts` with the query
+`(topology_level, active, inflight)`, where `active` is the most positions the
+Function's meshes run at that level and `inflight` is a Call's bytes in flight,
+as performance states them; the Function uses the most any of its own Calls
+keeps, so its bound stays a lower bound. A call into another definition is not
+an access and keeps nothing in flight: that definition prices its own. The rates are those of the units the program
+runs, and a query of no level is the whole deployment. What one unit gets through is a separate projection, read
 by `performance` rather than by `roofline`: work that is not floating point at
 all has its own published instruction throughput and no dtype to be filed under.
 
@@ -1262,8 +1265,13 @@ its full form as defined in that family's section.
     `ComputeCostMetadata.flops` by `unit_flops`, of `service` by `unit_ops`, and
     of the bytes at each storage level by `unit_bandwidth`, all at the level it
     was asked about, for the Function's active units: performance asks for
-    `PerformanceServiceFacts` with `(topology_level, active)`, `active` capped at
-    the level's `max_physical_units`. At `bandwidth_level`, one unit's bytes are
+    `PerformanceServiceFacts` with `(topology_level, active, inflight)`, `active`
+    capped at the level's `max_physical_units`. `inflight` is the bytes one
+    parallel unit keeps in flight for the occurrence: an asynchronous copy
+    (`category="async"`, such as TMA or `cp.async`) keeps one unit's bytes at
+    `bandwidth_level` times the slots its buffer declares, and any other access
+    16 bytes per thread of the unit, as many threads as the finest level allows
+    when the program states none. At `bandwidth_level`, one unit's bytes are
     the occurrence's footprint `logical` bytes, reads and writes as one count,
     divided among the positions that window holds -- its executing positions,
     capped at `active` -- and rounded up; the roofline reads the same footprint.
