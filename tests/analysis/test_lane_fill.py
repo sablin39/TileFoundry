@@ -1,25 +1,32 @@
-"""The report identity states how many of the declared lanes a program fills.
+"""A program is priced, and its wave stated, by the mesh that runs it.
 
-``wave`` is machine context: positions one wave holds against the units the
-level declares. A program whose meshes activate fewer positions than the level
-declares leaves the rest idle, and nothing in the wave figures says so. The
-identity's ``lanes`` is the program-side reading: the most positions any of the
-selected Function's meshes activates at the level, against the declared units.
-It is stated only when the two differ -- a full fill is the silence case, and a
-machine-truncated wave is the wave field's to state, not the lane fill's.
+The identity's ``wave`` is the most positions the root's meshes run against the
+units the machine holds. The roofline and the timeline read their rates for that
+many units: a share of the HBM peak, but never more than the active SMs' L1 data
+paths carry.
 """
 
 from __future__ import annotations
 
-from tilefoundry.analysis import analyze
+from tilefoundry.analysis import (
+    PerformanceMetadata,
+    RegionMemoryMetadata,
+    RooflineMetadata,
+    analyze,
+)
 from tilefoundry.analysis.check import check_program
-from tilefoundry.analysis.report import report_data
 from tilefoundry.dsl import *
 from tilefoundry.inspection.analysis_report import render_analysis, render_text
+from tilefoundry.ir.core import Call, get_metadata
+from tilefoundry.ir.visitor import collect_exprs
 from tilefoundry.target import CudaTarget
 
 _TARGET = CudaTarget("nvidia.h200_sxm")
 _TOPOLOGIES = (Topology("cta", 132),)
+_ROW = 8192
+_L1_PATH = (
+    _TARGET.architecture.shared_memory_bandwidth_bytes_per_clock_per_sm * _TARGET.device.sm_clock_hz
+)
 
 
 @module(entry="f", target=_TARGET, topologies=_TOPOLOGIES)
@@ -27,21 +34,10 @@ class UnderFilled:
     """Forty of the 132 declared lanes run the whole program."""
 
     @func
-    def f(x: Tensor[(40, 8), "bf16"]):
+    def f(x: Tensor[(40, _ROW), "bf16"]):
         with Mesh(("cta",), layout=(40,), names=("lane",)) as cta:
-            held = tf.reshard(x, (40 @ cta.lane, 8), "rmem")
-            return tf.reshard(held, (40, 8), "gmem")
-
-
-@module(entry="f", target=_TARGET, topologies=(Topology("cta", 4),))
-class FullFill:
-    """Every declared lane runs, so there is no fill to state."""
-
-    @func
-    def f(x: Tensor[(4, 8), "bf16"]):
-        with Mesh(("cta",), layout=(4,), names=("lane",)) as cta:
-            held = tf.reshard(x, (4 @ cta.lane, 8), "rmem")
-            return tf.reshard(held, (4, 8), "gmem")
+            held = tf.reshard(x, (40 @ cta.lane, _ROW), "rmem")
+            return tf.reshard(held, (40, _ROW), "gmem")
 
 
 @module(entry="f", target=_TARGET, topologies=_TOPOLOGIES)
@@ -49,61 +45,28 @@ class Meshless:
     """No mesh at all: one position runs on a 132-lane level."""
 
     @func
-    def f(x: Tensor[(8,), "bf16"]):
-        return tf.reshard(x, (8,), "gmem")
+    def f(x: Tensor[(_ROW,), "bf16"]):
+        return tf.reshard(x, (_ROW,), "gmem")
 
 
-@module(entry="f", target=_TARGET, topologies=_TOPOLOGIES)
-class SiblingFill:
-    """The widest sibling region states the fill."""
-
-    @func
-    def f(x: Tensor[(96, 8), "bf16"]):
-        with Mesh(("cta",), layout=(40,), names=("lane",)) as cta:
-            _head = tf.reshard(x[0:40, :], (40 @ cta.lane, 8), "rmem")
-        with Mesh(("cta",), layout=(96,), names=("lane",)) as cta:
-            tail = tf.reshard(x, (96 @ cta.lane, 8), "rmem")
-            return tf.reshard(tail, (96, 8), "gmem")
+def _analyzed(owner):
+    return analyze(*check_program(owner, owner.entry_function()), analysis=("roofline", "performance"))
 
 
-def _report(owner) -> dict:
-    result = analyze(*check_program(owner, owner.entry_function()), analysis=("memory",))
-    return report_data(
-        module=result.module,
-        function=result.function,
-        analyses=result.analyses,
-        topology_level=result.topology_level,
-        executed=result.executed,
-        metadata_types=result.metadata_types,
-    )
+def test_forty_lanes_state_their_wave_and_share_the_hbm_peak_among_forty() -> None:
+    result = _analyzed(UnderFilled)
+    rendering = render_analysis(result)
+    assert rendering.data["wave"] == {"active": 40, "physical": 132}
+    assert "wave=40/132" in render_text(rendering)
+    load = next(expr for expr in collect_exprs(result.function.body) if isinstance(expr, Call))
+    timeline = get_metadata(load, PerformanceMetadata).timeline
+    rate = min(_L1_PATH, _TARGET.device.hbm_bandwidth_bytes_per_second // 40)
+    assert timeline.end_ns - timeline.start_ns == -(-(_ROW * 2 * 1_000_000_000) // rate)
 
 
-def _identity(owner) -> str:
-    result = analyze(*check_program(owner, owner.entry_function()), analysis=("memory",))
-    return render_text(render_analysis(result))
-
-
-def test_under_fill_is_stated_against_the_declared_lanes() -> None:
-    data = _report(UnderFilled)
-    assert data["wave"] == {"counted": 132, "declared": 132, "occupied": 40}
-    assert "wave=132/132 lanes=40/132" in _identity(UnderFilled)
-
-
-def test_full_fill_states_no_lanes() -> None:
-    data = _report(FullFill)
-    assert data["wave"] == {"counted": 4, "declared": 4, "occupied": 4}
-    identity = _identity(FullFill)
-    assert "wave=4/4" in identity
-    assert "lanes=" not in identity
-
-
-def test_a_meshless_program_occupies_one_lane() -> None:
-    data = _report(Meshless)
-    assert data["wave"] == {"counted": 132, "declared": 132, "occupied": 1}
-    assert "wave=132/132 lanes=1/132" in _identity(Meshless)
-
-
-def test_the_widest_region_states_the_fill() -> None:
-    data = _report(SiblingFill)
-    assert data["wave"] == {"counted": 132, "declared": 132, "occupied": 96}
-    assert "wave=132/132 lanes=96/132" in _identity(SiblingFill)
+def test_one_position_is_bound_by_one_l1_path() -> None:
+    result = _analyzed(Meshless)
+    assert render_analysis(result).data["wave"] == {"active": 1, "physical": 132}
+    footprint = get_metadata(result.function, RegionMemoryMetadata).footprint.bytes_at("gmem")[1]
+    roofline = get_metadata(result.function, RooflineMetadata)
+    assert roofline.memory_ns == -(-(footprint * 1_000_000_000) // _L1_PATH)

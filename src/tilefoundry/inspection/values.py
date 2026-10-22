@@ -35,7 +35,6 @@ class ReportIdentity(IRMetadata):
     function: str = ""
     topology: str = "none"
     wave: str = ""
-    lanes: str = ""
 
 
 @dataclass(frozen=True)
@@ -58,7 +57,6 @@ class ErrorSummary(IRMetadata):
 class PerformanceSummaryView(IRMetadata):
     root: str = ""
     predicted_ns: int = 0
-    waves: int = 1
 
 
 class CommentPrinter:
@@ -235,7 +233,7 @@ class CommentPrinter:
 
     def print_PerformanceSummaryMetadata(self, record, **_):
         predicted = record.timeline.end_ns - record.timeline.start_ns
-        return self._record("performance", (("predicted_ns", predicted), ("waves", record.waves)))
+        return self._record("performance", (("predicted_ns", predicted),))
 
     def print_SourceSpanMetadata(self, record, **_):
         return self._single("source", f"{record.file}:{record.line}:{record.column}")
@@ -249,7 +247,6 @@ class CommentPrinter:
                 ("function", record.function, ""),
                 ("topology", record.topology, "none"),
                 ("wave", record.wave, ""),
-                ("lanes", record.lanes, ""),
             ),
         )
 
@@ -270,7 +267,6 @@ class CommentPrinter:
             (
                 ("root", record.root, ""),
                 ("predicted_ns", record.predicted_ns, 0),
-                ("waves", record.waves),
             ),
         )
 

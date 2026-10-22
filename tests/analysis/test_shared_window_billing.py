@@ -1,24 +1,21 @@
-"""Windows every position writes alike are billed once at a shared level.
+"""A window every position writes alike moves its bytes once.
 
-An insert_slice whose offsets never name a mesh coordinate, and a zeros of a
-mesh-replicated buffer, perform the same write at every executing position.
-At a level the target owns there is one store behind the positions, so the
-window is billed once -- the per-unit share is the window divided among the
-positions -- instead of each position paying for the whole of it. Offsets
-that do name a mesh coordinate, and levels a topology unit owns, keep
-per-position billing: those bytes physically are each position's own.
+Traffic counts what each position asks for: ``@total`` is one position's share
+times the executing positions, the amount the L2 side sees. HBM sees the unique
+bytes, so the timeline prices one position's share of the occurrence's
+footprint: a window every position writes alike costs the window over the
+positions, and a window of each position's own costs that window.
 """
 
 from __future__ import annotations
 
-from tilefoundry.analysis import MemoryMetadata, RegionMemoryMetadata, analyze
+from tilefoundry.analysis import MemoryMetadata, PerformanceMetadata, RegionMemoryMetadata, analyze
 from tilefoundry.analysis.check import check_program
 from tilefoundry.dsl import *
 from tilefoundry.ir.core import Call, get_metadata
 from tilefoundry.ir.hir.tensor.insert_slice import InsertSlice
-from tilefoundry.ir.hir.tensor.zeros import Zeros
 from tilefoundry.ir.visitor import collect_exprs
-from tilefoundry.target import CudaTarget
+from tilefoundry.target import CudaTarget, PerformanceServiceFacts
 
 _TARGET = CudaTarget("nvidia.h200_sxm")
 _TOPOLOGIES = (Topology("cta", 4),)
@@ -51,103 +48,43 @@ class PlacedWindow:
             return tf.insert_slice(out, y, (cta.tile, 0, 0))
 
 
-@module(entry="f", target=_TARGET, topologies=_TOPOLOGIES)
-class RangedWindow:
-    """A loop whose bounds name the mesh coordinate ranges over per-position windows."""
-
-    @func
-    def f(y: Tensor[(1, 8, 16), "bf16"]) -> Tensor[(4, 8, 16), "bf16"]:
-        with Mesh(("cta",), layout=(4,), names=("tile",)) as cta:
-            out = tf.zeros(Tensor[(4, 8, 16), "bf16"])
-            for t in range(cta.tile % 2, 4, 2):
-                out = tf.insert_slice(out, y, (t, 0, 0))
-            return out
-
-
-@module(entry="f", target=_TARGET, topologies=_TOPOLOGIES)
-class PrivateFill:
-    """A level a topology unit owns is still filled by every position for itself."""
-
-    @func
-    def f() -> Tensor[(8, 16), "f32"]:
-        with Mesh(("cta",), layout=(4,), names=("tile",)) as _cta:
-            local = tf.zeros(Tensor[(8, 16), "f32", "smem"])
-            return tf.reshard(local, (8, 16), "gmem")
-
-
 def _analyzed(owner):
-    return analyze(*check_program(owner, owner.entry_function()), analysis=("memory",))
+    return analyze(*check_program(owner, owner.entry_function()), analysis=("memory", "performance"))
 
 
-def _op_spread(owner, op_type, level="gmem"):
-    result = _analyzed(owner)
-    matches = [
+def _insert(owner) -> Call:
+    (call,) = (
         expr
-        for expr in collect_exprs(result.function.body)
-        if isinstance(expr, Call) and isinstance(expr.target, op_type)
-    ]
-    assert len(matches) == 1
-    moved = get_metadata(matches[0], MemoryMetadata)
-    assert moved is not None
-    spread = moved.traffic.storage.of(level)
-    assert spread is not None
-    return moved, spread
-
-
-def _function_spread(owner, level="gmem"):
-    memory = get_metadata(_analyzed(owner).function, RegionMemoryMetadata)
-    assert memory is not None
-    spread = memory.traffic.storage.of(level)
-    assert spread is not None
-    return spread
-
-
-def test_shared_window_is_billed_once_not_once_per_position() -> None:
-    moved, spread = _op_spread(SharedWindow, InsertSlice)
-    assert (spread.logical.read, spread.logical.write) == (_WINDOW, _WINDOW)
-    assert (spread.total.read, spread.total.write) == (_WINDOW, _WINDOW)
-    assert (spread.at(0).read, spread.at(0).write) == (
-        _WINDOW // _POSITIONS,
-        _WINDOW // _POSITIONS,
+        for expr in collect_exprs(_analyzed(owner).function.body)
+        if isinstance(expr, Call) and isinstance(expr.target, InsertSlice)
     )
-    rmem = moved.traffic.storage.of("rmem")
-    assert rmem is not None
-    assert rmem.total.read == _POSITIONS * rmem.at(0).read
+    return call
 
 
-def test_shared_zeros_is_billed_once_not_once_per_position() -> None:
-    _moved, spread = _op_spread(SharedWindow, Zeros)
-    assert spread.logical.write == _BUFFER
-    assert spread.total.write == _BUFFER
-    assert spread.at(0).write == _BUFFER // _POSITIONS
+def test_total_is_every_position_s_share() -> None:
+    for owner in (SharedWindow, PlacedWindow):
+        spread = get_metadata(_insert(owner), MemoryMetadata).traffic.storage.of("gmem")
+        assert (spread.at(0).read, spread.at(0).write) == (_WINDOW, _WINDOW)
+        assert (spread.total.read, spread.total.write) == (
+            _POSITIONS * _WINDOW,
+            _POSITIONS * _WINDOW,
+        )
 
 
-def test_mesh_placed_window_keeps_per_position_billing() -> None:
-    _moved, spread = _op_spread(PlacedWindow, InsertSlice)
-    assert spread.at(0).write == _WINDOW
-    assert spread.total.write == _POSITIONS * _WINDOW
-
-
-def test_mesh_bounded_loop_keeps_per_position_billing() -> None:
-    _moved, spread = _op_spread(RangedWindow, InsertSlice)
-    assert spread.at(0).write == _WINDOW
-    assert spread.total.write == _POSITIONS * _WINDOW
-
-
-def test_private_level_fill_keeps_per_position_billing() -> None:
-    _moved, spread = _op_spread(PrivateFill, Zeros, level="smem")
-    assert spread.at(0).write == 8 * 16 * 4
-    assert spread.total.write == _POSITIONS * 8 * 16 * 4
-
-
-def test_function_total_matches_the_logical_sweep() -> None:
-    spread = _function_spread(SharedWindow)
-    assert (spread.total.read, spread.total.write) == (_BUFFER, 2 * _BUFFER)
-    assert spread.total == spread.logical
+def test_the_timeline_prices_one_position_s_share_of_the_footprint() -> None:
+    rate = _TARGET.get_facts(PerformanceServiceFacts, ("cta", _POSITIONS)).bandwidth("gmem")
+    durations = {}
+    for owner, window in ((SharedWindow, 2 * _WINDOW), (PlacedWindow, _WINDOW + _BUFFER)):
+        call = _insert(owner)
+        assert get_metadata(call, MemoryMetadata).footprint.bytes_at("gmem")[0] == window
+        timeline = get_metadata(call, PerformanceMetadata).timeline
+        durations[owner] = timeline.end_ns - timeline.start_ns
+        assert durations[owner] == -(-(-(-window // _POSITIONS) * 1_000_000_000) // rate)
+    assert durations[SharedWindow] < durations[PlacedWindow]
 
 
 def test_footprint_still_sees_the_whole_window_per_position() -> None:
-    """Footprint keeps whole-window residency per position; only pricing changed."""
+    """Footprint keeps whole-window residency per position."""
     memory = get_metadata(_analyzed(SharedWindow).function, RegionMemoryMetadata)
     assert memory is not None
     pairs = sorted(

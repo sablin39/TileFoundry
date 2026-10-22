@@ -10,8 +10,6 @@ from enum import Enum
 from types import UnionType
 from typing import Union, get_args, get_origin, get_type_hints
 
-from tilefoundry.analysis.footprint import wave_of
-from tilefoundry.analysis.iteration_scope import occupied_positions
 from tilefoundry.analysis.metadata import (
     Breakdown,
     ComputeCostMetadata,
@@ -35,11 +33,7 @@ from tilefoundry.ir.hir.specialize import origin_of
 from tilefoundry.ir.module_utils import list_call_paths
 from tilefoundry.ir.types.utils import tensor_types
 from tilefoundry.ir.visitor import collect_exprs
-from tilefoundry.target.base import UnsupportedCapabilityError
-from tilefoundry.target.facts import TopologyFacts
 from tilefoundry.visitor_registry.valuation import ValuationContext, ValuationVisitor
-
-from .errors import AnalysisError
 
 _FAMILIES: dict[type[IRMetadata], str] = {}
 _EXPR_FIELDS: dict[type[IRMetadata], dict[str, Callable[..., object]]] = {}
@@ -235,23 +229,6 @@ def selected_types(
     return tuple(dict.fromkeys(item for item in metadata_types if item in owned))
 
 
-def _lane_fill(
-    module: Module,
-    target,
-    topology_level: str | None,
-    function: Function,
-) -> int | None:
-    """The lanes one Function occupies of the report level's declared units."""
-    try:
-        facts = target.get_facts(TopologyFacts)
-        level = facts.parallel() if topology_level is None else facts.level(topology_level)
-        if level is None:
-            return None
-        return occupied_positions(function, level.name, module.effective_topologies())
-    except (AnalysisError, UnsupportedCapabilityError, ValueError):
-        return None
-
-
 def report_data(
     *,
     module: Module,
@@ -263,8 +240,13 @@ def report_data(
     labels: Mapping[int, str] | None = None,
     printer=None,
     functions: tuple[Function, ...] = (),
+    wave: tuple[int, int] | None = None,
 ) -> dict[str, object]:
-    """Project every definition once, in root-first order."""
+    """Project every definition once, in root-first order.
+
+    *wave* is the root's active positions against the physical units of the
+    selected level, as `AnalysisResult.wave` states it.
+    """
     if printer is None:
         from tilefoundry.inspection.python_printer import HirPrinter  # noqa: PLC0415
         printer = HirPrinter()
@@ -272,8 +254,6 @@ def report_data(
             printer.render(ctx.function)
     selected = frozenset(selected_types(module, analyses, metadata_types))
     target = module.resolve_target()
-    wave = wave_of(module, target, topology_level)
-    occupied = _lane_fill(module, target, topology_level, function)
     owners = {
         id(candidate): frame.module.name
         for frame in list_call_paths(module).values()
@@ -308,9 +288,8 @@ def report_data(
         "module": module.name,
         "topology": topology_level,
         "wave": {
-            "counted": 0 if wave is None else wave[0],
-            "declared": 0 if wave is None else wave[1],
-            "occupied": 0 if occupied is None else occupied,
+            "active": 0 if wave is None else wave[0],
+            "physical": 0 if wave is None else wave[1],
         },
         "requested": list(analyses),
         "executed": list(executed),

@@ -106,7 +106,7 @@ def performance_service(target: AmxTarget, query: object = None) -> PerformanceS
     FP16 work shares AMX clusters; FP32 host work uses the measured NEON rate.
     Non-FLOP services use the document's explicitly estimated lane-event rate.
     """
-    unit = "core" if query is None else str(query)
+    unit = "core" if query is None else str(query[0] if isinstance(query, tuple) else query)
     if unit not in ("core", "amx"):
         raise ValueError(f"AMX performance services have no topology level {unit!r}")
     device = target.device

@@ -110,62 +110,52 @@ def parallel_units(target: CudaTarget, unit: str) -> int:
         ) from None
 
 
-def throughput(target: CudaTarget, query: object = None) -> ThroughputFacts:
-    """The deployment rates a roofline divides work by.
-
-    The whole-device bandwidth is HBM's, so the roofline memory bound is
-    computed from global traffic alone. Per-SM shared-memory throughput belongs
-    to the one-unit performance service instead.
-    """
-    device = target.device
-    cards = _cards(target)
-    peaks = tuple(
-        (dtype, peak * cards)
-        for dtype, peak in sorted(
-            device.dense_flops_per_second.items(), key=lambda item: item[0].name
-        )
-    )
-    return ThroughputFacts(
-        peak_flops_per_second=peaks,
-        memory_bandwidth_bytes_per_second=device.hbm_bandwidth_bytes_per_second * cards,
-        bandwidth_level="gmem",
-    )
+def _asked(target: CudaTarget, query: object) -> tuple[str, int]:
+    """A query's level and its running units: ``(level, active)`` capped, a bare level all."""
+    unit, active = query if isinstance(query, tuple) else (query, None)
+    unit = "cta" if unit is None else str(unit)
+    share = parallel_units(target, unit)
+    return unit, share if active is None else min(active, share)
 
 
-def performance_service(target: CudaTarget, query: object = None) -> PerformanceServiceFacts:
-    """What one unit of the level asked about gets through, by kind of work.
+def rates(target: CudaTarget, unit: str, active: int) -> PerformanceServiceFacts:
+    """What *active* units of *unit* get through together, by kind of work.
 
-    The float and global-memory rates are deployment peaks divided among the
-    requested units. Shared-memory bytes/second combine the architecture's
-    per-clock rate with the device clock first. Other services are what the
-    device document states; an unstated kind or level contributes no price.
+    The one source of every CUDA rate: the roofline reads it whole and the
+    timeline divides it among the *active* units. Float, service and
+    shared-memory rates are the deployment's in proportion to the units that
+    run. Global memory is the HBM peak, but no more than the active units' L1
+    data paths carry: an SM moves at most its per-clock shared-memory width per
+    clock (128 B/clk on sm90, about 254 GB/s at 1.98 GHz), a theoretical cap.
     """
     architecture = target.architecture
     device = target.device
     cards = _cards(target)
-    unit = "cta" if query is None else str(query)
     share = parallel_units(target, unit)
-    bandwidth = [("gmem", device.hbm_bandwidth_bytes_per_second * cards // share)]
+    gmem = device.hbm_bandwidth_bytes_per_second * cards
+    bandwidth = [("gmem", gmem)]
     if (
         architecture.shared_memory_bandwidth_bytes_per_clock_per_sm is not None
         and device.sm_clock_hz is not None
     ):
-        deployment_smem = (
+        smem = (
             architecture.shared_memory_bandwidth_bytes_per_clock_per_sm
             * device.sm_clock_hz
             * device.sm_count
             * cards
+            * active
+            // share
         )
-        bandwidth.append(("smem", deployment_smem // share))
+        bandwidth = [("gmem", min(gmem, smem)), ("smem", smem)]
     return PerformanceServiceFacts(
         unit_flops=tuple(
-            (dtype, peak * cards // share)
+            (dtype, peak * cards * active // share)
             for dtype, peak in sorted(
                 device.dense_flops_per_second.items(), key=lambda item: item[0].name
             )
         ),
         unit_ops=tuple(
-            (kind, rate * device.sm_count * cards // share)
+            (kind, rate * device.sm_count * cards * active // share)
             for kind, rate in sorted(device.service_ops_per_second.items())
         ),
         unit_bandwidth=tuple(bandwidth),
@@ -173,8 +163,34 @@ def performance_service(target: CudaTarget, query: object = None) -> Performance
     )
 
 
+def throughput(target: CudaTarget, query: object = None) -> ThroughputFacts:
+    """The rates a roofline divides the whole program's work by: `rates`, whole.
+
+    Asked about no level, the whole deployment; the bound reads global traffic.
+    """
+    whole = rates(target, *_asked(target, query))
+    return ThroughputFacts(
+        peak_flops_per_second=whole.unit_flops,
+        memory_bandwidth_bytes_per_second=whole.bandwidth("gmem"),
+        bandwidth_level="gmem",
+    )
+
+
+def performance_service(target: CudaTarget, query: object = None) -> PerformanceServiceFacts:
+    """What one unit of the level asked about gets through: `rates` among its active units."""
+    unit, active = _asked(target, query)
+    whole = rates(target, unit, active)
+    return PerformanceServiceFacts(
+        unit_flops=tuple((dtype, rate // active) for dtype, rate in whole.unit_flops),
+        unit_ops=tuple((kind, rate // active) for kind, rate in whole.unit_ops),
+        unit_bandwidth=tuple((level, rate // active) for level, rate in whole.unit_bandwidth),
+        unit=unit,
+    )
+
+
 __all__ = [
     "memory_hierarchy",
     "performance_service",
+    "rates",
     "throughput",
 ]

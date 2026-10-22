@@ -61,7 +61,7 @@ from tilefoundry.ir.hir.tensor.insert_slice import InsertSlice
 from tilefoundry.ir.hir.tensor.reshape import Reshape
 from tilefoundry.ir.hir.tensor.tuple_get_item import TupleGetItem
 from tilefoundry.ir.visitor import collect_exprs
-from tilefoundry.target import CudaTarget, PerformanceServiceFacts, ThroughputFacts
+from tilefoundry.target import CudaTarget, PerformanceServiceFacts, ThroughputFacts, TopologyFacts
 from tilefoundry.visitor_registry.contexts import ValuationContext
 from tilefoundry.visitor_registry.valuation import ValuationVisitor
 
@@ -489,12 +489,12 @@ def assert_internal_contract(result: AnalysisResult, scopes: tuple[IterationScop
     """Each duration matches its priced work and divides the enclosing loop trips.
 
     A definition-local duration is its own compute-cost record priced at the
-    target's rates. One a loop repeats is written once, so its interval is that
-    many of its own durations.
+    target's rates for the units its definition runs. One a loop repeats is
+    written once, so its interval is that many of its own durations.
     """
     module_target = result.module.resolve_target()
     throughput = module_target.get_facts(ThroughputFacts)
-    services = module_target.get_facts(PerformanceServiceFacts, result.level)
+    physical = module_target.get_facts(TopologyFacts).level(result.level).max_physical_units
     for function, expr in (
         (function, expr) for function in result.functions for expr in collect_exprs(function.body)
     ):
@@ -505,12 +505,18 @@ def assert_internal_contract(result: AnalysisResult, scopes: tuple[IterationScop
             continue
         cost = get_metadata(expr, ComputeCostMetadata)
         assert cost is not None
+        owner = next(
+            scope.snapshot.definition.locations[id(expr)]
+            for scope in scopes if id(expr) in scope.snapshot.definition.locations
+        )
+        active = min(owner.root.active_positions(result.level), physical)
         duration = local_duration_ns(
             cost,
             throughput,
-            services,
+            module_target.get_facts(PerformanceServiceFacts, (result.level, active)),
             moved=get_metadata(expr, MemoryMetadata),
             level=result.level,
+            positions=min(owner.mesh_positions(result.level), active),
         )
         record = get_metadata(expr, PerformanceMetadata)
         if not duration:
@@ -521,18 +527,10 @@ def assert_internal_contract(result: AnalysisResult, scopes: tuple[IterationScop
         assert span % duration == 0, describe_expr(expr)
         runs = span // duration
         available = 1
-        owner = next(
-            (
-                scope.snapshot.definition.locations[id(expr)]
-                for scope in scopes if id(expr) in scope.snapshot.definition.locations
-            ),
-            None,
-        )
-        if owner is not None:
-            cursor = owner
-            while cursor.parent is not None:
-                available *= cursor.trips()
-                cursor = cursor.parent
+        cursor = owner
+        while cursor.parent is not None:
+            available *= cursor.trips()
+            cursor = cursor.parent
         assert 1 <= runs <= available and available % runs == 0, describe_expr(expr)
         trips = record.timeline.trips
         assert 1 <= trips <= available and available % trips == 0, describe_expr(expr)
@@ -598,7 +596,7 @@ def _assert_reported(case: ConcreteCase, report: dict) -> None:
     if case.id == "qwen3_1_7b_pd.PrefillLayer.layer_decode[ctx_len=128,seq=128]":
         gmem = reported["traffic"]["storage"]["gmem"]
         assert gmem["logical"]["read"] + gmem["logical"]["write"] == 102_172_180
-        assert gmem["total"]["read"] + gmem["total"]["write"] == 13_653_469_696
+        assert gmem["total"]["read"] + gmem["total"]["write"] == 13_678_348_800
     over_bound: set[tuple[str, str]] = set()
     for peak in reported["peaks"]:
         memory_level = peak["memory_level"]
@@ -674,6 +672,7 @@ def test_every_internal_record_agrees(case: ConcreteCase) -> None:
         topology_level=result.topology_level,
         executed=result.executed,
         metadata_types=result.metadata_types,
+        wave=result.wave,
     )
     _assert_reported(case, json.loads(render_json(report)))
     context = _build_context(result.module, result.function, topology_level=result.level)

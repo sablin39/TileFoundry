@@ -213,18 +213,27 @@ class CudaTarget(Target):
     through the corresponding getters. These selections MUST NOT use
     `Target.name`, an exact-concrete-type table, or a second extension
     registration.
-  - CUDA's `ThroughputFacts` MUST publish the whole-device compute and
-    HBM-bandwidth rates and nothing per unit; what one CTA gets through is
-    `PerformanceServiceFacts`.
-  - CUDA's `PerformanceServiceFacts` MUST derive `unit_flops` and global-memory
-    `unit_bandwidth` by dividing each whole-device rate by `device.sm_count`.
-    Shared-memory bandwidth MUST multiply the architecture's byte/clock/SM rate
-    by the device's typed SM clock before projection to the requested unit.
-    CUDA MUST take `unit_ops` from the device document unchanged and MUST name
-    its default unit `cta`; `TopologyLevelFacts.max_physical_units` MUST NOT
-    enter this derivation. `unit_ops` is not a division of a device peak,
-    because no vendor publishes a device-wide integer, predicate, select,
-    special or local-move rate to divide.
+  - CUDA's `ThroughputFacts` and `PerformanceServiceFacts` MUST both read
+    `rates(target, unit, active)`, the one source of CUDA rates: what `active`
+    units of `unit` get through together. A query is a level name or
+    `(level, active)`; `active` MUST be capped at the units the deployment
+    holds and defaults to all of them. `ThroughputFacts` is `rates` itself, the
+    whole deployment when asked about no level; `PerformanceServiceFacts` is
+    `rates` divided by `active`, rounding down. CUDA MUST name its default unit
+    `cta`; `TopologyLevelFacts.max_physical_units` MUST NOT enter this
+    derivation.
+  - `rates` MUST scale each deployment dense-FLOP rate, each service rate
+    (`unit_ops` from the device document, per SM) and the shared-memory
+    bandwidth (the architecture's byte/clock/SM rate times the device's typed SM
+    clock) by `active` over the units the deployment holds. Global-memory
+    bandwidth MUST be the HBM peak, but no more than the active units'
+    shared-memory bandwidth: an SM's L1 data path moves at most its per-clock
+    shared-memory width per clock (128 B/clk on sm90, about 254 GB/s at
+    1.98 GHz), so a program that runs too few units cannot reach the device
+    peak. That cap is the theoretical data path, not a measurement, and it adds
+    no fact. `unit_ops` is not a division of a device peak, because no vendor
+    publishes a device-wide integer, predicate, select, special or local-move
+    rate to divide.
   - `topology_limit("cta")` MUST equal `device.sm_count`, and
     `topology_limit("thread")` MUST equal the architecture's corresponding
     structural limit. An unsupported name MUST be refused.
@@ -333,7 +342,7 @@ class CudaArchitecture(Architecture):
     them, and a device MUST NOT restate them.
   - A shared-memory bandwidth stated in byte/clock/SM MUST remain an
     architecture fact. Turning it into byte/s requires the paired device's SM
-    clock and happens only in the `PerformanceServiceFacts` projection.
+    clock and happens only in the CUDA `rates` projection.
   - It MUST NOT carry a compute-throughput rate. A FLOP/s figure depends on the
     clock of one product, so it is a device fact ([§4.2](#42-cudadevice)) even
     though the instruction it rates is the architecture's.
@@ -620,7 +629,8 @@ class AppleM2Pro:
     arithmetic. FP16 service MUST divide the documented per-AMX-unit estimate
     across core streams using the AMX unit count and performance-core count.
     Non-FLOP work MUST use the documented per-core lane-event estimate.
-    Global-memory bandwidth MUST be shared across the same core streams.
+    Global-memory bandwidth MUST be shared across the same core streams. AMX
+    reads the level of a `(level, active)` query and ignores `active`.
     Unrecorded DTypes and services MUST remain absent.
 
 

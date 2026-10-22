@@ -54,12 +54,9 @@ Every compact text summary begins with these two lines:
 
 ```text
 # example
-# analysis target=<target> module=<module> function=<function> topology=<level> wave=<counted>/<declared> lanes=<occupied>/<declared>
+# analysis target=<target> module=<module> function=<function> topology=<level> wave=<active>/<physical>
 # selection requested=<selector>[,<selector>...] executed=<selector>[,<selector>...]
 ```
-
-`lanes` is stated only when `occupied` differs from `declared`: a full fill is
-the silence case, so most identity lines carry no `lanes`.
 
 Every summary line is one record walked exactly as an annotated equation is
 ([inspection §2.8](./inspection.md#28-record-comment-forms)), so the two surfaces
@@ -68,8 +65,7 @@ are records of the report rather than of the IR; every other summary line is a
 record of the selected Function.
 
 The JSON report carries `target`, `module`, `topology`, `wave`, `requested`,
-and `executed` once. `wave` holds `counted`, `declared`, and `occupied`. Its
-`functions` list
+and `executed` once. `wave` holds `active` and `physical`. Its `functions` list
 contains each reached definition once in root-first DFS order. Each entry has
 `function` (`Module.fn`), `function_records`, operand-first `calls`, authored
 `loops`, and `totals` when compute cost or roofline work evidence is selected.
@@ -348,17 +344,6 @@ counts one slice per index as an upper bound.
     sharded projects to the whole of itself: that is what makes a broadcast
     operand cost its own size and a `Reshard` the distinct coordinates it
     reaches rather than a full source per participant.
-  - A write every position performs alike is billed once at a level the target
-    owns. An `InsertSlice` whose offsets name no mesh coordinate -- directly,
-    through a captured binding, or through the bounds of an enclosing loop --
-    and a `Zeros` of a mesh-replicated buffer, state the same whole window for
-    every executing position, so one position's share of that window MUST be the
-    window divided among the positions, rounding up, and `total` then counts it
-    once. Offsets that do name a mesh coordinate give each position a window of
-    its own, and at a level a topology unit owns the bytes are physically each
-    position's own store: both MUST keep the whole window as one position's
-    share. The relation itself is not narrowed for this -- footprint and
-    liveness legitimately need the whole window per position.
   - Each leaf's bytes are charged at the level that leaf sits at. A `UMAT` leaf
     in `Call.args` charges its own bytes at `rmem` and one appearing only in an
     Op attribute charges nothing, so a whole traffic amount and an `operands`
@@ -974,17 +959,14 @@ once. A buffer with neither states no row.
     Miss counts, miss rates and hardware replacement policy are not modelled.
 
 The report identity, not `RegionMemoryMetadata`, states the program-dependent
-machine context. Its wave is `min(declared units, units the target runs at
-once)` over the level selected by `TopologyFacts.parallel_level`; it is the top-level
-`wave` field in JSON and appears once on the `analysis` text line. Beside it the
-identity states the program's fill of the declared lanes: `occupied` is the most
-positions any mesh the selected Function executes activates at that level and
-the coarser ones, and 1 when the Function states no mesh. JSON always states it;
-the text line prints it as `lanes=<occupied>/<declared>` only when it differs
-from `declared`. An under-fill the wave cannot show -- 40 positions on a
-132-unit level reads `wave=132/132 lanes=40/132` -- is a statement about where
-the program's placement reaches, not an occupancy guarantee ([§1.2.4](#124-performance)).
-Cache level
+machine context. Its wave is `active/physical`: `active` is the most positions
+any mesh the selected Function executes runs at the selected topology level and
+the coarser ones, 1 when the Function states no mesh, and `physical` is that
+level's `TopologyLevelFacts.max_physical_units`. Forty positions on a 132-unit
+level read `wave=40/132`, and 8192 read `wave=8192/132`. It is the top-level
+`wave` field in JSON and appears once on the `analysis` text line. It states
+where the program's placement reaches, not an occupancy guarantee
+([§1.2.4](#124-performance)). Cache level
 and capacity remain Target facts and appear in this report only when they decide
 a cache-capacity finding.
 
@@ -1141,8 +1123,8 @@ under `function_records.memory`:
 - constraints:
   - Text and JSON MUST project analysis conclusions from these records. The
     report identity's `wave` is read from the resolved Module Target and the
-    program's declared units, and its `occupied` from the meshes the selected
-    Function executes; neither is copied into the memory record.
+    meshes the selected Function executes, and MUST NOT be copied into the
+    memory record.
   - A missing footprint MUST be JSON `null`; it MUST NOT be represented by an
     empty `Footprint`.
 
@@ -1170,8 +1152,8 @@ class RooflineMetadata(IRMetadata):
 
 | Field | How it is computed | Reads the target |
 |---|---|---|
-| `compute_ns` | For each recorded dtype with a published rate, round `flops * 1e9 / rate` up to ns and sum the dtype times. A Function uses its summed flops, not a sum of per-Call times. | `ThroughputFacts.peak_flops_per_second` |
-| `memory_ns` | Sum footprint `total` bytes at `bandwidth_level`, multiply by `1e9 / memory_bandwidth_bytes_per_second`, and round up to ns; zero when no bandwidth is published or no bytes are counted. When the footprint is absent or counts another level, use traffic `total` reads plus writes at `bandwidth_level`. A Function uses its accumulated footprint or traffic, not a sum of per-Call times. | `ThroughputFacts.bandwidth_level` and `memory_bandwidth_bytes_per_second` |
+| `compute_ns` | For each recorded dtype with a published rate, round `flops * 1e9 / rate` up to ns and sum the dtype times. A Function uses its summed flops, not a sum of per-Call times. | `ThroughputFacts.peak_flops_per_second`, asked for the Function's active units |
+| `memory_ns` | Sum footprint `total` bytes at `bandwidth_level`, multiply by `1e9 / memory_bandwidth_bytes_per_second`, and round up to ns; zero when no bandwidth is published or no bytes are counted. Reads and writes are one count. When the footprint is absent or counts another level, use traffic `total` reads plus writes at `bandwidth_level`. A Function uses its accumulated footprint or traffic, not a sum of per-Call times. | `ThroughputFacts.bandwidth_level` and `memory_bandwidth_bytes_per_second`, asked for the Function's active units |
 | `ideal_ns` | Maximum of `compute_ns` and `memory_ns`; one ns when the occurrence records nonzero flops or nonzero priced `bandwidth_level` bytes and neither published rate yields a bound, otherwise zero. Bytes at any other level are stated and does not earn a bound: no rate was published for it, so none is owed. | Through the two times |
 | `bound_by` | `none` for no bound, which includes an occurrence whose only movement is at a level with no published bandwidth, `balanced` for equal nonzero times, `memory` when memory is greater, `compute` when compute is greater, and `unrated` for the one-ns bound owed by work this prices whose rate is missing. | Through the two times |
 
@@ -1179,7 +1161,7 @@ The family reads this target projection:
 
 ```python
 class ThroughputFacts:
-    """Carry the whole-device rates a bound divides the whole program's work by.
+    """Carry the rates a bound divides the whole program's work by.
 
     Attributes:
         peak_flops_per_second: attribute; Published compute rates by dtype.
@@ -1194,9 +1176,12 @@ class ThroughputFacts:
     def peak_for(self, dtype: DType) -> int | None: ...
 ```
 
-What one unit gets through is a separate projection, read by `performance`
-rather than by `roofline`: work that is not floating point at all has its own
-published instruction throughput and no dtype to be filed under.
+Roofline asks for `ThroughputFacts` with the query `(topology_level, active)`,
+where `active` is the most positions the Function's meshes run at that level;
+the rates are those of the units the program runs, and a query of no level is
+the whole deployment. What one unit gets through is a separate projection, read
+by `performance` rather than by `roofline`: work that is not floating point at
+all has its own published instruction throughput and no dtype to be filed under.
 
 ```python
 class PerformanceServiceFacts:
@@ -1275,10 +1260,18 @@ its full form as defined in that family's section.
     counted separately, overestimating bytes when parents share data.
   - Performance local duration MUST divide one unit's share of
     `ComputeCostMetadata.flops` by `unit_flops`, of `service` by `unit_ops`, and
-    the `bandwidth_level` entry of `MemoryMetadata.traffic.storage` by
-    `unit_bandwidth`, all at the level it was asked about. Compute and
-    movement overlap within one occurrence, so its duration is the greater of
-    the two sides rather than their sum.
+    of the bytes at each storage level by `unit_bandwidth`, all at the level it
+    was asked about, for the Function's active units: performance asks for
+    `PerformanceServiceFacts` with `(topology_level, active)`, `active` capped at
+    the level's `max_physical_units`. At `bandwidth_level`, one unit's bytes are
+    the occurrence's footprint `logical` bytes, reads and writes as one count,
+    divided among the positions that window holds -- its executing positions,
+    capped at `active` -- and rounded up; the roofline reads the same footprint.
+    Without a footprint, the share is the `bandwidth_level` entry of
+    `MemoryMetadata.traffic.storage`. A window every position writes alike then
+    costs the window over the positions, and disjoint shards cost each
+    position's own shard. Compute and movement overlap within one occurrence,
+    so its duration is the greater of the two sides rather than their sum.
   - Traffic at a level with no stated one-unit bandwidth MUST remain visible in
     `MemoryMetadata` and MUST NOT enter a duration: an instruction throughput
     standing in for a bandwidth prices a move as though it were arithmetic.
@@ -1352,7 +1345,7 @@ class PerformanceSummaryMetadata(IRMetadata):
 
     Attributes:
         timeline: attribute; Whole-Function envelope from zero, in ns.
-        waves: attribute; Physical waves required by the root topology.
+        waves: attribute; Physical waves the Function's executing mesh requires.
     """
 
     timeline: TimelineMetadata
@@ -1376,28 +1369,26 @@ Function summary fields are:
 | Field | How it is computed | Reads the target |
 |---|---|---|
 | `timeline` | `[0, local makespan * waves)`, where the local makespan is the end of the CTA-local timeline, or zero with no work. Its duration is the prediction. | Through `waves` |
-| `waves` | `ceil(N / P)`, where `N` is the static extent of the topology selected by `TopologyFacts.parallel_level` and `P` is that level's `max_physical_units`. | `TopologyFacts` |
+| `waves` | `ceil(N / P)`, where `N` is the most positions the Function's meshes run at the level selected by `TopologyFacts.parallel_level` and `P` is that level's `max_physical_units`. | `TopologyFacts` |
 
 Occurrence intervals remain CTA-local. They are not copied once per wave, and
-neither the root topology extent nor `max_physical_units` changes them. The capacity
+neither the executing positions nor `max_physical_units` changes them. The capacity
 `P` is the machine-side position count; the mapping of one CTA to one SM is
-compiler policy. It is distinct from the per-unit rates in `ThroughputFacts`
-even when both projections derive from the same physical unit count today. The
+compiler policy. The
 aggregate itself is stated once in [target §11](./target.md#11-target-facts-projection),
 because `memory` reads it too.
 
 Requesting performance adds this Function verdict to the summary:
 
 ```text
-performance root=<Module>::<Function> predicted-ns=<int> waves=<int>
+performance root=<Module>::<Function> predicted-ns=<int>
 ```
 
 `root` is the report's own identity, composed by inspection from the module and
 function it already states; it is not a field of `PerformanceSummaryMetadata` and
 does not appear in that record's JSON projection. `predicted-ns` is the duration of
-the summary's own envelope, not a second measurement. `waves` is stated even when
-it is one, because how many passes over the machine a plan takes is a conclusion
-and one wave is an answer.
+the summary's own envelope, not a second measurement. How many passes over the
+machine a plan takes is stated once, by the identity's `wave=<active>/<physical>`.
 
 Every Call with a modeled duration receives this annotation, one interval whether
 or not it repeats: a single trip states its own bounds, and a repeated occurrence
@@ -1446,11 +1437,8 @@ model.
     the number of positions in the enclosing execution scope. This multiplier
     counts copied or replicated work: an unsharded operation inside a scope is
     performed independently by every position and therefore contributes once
-    per position to the total, except where the memory family has already
-    divided a shared write among the positions -- an `InsertSlice` window whose
-    offsets name no mesh coordinate, or a `Zeros` of a mesh-replicated buffer,
-    at a level the target owns -- so that window contributes once. The per-unit
-    quantity already includes work projected through finer levels.
+    per position to the total. The per-unit quantity already includes work
+    projected through finer levels.
   - A `MeshRegion` evaluates its boundary arguments outside the region and
     executes its body once per enclosing position. Argument work is charged at
     its defining site; body work is charged per enclosing position.
@@ -1489,8 +1477,8 @@ model.
     `waves`; there MUST be no second field restating the local makespan or the
     scaled estimate, and none restating how the layout was reached -- it is
     exact for the model it states.
-  - `max_physical_units` MUST NOT enter
-    one-unit rates or the CTA-local layout, and is not a program rewrite.
+  - `max_physical_units` MUST NOT enter the CTA-local layout, and is not a
+    program rewrite; it enters one-unit rates only as the cap on `active`.
   - The buffers a plan keeps live MUST have been placed by `memory` before a
     time is reported for it. A successful dependency records
     `RegionMemoryMetadata.solver_status="feasible"`; a placement that failed
@@ -1635,6 +1623,7 @@ class AnalysisResult:
         executed: attribute; Analyses executed in dependency order.
         metadata_types: attribute; Metadata classes actually written.
         functions: attribute; Reached derived functions in root-first DFS order.
+        wave: attribute; Root's active positions and the level's physical units, or None.
     """
 
     module: "Module"
@@ -1644,6 +1633,7 @@ class AnalysisResult:
     executed: tuple[str, ...]
     metadata_types: tuple[type[IRMetadata], ...]
     functions: tuple["Function", ...]
+    wave: tuple[int, int] | None = None
 
 
 def analyze(
@@ -1672,10 +1662,12 @@ def analyze(
     `AnalysisResult.topology_level` MUST record the resolved answer.
   - A target MUST answer `PerformanceServiceFacts` and state
     `TopologyLevelFacts.max_physical_units` for the level it is asked about,
-    and MUST refuse a level it publishes no rate for rather than answering for a different one. What one unit gets
-    through is the device peak over however many of that unit the device holds,
-    so the same program measured at two levels states the same work against
-    proportionally different rates.
+    and MUST refuse a level it publishes no rate for rather than answering for a different one. The query is
+    the level name, or `(level, active)` when the program runs `active` of its
+    units; a target MAY ignore `active`. What one unit gets through is the
+    deployment's rate for the active units shared among them, so the same
+    program measured at two levels states the same work against proportionally
+    different rates.
   - The Function MUST belong to the checked Module, including its derived
     definitions. Analyze MUST write metadata in place without cloning or
     re-running type inference. A root without `ExecutionMeshMetadata` MUST be

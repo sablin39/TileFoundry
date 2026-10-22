@@ -71,6 +71,7 @@ def _report(module, *, analysis=("memory",)) -> dict:
         topology_level=result.topology_level,
         executed=result.executed,
         metadata_types=result.metadata_types,
+        wave=result.wave,
     )
     return data
 
@@ -290,9 +291,9 @@ def test_wave_truncation_counts_only_the_resident_ctas() -> None:
     )
     all_declared = all_declared_data["functions"][0]["function_records"]["memory"]
 
-    assert resident_data["wave"] == {"counted": 132, "declared": 256, "occupied": 256}
+    assert resident_data["wave"] == {"active": 256, "physical": 132}
     assert _footprint_bytes(resident, "x") == 132 * 4 * 2
-    assert all_declared_data["wave"] == {"counted": 256, "declared": 256, "occupied": 256}
+    assert all_declared_data["wave"] == {"active": 256, "physical": 256}
     assert resident["traffic"]["storage"]["gmem"]["total"] == {"read": 2048, "write": 0}
     assert all_declared["traffic"]["storage"]["gmem"]["total"] == {"read": 2048, "write": 0}
     assert _footprint_bytes(all_declared, "x") == 256 * 4 * 2
@@ -307,7 +308,7 @@ def test_truncated_wave_keeps_reuse_from_participating_boundaries() -> None:
     data = _report(TruncatedWaveReuse, analysis=("memory", "roofline"))
     memory = data["functions"][0]["function_records"]["memory"]
 
-    assert data["wave"] == {"counted": 132, "declared": 256, "occupied": 256}
+    assert data["wave"] == {"active": 256, "physical": 132}
     assert memory["traffic"]["storage"]["gmem"]["total"] == {"read": 8192, "write": 0}
     assert _working_set_bytes(memory) == 32
     assert sum(levels["gmem"]["total"] for levels in memory["footprint"]["buffers"].values()) == 64

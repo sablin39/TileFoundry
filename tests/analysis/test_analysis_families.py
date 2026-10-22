@@ -71,7 +71,7 @@ def test_invariant_gemm_operands_repeat_in_total_traffic() -> None:
 
     assert gmem is not None
     assert gmem.logical == TrafficBytes(read=27_262_976, write=16_777_216)
-    assert gmem.total == TrafficBytes(read=17_725_137_408, write=1_115_693_568)
+    assert gmem.total == TrafficBytes(read=18_824_036_352, write=2_214_592_512)
 
 
 def test_reshard_compares_address_boxes_without_participant_ownership() -> None:
@@ -316,7 +316,7 @@ def test_a_symbolic_store_stride_preserves_the_literal_control_result() -> None:
 
     literal_service, literal_local, literal_roofline, literal_performance = observed["literal"]
     symbolic_service, symbolic_local, symbolic_roofline, symbolic_performance = observed["symbolic"]
-    assert literal_roofline == symbolic_roofline == 439_331
+    assert literal_roofline == symbolic_roofline == 453_060
     assert symbolic_local - literal_local == 6 * 32
     assert symbolic_service - literal_service == 6 * 32 * 128
     assert symbolic_performance - literal_performance == 6 * 32
@@ -330,8 +330,8 @@ def test_roofline_uses_exact_integer_ceiling_above_float_precision() -> None:
     bound = get_metadata(result.function, RooflineMetadata)
 
     assert bound is not None
-    assert bound.compute_ns == 1_492_537_313_434
-    assert bound.ideal_ns == 1_492_537_313_434
+    assert bound.compute_ns == 197_014_925_373_451
+    assert bound.ideal_ns == 197_014_925_373_451
 
 
 _SPLIT_GRID = 128

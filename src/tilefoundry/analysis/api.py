@@ -26,6 +26,7 @@ from tilefoundry.ir.core.module import Module
 from tilefoundry.ir.hir.function import Function
 from tilefoundry.ir.visitor import function_values
 from tilefoundry.target import Target, UnsupportedCapabilityError
+from tilefoundry.target.facts import TopologyFacts
 from tilefoundry.visitor_registry.contexts import ValuationContext
 from tilefoundry.visitor_registry.valuation import ValuationVisitor
 
@@ -37,7 +38,9 @@ class AnalysisResult:
     ``executed`` records dependency order and ``metadata_types`` lists records
     actually written, excluding analyses that matched nothing. ``function`` is
     the checked root that carries aggregate records; ``module`` remains the call's
-    execution domain.
+    execution domain. ``wave`` is the most positions the root's meshes run at
+    the selected level against that level's physical units, or ``None`` when
+    the target states no physical units for it.
     """
 
     module: Module
@@ -47,6 +50,7 @@ class AnalysisResult:
     executed: tuple[str, ...]
     metadata_types: tuple[type[IRMetadata], ...]
     functions: tuple[Function, ...]
+    wave: tuple[int, int] | None = None
 
     @property
     def level(self) -> str | None:
@@ -226,6 +230,7 @@ def analyze(
         executed=tuple(algorithm.selector for algorithm in closure),
         metadata_types=tuple(item for item in order if item in surviving),
         functions=functions,
+        wave=_wave(context),
     )
     dump(
         "analysis.json",
@@ -238,11 +243,21 @@ def analyze(
                 executed=result.executed,
                 metadata_types=result.metadata_types,
                 functions=result.functions,
+                wave=result.wave,
             )
         ),
         DumpFlags.ANALYSIS,
     )
     return result
+
+
+def _wave(context: AnalyzeContext) -> tuple[int, int] | None:
+    """The root's active positions against the physical units of the selected level."""
+    facts = context.target.get_facts(TopologyFacts)
+    level = facts.parallel() if context.topology_level is None else facts.level(context.topology_level)
+    if level is None or level.max_physical_units is None:
+        return None
+    return context.scope.active_positions(level.name), level.max_physical_units
 
 
 def _metadata_snapshot(

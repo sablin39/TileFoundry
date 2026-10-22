@@ -195,15 +195,15 @@ for needle in ("matmul(hidden, w_q", "cache_update(k_cache", ", w_o)"):
 ```
 
 ```text
-# analysis target=nvidia.h200_sxm module=Stage0_Naive function=gqa_decode topology=cta wave=132/132 lanes=1/132
+# analysis target=nvidia.h200_sxm module=Stage0_Naive function=gqa_decode topology=cta wave=1/132
 # selection requested=compute-cost,memory,roofline executed=compute-cost,memory,roofline
 # compute-cost flops=bf16:328896@logical,328896@total,328896@cta;f32:200448@logical,200448@total,200448@cta other-ops=special:1024@logical,1024@total,1024@cta precision=exact
 # memory traffic=gmem:r1.12MiB/w787.69KiB@logical,r1.12MiB/w787.69KiB@total,r1.12MiB/w787.69KiB@cta footprint=hidden:512B;w_q:128.00KiB;v0:1.00KiB;w_k:32.00KiB;v2:256B;cos_cache:1.00KiB;sin_cache:1.00KiB;pos_ids:4B;rope[0]:1.00KiB;rope[1]:256B;q_f32:2.00KiB;v8:1.00KiB;scaled_q:2.00KiB;cur_pos:4B;write_len:4B;k_all:16.12KiB;k_heads:128.00KiB;k_heads_2:128.00KiB;k_f32:256.00KiB;v18:256.00KiB;scores:8.00KiB;peak:64B;v21:8.00KiB;weights:8.00KiB;w_v:32.00KiB;v23:256B;v_all:16.12KiB;v_heads:128.00KiB;v_heads_2:128.00KiB;v_f32:256.00KiB;v30:256.00KiB;weighted:2.00KiB;normalizer:64B;attended:2.00KiB;attended_bf16:1.00KiB;w_o:128.00KiB;v36:512B footprint-precision=upper_bound peak=gmem:1.54MiB persistent=gmem:1.34MiB
-# roofline ideal-ns=412 bound-by=memory
+# roofline ideal-ns=7780 bound-by=memory
 
-    v0 = tf.matmul(hidden, w_q)  # Tensor[(1, 1, 256), "bf16"]; compute-cost flops=bf16:131072@logical,131072@total,131072@cta precision=exact; memory traffic=gmem:r128.50KiB/w512B@logical,r128.50KiB/w512B@total,r128.50KiB/w512B@cta footprint=hidden:512B;w_q:128.00KiB;v0:512B footprint-precision=exact operands=0:r512B/w0;1:r128.00KiB/w0;result:r0/w512B; roofline ideal-ns=28 bound-by=memory
-    k_all = tf.cache_update(k_cache, cur_pos, write_len, k_rope)  # Tensor[(1, 128, 2, 32), "bf16"]; compute-cost precision=exact; memory traffic=gmem:r136B/w128B@logical,r136B/w128B@total,r136B/w128B@cta footprint=cur_pos:4B;write_len:4B;rope[1]:128B;k_all:128B footprint-precision=upper_bound operands=0:r0/w0;1:r4B/w0;2:r4B/w0;3:r128B/w0;result:r0/w128B; roofline ideal-ns=1 bound-by=memory
-    v36 = tf.matmul(v35, w_o)  # Tensor[(1, 1, 256), "bf16", (1, 1, 256)]; compute-cost flops=bf16:131072@logical,131072@total,131072@cta precision=exact; memory traffic=gmem:r128.50KiB/w512B@logical,r128.50KiB/w512B@total,r128.50KiB/w512B@cta footprint=attended_bf16:512B;w_o:128.00KiB;v36:512B footprint-precision=exact operands=0:r512B/w0;1:r128.00KiB/w0;result:r0/w512B; roofline ideal-ns=28 bound-by=memory
+    v0 = tf.matmul(hidden, w_q)  # Tensor[(1, 1, 256), "bf16"]; compute-cost flops=bf16:131072@logical,131072@total,131072@cta precision=exact; memory traffic=gmem:r128.50KiB/w512B@logical,r128.50KiB/w512B@total,r128.50KiB/w512B@cta footprint=hidden:512B;w_q:128.00KiB;v0:512B footprint-precision=exact operands=0:r512B/w0;1:r128.00KiB/w0;result:r0/w512B; roofline ideal-ns=521 bound-by=memory
+    k_all = tf.cache_update(k_cache, cur_pos, write_len, k_rope)  # Tensor[(1, 128, 2, 32), "bf16"]; compute-cost precision=exact; memory traffic=gmem:r136B/w128B@logical,r136B/w128B@total,r136B/w128B@cta footprint=cur_pos:4B;write_len:4B;rope[1]:128B;k_all:128B footprint-precision=upper_bound operands=0:r0/w0;1:r4B/w0;2:r4B/w0;3:r128B/w0;result:r0/w128B; roofline ideal-ns=2 bound-by=memory
+    v36 = tf.matmul(v35, w_o)  # Tensor[(1, 1, 256), "bf16", (1, 1, 256)]; compute-cost flops=bf16:131072@logical,131072@total,131072@cta precision=exact; memory traffic=gmem:r128.50KiB/w512B@logical,r128.50KiB/w512B@total,r128.50KiB/w512B@cta footprint=attended_bf16:512B;w_o:128.00KiB;v36:512B footprint-precision=exact operands=0:r512B/w0;1:r128.00KiB/w0;result:r0/w512B; roofline ideal-ns=521 bound-by=memory
 ```
 
 `@logical` is the authored request before loop replication; `@total` is the
@@ -257,12 +257,12 @@ for ctx_len in (128, 512, 1024, 2048, 4096, 8192):
 
 | `ctx_len` | f32 flops `logical@total@CTA` | traffic `logical@total@CTA` | peak gmem bytes | ideal ns | bound |
 |---:|---:|---|---:|---:|---|
-| 128 | `200448@logical,200448@total,200448@cta` | `gmem:r1.12MiB/w787.69KiB@logical,r1.12MiB/w787.69KiB@total,r1.12MiB/w787.69KiB@cta` | 1.54MiB | 412 | memory |
-| 512 | `799488@logical,799488@total,799488@cta` | `gmem:r3.53MiB/w3.05MiB@logical,r3.53MiB/w3.05MiB@total,r3.53MiB/w3.05MiB@cta` | 2.20MiB | 1431 | memory |
-| 1024 | `1598208@logical,1598208@total,1598208@cta` | `gmem:r6.73MiB/w6.10MiB@logical,r6.73MiB/w6.10MiB@total,r6.73MiB/w6.10MiB@cta` | 3.09MiB | 2789 | memory |
-| 2048 | `3195648@logical,3195648@total,3195648@cta` | `gmem:r13.14MiB/w12.20MiB@logical,r13.14MiB/w12.20MiB@total,r13.14MiB/w12.20MiB@cta` | 4.88MiB | 5506 | memory |
-| 4096 | `6390528@logical,6390528@total,6390528@cta` | `gmem:r25.95MiB/w24.38MiB@logical,r25.95MiB/w24.38MiB@total,r25.95MiB/w24.38MiB@cta` | 8.44MiB | 10940 | memory |
-| 8192 | `12780288@logical,12780288@total,12780288@cta` | `gmem:r51.57MiB/w48.76MiB@logical,r51.57MiB/w48.76MiB@total,r51.57MiB/w48.76MiB@cta` | 15.56MiB | 21808 | memory |
+| 128 | `200448@logical,200448@total,200448@cta` | `gmem:r1.12MiB/w787.69KiB@logical,r1.12MiB/w787.69KiB@total,r1.12MiB/w787.69KiB@cta` | 1.54MiB | 7780 | memory |
+| 512 | `799488@logical,799488@total,799488@cta` | `gmem:r3.53MiB/w3.05MiB@logical,r3.53MiB/w3.05MiB@total,r3.53MiB/w3.05MiB@cta` | 2.20MiB | 27051 | memory |
+| 1024 | `1598208@logical,1598208@total,1598208@cta` | `gmem:r6.73MiB/w6.10MiB@logical,r6.73MiB/w6.10MiB@total,r6.73MiB/w6.10MiB@cta` | 3.09MiB | 52745 | memory |
+| 2048 | `3195648@logical,3195648@total,3195648@cta` | `gmem:r13.14MiB/w12.20MiB@logical,r13.14MiB/w12.20MiB@total,r13.14MiB/w12.20MiB@cta` | 4.88MiB | 104133 | memory |
+| 4096 | `6390528@logical,6390528@total,6390528@cta` | `gmem:r25.95MiB/w24.38MiB@logical,r25.95MiB/w24.38MiB@total,r25.95MiB/w24.38MiB@cta` | 8.44MiB | 206909 | memory |
+| 8192 | `12780288@logical,12780288@total,12780288@cta` | `gmem:r51.57MiB/w48.76MiB@logical,r51.57MiB/w48.76MiB@total,r51.57MiB/w48.76MiB@cta` | 15.56MiB | 412461 | memory |
 
 The table says:
 
@@ -421,7 +421,7 @@ print(report.partition("\n\n")[0].rstrip())
 ```
 
 ```text
-# analysis target=nvidia.h200_sxm module=Stage2_Sharded function=gqa_decode topology=cta wave=132/132 lanes=8/132
+# analysis target=nvidia.h200_sxm module=Stage2_Sharded function=gqa_decode topology=cta wave=8/132
 # selection requested=compute-cost,memory,roofline executed=compute-cost,memory,roofline
 # compute-cost flops=bf16:2203264@logical,4503744@total,562968@cta;f32:44352@logical,44352@total,5544@cta other-ops=special:14528@logical,14528@total,1816@cta precision=exact
 # memory traffic=gmem:r4.31MiB/w3.55MiB@logical,r22.05MiB/w28.39MiB@total,r2.76MiB/w3.55MiB@cta;rmem:r315.19KiB/w201.69KiB@logical,r315.19KiB/w201.69KiB@total,r39.40KiB/w25.21KiB@cta;smem:r3.55MiB/w3.55MiB@logical,r3.55MiB/w3.55MiB@total,r454.62KiB/w454.62KiB@cta footprint=hidden:512B;w_q:128.00KiB;v0:1.00KiB;w_k:32.00KiB;v2:256B;cos_cache:1.00KiB;sin_cache:1.00KiB;pos_ids:4B;rope[0]:1.00KiB;rope[1]:256B;cur_pos:4B;write_len:4B;k_all:227.12KiB;v16:1.77MiB;k_heads:1.77MiB;w_v:32.00KiB;v25:256B;v_all:227.12KiB;v28:1.77MiB;v_heads:1.77MiB;attended_2:1.00KiB;w_o:128.00KiB;v39:512B footprint-precision=upper_bound peak=gmem:3.53MiB;rmem:10.77KiB;smem:227.12KiB persistent=gmem:1.76MiB
@@ -436,7 +436,7 @@ print(report.partition("\n\n")[0].rstrip())
 #   buffer=cur_pos holds=7.86MiB time=none space=cta.head reuse=28B fits=yes precision=upper_bound
 #   buffer=write_len holds=7.86MiB time=none space=cta.head reuse=28B fits=yes precision=upper_bound
 #   error="smem placement peak 227.12KiB exceeds capacity 227.00KiB"
-# roofline ideal-ns=1717 bound-by=memory
+# roofline ideal-ns=4058 bound-by=memory
 ```
 
 A larger context increases the solved peak. The CLI still succeeds and writes the complete report, including its capacity error:
@@ -457,7 +457,7 @@ print(report.partition("\n\n")[0].rstrip())
 ```
 
 ```text
-# analysis target=nvidia.h200_sxm module=Stage2_Sharded function=gqa_decode topology=cta wave=132/132 lanes=8/132
+# analysis target=nvidia.h200_sxm module=Stage2_Sharded function=gqa_decode topology=cta wave=8/132
 # selection requested=compute-cost,memory,roofline executed=compute-cost,memory,roofline
 # compute-cost flops=bf16:2207392@logical,4507872@total,563484@cta;f32:44448@logical,44448@total,5556@cta other-ops=special:14560@logical,14560@total,1820@cta precision=exact
 # memory traffic=gmem:r4.32MiB/w3.56MiB@logical,r22.09MiB/w28.45MiB@total,r2.76MiB/w3.56MiB@cta;rmem:r315.88KiB/w202.12KiB@logical,r315.88KiB/w202.12KiB@total,r39.48KiB/w25.27KiB@cta;smem:r3.56MiB/w3.56MiB@logical,r3.56MiB/w3.56MiB@total,r455.62KiB/w455.62KiB@cta footprint=hidden:512B;w_q:128.00KiB;v0:1.00KiB;w_k:32.00KiB;v2:256B;cos_cache:1.00KiB;sin_cache:1.00KiB;pos_ids:4B;rope[0]:1.00KiB;rope[1]:256B;cur_pos:4B;write_len:4B;k_all:227.62KiB;v16:1.78MiB;k_heads:1.78MiB;w_v:32.00KiB;v25:256B;v_all:227.62KiB;v28:1.78MiB;v_heads:1.78MiB;attended_2:1.00KiB;w_o:128.00KiB;v39:512B footprint-precision=upper_bound peak=gmem:3.53MiB;rmem:10.79KiB;smem:227.62KiB persistent=gmem:1.76MiB
@@ -472,7 +472,7 @@ print(report.partition("\n\n")[0].rstrip())
 #   buffer=cur_pos holds=7.87MiB time=none space=cta.head reuse=28B fits=yes precision=upper_bound
 #   buffer=write_len holds=7.87MiB time=none space=cta.head reuse=28B fits=yes precision=upper_bound
 #   error="smem placement peak 227.62KiB exceeds capacity 227.00KiB"
-# roofline ideal-ns=1720 bound-by=memory
+# roofline ideal-ns=4067 bound-by=memory
 ```
 
 The formula supplies a cache-only dispatch estimate, while the solved placement and its report error expose the complete capacity requirement.
@@ -569,7 +569,7 @@ for line in report.splitlines():
 ```text
 # compute-cost flops=bf16:328896@logical,328896@total,328896@cta;f32:200448@logical,200448@total,200448@cta other-ops=special:1024@logical,1024@total,1024@cta precision=exact
 # memory traffic=gmem:r1.12MiB/w787.69KiB@logical,r1.12MiB/w787.69KiB@total,r1.12MiB/w787.69KiB@cta footprint=hidden:512B;w_q:128.00KiB;v0:1.00KiB;w_k:32.00KiB;v2:256B;cos_cache:1.00KiB;sin_cache:1.00KiB;pos_ids:4B;rope[0]:1.00KiB;rope[1]:256B;q_f32:2.00KiB;v8:1.00KiB;scaled_q:2.00KiB;cur_pos:4B;write_len:4B;k_all:16.12KiB;k_heads:128.00KiB;k_heads_2:128.00KiB;k_f32:256.00KiB;v18:256.00KiB;scores:8.00KiB;peak:64B;v21:8.00KiB;weights:8.00KiB;w_v:32.00KiB;v23:256B;v_all:16.12KiB;v_heads:128.00KiB;v_heads_2:128.00KiB;v_f32:256.00KiB;v30:256.00KiB;weighted:2.00KiB;normalizer:64B;attended:2.00KiB;attended_bf16:1.00KiB;w_o:128.00KiB;v36:512B footprint-precision=upper_bound peak=gmem:1.54MiB persistent=gmem:1.34MiB
-# roofline ideal-ns=412 bound-by=memory
+# roofline ideal-ns=7780 bound-by=memory
 ```
 
 Head-sharded at `ctx_len=128`. The Bash cell reruns the CLI; the following Python cell
@@ -595,7 +595,7 @@ for line in report.splitlines():
 ```text
 # compute-cost flops=bf16:461248@logical,2761728@total,345216@cta;f32:3840@logical,3840@total,480@cta other-ops=special:1024@logical,1024@total,128@cta precision=exact
 # memory traffic=gmem:r613.39KiB/w258.62KiB@logical,r3.91MiB/w2.02MiB@total,r500.96KiB/w258.19KiB@cta;rmem:r25.06KiB/w17.06KiB@logical,r25.06KiB/w17.06KiB@total,r3.13KiB/w2.13KiB@cta;smem:r261.00KiB/w261.00KiB@logical,r261.00KiB/w261.00KiB@total,r32.62KiB/w32.62KiB@cta footprint=hidden:512B;w_q:128.00KiB;v0:1.00KiB;w_k:32.00KiB;v2:256B;cos_cache:1.00KiB;sin_cache:1.00KiB;pos_ids:4B;rope[0]:1.00KiB;rope[1]:256B;cur_pos:4B;write_len:4B;k_all:16.12KiB;v16:128.00KiB;k_heads:128.00KiB;w_v:32.00KiB;v25:256B;v_all:16.12KiB;v28:128.00KiB;v_heads:128.00KiB;attended_2:1.00KiB;w_o:128.00KiB;v39:512B footprint-precision=upper_bound peak=gmem:1.47MiB;rmem:896B;smem:16.12KiB persistent=gmem:1.34MiB
-# roofline ideal-ns=186 bound-by=memory
+# roofline ideal-ns=440 bound-by=memory
 ```
 
 The two attention contractions read bf16 operands into f32 results (`out_dtype="f32"`),
@@ -753,7 +753,7 @@ print(next(line.rstrip() for line in annotated.splitlines() if "cache_update(k_c
 ```
 
 ```text
-# analysis target=nvidia.h200_sxm module=Stage3_Fused function=gqa_decode topology=cta wave=132/132 lanes=32/132
+# analysis target=nvidia.h200_sxm module=Stage3_Fused function=gqa_decode topology=cta wave=32/132
 # selection requested=compute-cost,memory,roofline executed=compute-cost,memory,roofline
 # compute-cost flops=bf16:2983360@logical,8628160@total,461024@cta;f32:94080@logical,127488@total,3984@cta other-ops=integer:9@logical,512@total,16@cta;special:33056@logical,33152@total,1036@cta precision=exact
 # memory traffic=gmem:r2.32MiB/w4.00MiB@logical,r9.21MiB/w4.02MiB@total,r1.44MiB/w4.00MiB@cta;rmem:r64.64KiB/w64.07KiB@logical,r184.00KiB/w164.00KiB@total,r5.75KiB/w5.12KiB@cta;smem:r2.62MiB/w2.46MiB@logical,r8.90MiB/w8.61MiB@total,r284.71KiB/w275.41KiB@cta footprint=hidden:512B;w_q:128.00KiB;v0:1.00KiB;w_k:32.00KiB;v2:256B;cos_cache:1.00KiB;sin_cache:1.00KiB;pos_ids:4B;rope[0]:1.00KiB;rope[1]:256B;cur_pos:4B;write_len:4B;k_all:512.12KiB;k_heads:2.25MiB;w_v:32.00KiB;v11:256B;v_all:512.12KiB;v_heads:2.25MiB;attended_3:1.00KiB;w_o:128.00KiB;v91:512B footprint-precision=upper_bound peak=gmem:6.81MiB;rmem:520B;smem:16.91KiB persistent=gmem:2.31MiB
@@ -890,7 +890,7 @@ for needle in ("reshard(w_q", "reshard(w_o"):
 ```
 
 ```text
-# analysis target=nvidia.h200_sxm module=Stage4_WeightPrepared function=gqa_decode topology=cta wave=132/132 lanes=8/132
+# analysis target=nvidia.h200_sxm module=Stage4_WeightPrepared function=gqa_decode topology=cta wave=8/132
 # selection requested=compute-cost,memory,roofline executed=compute-cost,memory,roofline
 # compute-cost flops=bf16:329536@logical,338048@total,42256@cta;f32:6390528@logical,51124224@total,6390528@cta other-ops=special:32768@logical,262144@total,32768@cta precision=exact
 # memory traffic=gmem:r25.95MiB/w24.38MiB@logical,r205.39MiB/w195.05MiB@total,r25.67MiB/w24.38MiB@cta;rmem:r3.75KiB/w3.75KiB@logical,r3.75KiB/w3.75KiB@total,r480B/w480B@cta;smem:r322.00KiB/w321.00KiB@logical,r336.00KiB/w328.00KiB@total,r42.00KiB/w41.00KiB@cta footprint=hidden:512B;w_q:128.00KiB;q_projected_2:1.00KiB;w_k:32.00KiB;k_projected_2:256B;cos_cache:1.00KiB;sin_cache:1.00KiB;pos_ids:4B;rope[0]:1.00KiB;rope[1]:256B;q_f32:2.00KiB;v15:1.00KiB;scaled_q:2.00KiB;cur_pos:4B;write_len:4B;k_all:512.12KiB;v21:4.00MiB;k_heads:4.00MiB;k_f32:8.00MiB;v25:8.00MiB;scores:256.00KiB;peak:64B;v28:256.00KiB;weights:256.00KiB;w_v:32.00KiB;v_projected_2:256B;v_all:512.12KiB;v36:4.00MiB;v_heads:4.00MiB;v_f32:8.00MiB;v40:8.00MiB;weighted:2.00KiB;normalizer:64B;v43:2.00KiB;attended:1.00KiB;w_o:128.00KiB;v50:512B footprint-precision=upper_bound peak=gmem:8.44MiB;rmem:128B;smem:16.50KiB persistent=gmem:2.31MiB
@@ -901,13 +901,13 @@ for needle in ("reshard(w_q", "reshard(w_o"):
 #   buffer=cur_pos holds=50.08MiB time=none space=cta.head reuse=28B fits=no precision=upper_bound
 #   buffer=write_len holds=50.08MiB time=none space=cta.head reuse=28B fits=no precision=upper_bound
 #   advisory="l2 reuse window cta.head holds 50.08MiB at a 132-unit wave, exceeding capacity 47.68MiB"
-# roofline ideal-ns=10940 bound-by=memory
+# roofline ideal-ns=25864 bound-by=memory
 
-    wq_local = tf.reshard(w_q, layout=(1, 256, 8 @ mesh.head, 32), storage="smem")  # Tensor[(1, 256, 256), "bf16", ((1, 256, 8 @ mesh.head, 32), (0, 32, 0, 1)), "smem"]; compute-cost precision=exact; memory traffic=gmem:r128.00KiB/w0@logical,r128.00KiB/w0@total,r16.00KiB/w0@cta;smem:r0/w128.00KiB@logical,r0/w128.00KiB@total,r0/w16.00KiB@cta footprint=w_q:128.00KiB footprint-precision=exact operands=0:r128.00KiB/w0;result:r0/w128.00KiB; roofline ideal-ns=28 bound-by=memory
-    v2 = tf.matmul(hidden_local, wq_local, out_dtype="f32")  # Tensor[(1, 1, 256), "f32", ((1, 1, 8 @ mesh.head, 32), (256, 256, 32, 1)), "rmem"]; compute-cost flops=bf16:131072@logical,131072@total,16384@cta precision=exact; memory traffic=rmem:r0/w1.00KiB@logical,r0/w1.00KiB@total,r0/w128B@cta;smem:r128.50KiB/w0@logical,r132.00KiB/w0@total,r16.50KiB/w0@cta footprint-precision=exact operands=0:r512B/w0;1:r128.00KiB/w0;result:r0/w1.00KiB; roofline ideal-ns=1 bound-by=compute
+    wq_local = tf.reshard(w_q, layout=(1, 256, 8 @ mesh.head, 32), storage="smem")  # Tensor[(1, 256, 256), "bf16", ((1, 256, 8 @ mesh.head, 32), (0, 32, 0, 1)), "smem"]; compute-cost precision=exact; memory traffic=gmem:r128.00KiB/w0@logical,r128.00KiB/w0@total,r16.00KiB/w0@cta;smem:r0/w128.00KiB@logical,r0/w128.00KiB@total,r0/w16.00KiB@cta footprint=w_q:128.00KiB footprint-precision=exact operands=0:r128.00KiB/w0;result:r0/w128.00KiB; roofline ideal-ns=65 bound-by=memory
+    v2 = tf.matmul(hidden_local, wq_local, out_dtype="f32")  # Tensor[(1, 1, 256), "f32", ((1, 1, 8 @ mesh.head, 32), (256, 256, 32, 1)), "rmem"]; compute-cost flops=bf16:131072@logical,131072@total,16384@cta precision=exact; memory traffic=rmem:r0/w1.00KiB@logical,r0/w1.00KiB@total,r0/w128B@cta;smem:r128.50KiB/w0@logical,r132.00KiB/w0@total,r16.50KiB/w0@cta footprint-precision=exact operands=0:r512B/w0;1:r128.00KiB/w0;result:r0/w1.00KiB; roofline ideal-ns=3 bound-by=compute
 
-    w_o_local = tf.reshard(w_o, layout=(1, 256, 8 @ mesh.head, 32), storage="smem")  # Tensor[(1, 256, 256), "bf16", ((1, 256, 8 @ mesh.head, 32), (0, 32, 0, 1)), "smem"]; compute-cost precision=exact; memory traffic=gmem:r128.00KiB/w0@logical,r128.00KiB/w0@total,r16.00KiB/w0@cta;smem:r0/w128.00KiB@logical,r0/w128.00KiB@total,r0/w16.00KiB@cta footprint=w_o:128.00KiB footprint-precision=exact operands=0:r128.00KiB/w0;result:r0/w128.00KiB; roofline ideal-ns=28 bound-by=memory
-    v48 = tf.matmul(attended_local, w_o_local, out_dtype="f32")  # Tensor[(1, 1, 256), "f32", ((1, 1, 8 @ mesh.head, 32), (256, 256, 32, 1)), "rmem"]; compute-cost flops=bf16:131072@logical,131072@total,16384@cta precision=exact; memory traffic=rmem:r0/w1.00KiB@logical,r0/w1.00KiB@total,r0/w128B@cta;smem:r128.50KiB/w0@logical,r132.00KiB/w0@total,r16.50KiB/w0@cta footprint-precision=exact operands=0:r512B/w0;1:r128.00KiB/w0;result:r0/w1.00KiB; roofline ideal-ns=1 bound-by=compute
+    w_o_local = tf.reshard(w_o, layout=(1, 256, 8 @ mesh.head, 32), storage="smem")  # Tensor[(1, 256, 256), "bf16", ((1, 256, 8 @ mesh.head, 32), (0, 32, 0, 1)), "smem"]; compute-cost precision=exact; memory traffic=gmem:r128.00KiB/w0@logical,r128.00KiB/w0@total,r16.00KiB/w0@cta;smem:r0/w128.00KiB@logical,r0/w128.00KiB@total,r0/w16.00KiB@cta footprint=w_o:128.00KiB footprint-precision=exact operands=0:r128.00KiB/w0;result:r0/w128.00KiB; roofline ideal-ns=65 bound-by=memory
+    v48 = tf.matmul(attended_local, w_o_local, out_dtype="f32")  # Tensor[(1, 1, 256), "f32", ((1, 1, 8 @ mesh.head, 32), (256, 256, 32, 1)), "rmem"]; compute-cost flops=bf16:131072@logical,131072@total,16384@cta precision=exact; memory traffic=rmem:r0/w1.00KiB@logical,r0/w1.00KiB@total,r0/w128B@cta;smem:r128.50KiB/w0@logical,r132.00KiB/w0@total,r16.50KiB/w0@cta footprint-precision=exact operands=0:r512B/w0;1:r128.00KiB/w0;result:r0/w1.00KiB; roofline ideal-ns=3 bound-by=compute
 ```
 
 ## 6. Stream the KV cache
@@ -1065,7 +1065,7 @@ for needle in ("slice(k_cache", "cache_update(k_cache"):
 ```
 
 ```text
-# analysis target=nvidia.h200_sxm module=Stage5_CachePrepared function=gqa_decode topology=cta wave=132/132 lanes=8/132
+# analysis target=nvidia.h200_sxm module=Stage5_CachePrepared function=gqa_decode topology=cta wave=8/132
 # selection requested=compute-cost,memory,roofline executed=compute-cost,memory,roofline
 # compute-cost flops=bf16:4557512@logical,5482952@total,858241@cta;f32:117288@logical,117288@total,14661@cta other-ops=integer:32@logical,256@total,32@cta;special:33040@logical,33040@total,4130@cta precision=exact
 # memory traffic=gmem:r5.32MiB/w4.00MiB@logical,r13.20MiB/w32.02MiB@total,r1.82MiB/w4.00MiB@cta;rmem:r163.53KiB/w161.03KiB@logical,r181.03KiB/w161.03KiB@total,r22.63KiB/w20.13KiB@cta;smem:r8.82MiB/w8.55MiB@logical,r8.85MiB/w8.57MiB@total,r1.11MiB/w1.07MiB@cta footprint=hidden:512B;w_q:128.00KiB;v0:1.00KiB;w_k:32.00KiB;v2:256B;cos_cache:1.00KiB;sin_cache:1.00KiB;pos_ids:4B;rope[0]:1.00KiB;rope[1]:256B;cur_pos:4B;write_len:4B;k_all:256B;w_v:32.00KiB;v10:256B;v_all:256B;v71:256B;k_current:1.00KiB;v84:256B;v_current:1.00KiB;attended_2:1.00KiB;w_o:128.00KiB;v100:512B;k_cache:16.00KiB;v38:128.00KiB;v_cache:16.00KiB;v59:128.00KiB footprint-precision=upper_bound peak=gmem:3.38MiB;rmem:512B;smem:16.91KiB persistent=gmem:2.31MiB
@@ -1075,7 +1075,7 @@ for needle in ("slice(k_cache", "cache_update(k_cache"):
 #   buffer=k_all holds=617.76KiB time=none space=cta.head reuse=1.75KiB fits=yes precision=upper_bound
 #   buffer=v_all holds=617.76KiB time=none space=cta.head reuse=1.75KiB fits=yes precision=upper_bound
 #   buffer=cur_pos holds=617.76KiB time=none space=cta.head reuse=28B fits=yes precision=upper_bound
-# roofline ideal-ns=2037 bound-by=memory
+# roofline ideal-ns=4815 bound-by=memory
 
         v37 = tf.slice(k_cache, (0, base, 0, 0), sizes=(1, 128, 2, 32), strides=(1, 1, 1, 1))  # Tensor[(1, 128, 2, 32), "bf16", ((1, 128, 2, 32), (262144, 64, 32, 1))]; compute-cost precision=exact; memory traffic=rmem:r32B/w0@logical,r256B/w0@total,r32B/w0@cta footprint-precision=exact operands=0:r0/w0;1:r32B/w0;result:r0/w0
         k_all = tf.cache_update(k_cache, cur_pos, write_len, k_rope)  # Tensor[(1, 4096, 2, 32), "bf16"]; compute-cost precision=exact; memory traffic=gmem:r136B/w128B@logical,r136B/w128B@total,r136B/w128B@cta footprint=cur_pos:4B;write_len:4B;rope[1]:128B;k_all:128B footprint-precision=upper_bound operands=0:r0/w0;1:r4B/w0;2:r4B/w0;3:r128B/w0;result:r0/w128B; roofline ideal-ns=1 bound-by=memory

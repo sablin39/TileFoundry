@@ -68,8 +68,13 @@ def local_duration_ns(
     topology_level: str | None = None,
     level: str | None = None,
     scale: int = 1,
+    positions: int = 1,
 ) -> int:
-    """Price one occurrence's projected work against one unit's throughputs."""
+    """Price one occurrence's projected work against one unit's throughputs.
+
+    At the bandwidth level, one unit moves its share of the occurrence's
+    footprint: one window's bytes over the *positions* that window holds.
+    """
     topology_level = topology_level if topology_level is not None else level
     if topology_level is None:
         raise AnalysisError("performance: no topology level was selected")
@@ -111,8 +116,11 @@ def local_duration_ns(
     storage_traffic = (
         shares(moved.traffic.storage, moved.topologies, topology_level) if moved is not None else {}
     )
+    unique = None if moved is None or moved.footprint is None else moved.footprint.bytes_at(facts.bandwidth_level)
     for memory_level, traffic in storage_traffic.items():
         crossed = traffic.total_bytes * scale
+        if unique is not None and memory_level == facts.bandwidth_level:
+            crossed = -(-unique[0] // positions) * scale
         throughput = services.bandwidth(memory_level)
         if not crossed or throughput is None:
             continue

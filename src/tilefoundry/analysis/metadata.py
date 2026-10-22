@@ -171,6 +171,16 @@ class Footprint:
 
         return counted_precision(item for _windows, items in self._grouped for item in items)
 
+    def bytes_at(self, level: str) -> tuple[int, int] | None:
+        """One window's and every executed window's bytes, when all sit at *level*.
+
+        Reads and writes are one count: they share one bandwidth.
+        """
+        kinds = tuple(item for *_held, held in self.buffers for item in held.kinds)
+        if any(name != level for name, _spread in kinds):
+            return None
+        return sum(s.logical for _n, s in kinds), sum(s.total for _n, s in kinds)
+
 
 @dataclass(frozen=True)
 class MemoryMetadata(IRMetadata):
