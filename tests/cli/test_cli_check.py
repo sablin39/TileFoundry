@@ -469,37 +469,51 @@ def test_without_a_reference_only_a_one_sided_predicate_is_admitted(capsys) -> N
     assert "nan 0 inf 0" in reported
 
 
-def test_a_dim_only_a_callee_declares_is_bound_at_evaluation(tmp_path, capsys) -> None:
-    """--dim names the helper's own axis; the run resolves it where it is declared."""
+@pytest.mark.parametrize(
+    ("selector", "dim", "refusal"),
+    (
+        ("Staged.main", "BT=8", None),
+        ("Rooted.main", "BT=8", None),
+        ("Staged.main", "BTT=8", "has no dimension named ['BTT']; the dimensions it reaches are BT (stage)"),
+        ("DeadScratch.main", "BT=8", "no function it reaches declares a dimension"),
+    ),
+)
+def test_a_dim_binds_where_a_reached_function_declares_it(
+    selector, dim, refusal, tmp_path, capsys
+) -> None:
+    """--dim binds a helper's own axis, here or behind a module boundary.
+
+    A name nothing reachable declares is refused with the functions that do
+    declare dims; a binding the block dropped declares nothing.
+    """
     x = torch.arange(4, dtype=torch.float32)
-    inputs_path = tmp_path / "inputs.pt"
-    expected_path = tmp_path / "expected.pt"
-    torch.save(x, inputs_path)
-    torch.save(x, expected_path)
-    assert (
-        cli.main(
-            [
-                "check",
-                f"{callee_dim.__file__}:Staged.main",
-                "--inputs",
-                f"files:{inputs_path}",
-                "--expected",
-                str(expected_path),
-                "--out",
-                "output",
-                "--fn",
-                "allclose",
-                "--atol",
-                "1e-6",
-                "--rtol",
-                "1e-6",
-                "--dim",
-                "BT=8",
-            ]
-        )
-        == 0
+    torch.save(x, tmp_path / "x.pt")
+    torch.save(x, tmp_path / "expected.pt")
+    code = cli.main(
+        [
+            "check",
+            f"{callee_dim.__file__}:{selector}",
+            "--inputs",
+            f"files:{tmp_path / 'x.pt'}",
+            "--expected",
+            str(tmp_path / "expected.pt"),
+            "--out",
+            "output",
+            "--fn",
+            "allclose",
+            "--atol",
+            "1e-6",
+            "--rtol",
+            "1e-6",
+            "--dim",
+            dim,
+        ]
     )
-    assert "PASS" in capsys.readouterr().out
+    captured = capsys.readouterr()
+    if refusal is None:
+        assert code == 0 and "PASS" in captured.out
+    else:
+        assert code != 0 and refusal in captured.err
 
 
 def test_a_dimension_left_as_a_range_is_refused(capsys) -> None:

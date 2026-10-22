@@ -200,6 +200,9 @@ EXPECTED_MEMORY_PEAKS = {
         "gmem": 282688,
         "rmem": 0,
     },
+    "mesh_pricing.UnderFilled.f[static]": {"gmem": 2 * 40 * 8192 * 2, "rmem": 8192 * 2},
+    "mesh_pricing.SharedWindow.f[static]": {"gmem": 256 + 4 * 256, "rmem": 0},
+    "mesh_pricing.PlacedWindow.f[static]": {"gmem": 256 + 4 * 256, "rmem": 8},
     "hand_checked.InvariantReuse.reuse[static]": {
         "gmem": 64,
         "rmem": 0,

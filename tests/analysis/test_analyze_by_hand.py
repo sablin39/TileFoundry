@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from pathlib import Path
 
 import isl
 import pytest
@@ -38,6 +39,7 @@ from tests.fixtures.placed.hand_checked import (
     TruncatedWaveReuse,
     WaveTruncation,
 )
+from tests.fixtures.placed.mesh_pricing import PlacedWindow, SharedWindow, UnderFilled
 from tests.fixtures.placed.persistent_gemm_flat import PersistentGemmFlat
 from tests.fixtures.placed.persistent_gemm_tiled import PersistentGemmTiled
 from tilefoundry.analysis import (
@@ -45,6 +47,7 @@ from tilefoundry.analysis import (
     ComputeCostMetadata,
     MemoryMetadata,
     PerformanceMetadata,
+    PerformanceSummaryMetadata,
     allocation,
     analyze,
 )
@@ -54,11 +57,15 @@ from tilefoundry.analysis.compute_cost import local_duration_ns
 from tilefoundry.analysis.footprint import ReachedAddresses, footprint_of, merged
 from tilefoundry.analysis.iteration_scope import build_scopes
 from tilefoundry.analysis.report import report_data
-from tilefoundry.ir.core import get_metadata
+from tilefoundry.cli.source import load_namespace
+from tilefoundry.ir.core import Call, get_metadata
 from tilefoundry.ir.core.expr import SSAValue
 from tilefoundry.ir.hir.loop_region import LoopRegion
+from tilefoundry.ir.hir.schedule import ScheduleOp
 from tilefoundry.ir.hir.sharding.reshard import Reshard
+from tilefoundry.ir.hir.tensor.insert_slice import InsertSlice
 from tilefoundry.ir.types import DType
+from tilefoundry.ir.visitor import collect_exprs
 from tilefoundry.target import CudaTarget, PerformanceServiceFacts, ThroughputFacts
 
 
@@ -574,3 +581,53 @@ def test_analyzer_agrees_with_deepgemm_min_choice() -> None:
     }
 
     assert min(analyzed, key=analyzed.get) == min(official, key=official.get) == "reuse_b"
+
+
+def _priced(owner):
+    return analyze(*check_program(owner, owner.entry_function()), analysis="performance")
+
+
+def _first_duration(result, kind) -> int:
+    call = next(
+        expr
+        for expr in collect_exprs(result.function.body)
+        if isinstance(expr, Call) and isinstance(expr.target, kind)
+    )
+    timeline = get_metadata(call, PerformanceMetadata).timeline
+    return timeline.end_ns - timeline.start_ns
+
+
+def test_forty_of_132_lanes_move_one_row_per_latency() -> None:
+    """Each CTA keeps 1024 threads x 16 B in flight, so its 16 KiB row takes one latency."""
+    result = _priced(UnderFilled)
+    assert get_metadata(result.function, PerformanceSummaryMetadata).wave == (40, 132)
+    row = 1024 * 16 * 1_000_000_000
+    assert _first_duration(result, Reshard) == -(-row // (row // 353))
+
+
+def test_a_tma_load_keeps_its_three_stages_in_flight() -> None:
+    """One 16 KiB stage moves while all three are in flight: a third of the latency."""
+    fixture = Path(__file__).parents[1] / "fixtures" / "schedule" / "hir"
+    namespace, _ = load_namespace(f"{fixture / 'gemm_8192x17408x5120_tma_store.py'}:GEMM")
+    assert _first_duration(_priced(namespace["GEMM_8192X17408X5120_TMA_STORE"]), ScheduleOp) == 118
+
+
+def test_a_window_every_position_writes_alike_costs_its_share() -> None:
+    """Traffic bills each of 4 positions its 256 B window; HBM time is the footprint's share.
+
+    One position's share is ``(y + windows) / 4`` at 46.4 GB/s: ``(256 + 256) / 4``
+    takes 3 ns when every position writes the same window, ``(256 + 1024) / 4``
+    takes 7 ns when each writes its own.
+    """
+    durations = []
+    for owner in (SharedWindow, PlacedWindow):
+        result = _priced(owner)
+        insert = next(
+            expr
+            for expr in collect_exprs(result.function.body)
+            if isinstance(expr, Call) and isinstance(expr.target, InsertSlice)
+        )
+        gmem = get_metadata(insert, MemoryMetadata).traffic.storage.of("gmem")
+        assert gmem.total.write == 4 * gmem.at(0).write == 4 * 256
+        durations.append(_first_duration(result, InsertSlice))
+    assert durations == [3, 7]
