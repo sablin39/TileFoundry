@@ -54,7 +54,7 @@ Every compact text summary begins with these two lines:
 
 ```text
 # example
-# analysis target=<target> module=<module> function=<function> topology=<level> wave=<active>/<physical>
+# analysis target=<target> module=<module> function=<function> topology=<level>
 # selection requested=<selector>[,<selector>...] executed=<selector>[,<selector>...]
 ```
 
@@ -64,8 +64,8 @@ cannot spell one value two ways. What the report is about and what was asked of 
 are records of the report rather than of the IR; every other summary line is a
 record of the selected Function.
 
-The JSON report carries `target`, `module`, `topology`, `wave`, `requested`,
-and `executed` once. `wave` holds `active` and `physical`. Its `functions` list
+The JSON report carries `target`, `module`, `topology`, `requested`, and
+`executed` once. Its `functions` list
 contains each reached definition once in root-first DFS order. Each entry has
 `function` (`Module.fn`), `function_records`, operand-first `calls`, authored
 `loops`, and `totals` when compute cost or roofline work evidence is selected.
@@ -958,17 +958,8 @@ once. A buffer with neither states no row.
   - This is the capacity judgement of an idealised fully associative LRU cache.
     Miss counts, miss rates and hardware replacement policy are not modelled.
 
-The report identity, not `RegionMemoryMetadata`, states the program-dependent
-machine context. Its wave is `active/physical`: `active` is the most positions
-any mesh the selected Function executes runs at the selected topology level and
-the coarser ones, 1 when the Function states no mesh, and `physical` is that
-level's `TopologyLevelFacts.max_physical_units`. Forty positions on a 132-unit
-level read `wave=40/132`, and 8192 read `wave=8192/132`. It is the top-level
-`wave` field in JSON and appears once on the `analysis` text line. It states
-where the program's placement reaches, not an occupancy guarantee
-([§1.2.4](#124-performance)). Cache level
-and capacity remain Target facts and appear in this report only when they decide
-a cache-capacity finding.
+Cache level and capacity are Target facts, not part of `RegionMemoryMetadata`,
+and appear in this report only when they decide a cache-capacity finding.
 
 ##### Target facts
 
@@ -1121,10 +1112,7 @@ under `function_records.memory`:
 ```
 
 - constraints:
-  - Text and JSON MUST project analysis conclusions from these records. The
-    report identity's `wave` is read from the resolved Module Target and the
-    meshes the selected Function executes, and MUST NOT be copied into the
-    memory record.
+  - Text and JSON MUST project analysis conclusions from these records.
   - A missing footprint MUST be JSON `null`; it MUST NOT be represented by an
     empty `Footprint`.
 
@@ -1353,9 +1341,11 @@ class PerformanceSummaryMetadata(IRMetadata):
 
     Attributes:
         timeline: attribute; Whole-Function envelope from zero, in ns.
+        wave: attribute; Positions the Function's meshes run, and the level's physical units.
     """
 
     timeline: TimelineMetadata
+    wave: tuple[int, int]
 ```
 
 `TimelineMetadata` is a value, not a record: it MUST NOT be attached to a Call or
@@ -1386,14 +1376,18 @@ because `memory` reads it too.
 Requesting performance adds this Function verdict to the summary:
 
 ```text
-performance root=<Module>::<Function> predicted-ns=<int>
+performance root=<Module>::<Function> predicted-ns=<int> wave=<active>/<physical>
 ```
 
 `root` is the report's own identity, composed by inspection from the module and
 function it already states; it is not a field of `PerformanceSummaryMetadata` and
 does not appear in that record's JSON projection. `predicted-ns` is the duration of
-the summary's own envelope, not a second measurement. How many passes over the
-machine a plan takes is stated once, by the identity's `wave=<active>/<physical>`.
+the summary's own envelope, not a second measurement. `wave` is the summary's
+`wave`: `active` is the most positions any mesh the Function executes runs at the
+selected topology level and the coarser ones, 1 when it states no mesh, and
+`physical` is that level's `TopologyLevelFacts.max_physical_units`. Forty
+positions on a 132-unit level read `wave=40/132`, and 8192 read `wave=8192/132`.
+It states where the program's placement reaches, not an occupancy guarantee.
 
 Every Call with a modeled duration receives this annotation, one interval whether
 or not it repeats: a single trip states its own bounds, and a repeated occurrence
@@ -1413,7 +1407,8 @@ Reported Call and Function records use distinct projections under their
 Call: {"timeline": {"start_ns": <int>, "end_ns": <int>, "trips": <int>,
                     "stride_ns": <int>}}
 Function: {"timeline": {"start_ns": 0, "end_ns": <int>, "trips": 1,
-                        "stride_ns": 0}}
+                        "stride_ns": 0},
+           "wave": [<active>, <physical>]}
 ```
 
 The summary envelope's duration is a deterministic comparison estimate, not a
@@ -1627,7 +1622,6 @@ class AnalysisResult:
         executed: attribute; Analyses executed in dependency order.
         metadata_types: attribute; Metadata classes actually written.
         functions: attribute; Reached derived functions in root-first DFS order.
-        wave: attribute; Root's active positions and the level's physical units, or None.
     """
 
     module: "Module"
@@ -1637,7 +1631,6 @@ class AnalysisResult:
     executed: tuple[str, ...]
     metadata_types: tuple[type[IRMetadata], ...]
     functions: tuple["Function", ...]
-    wave: tuple[int, int] | None = None
 
 
 def analyze(

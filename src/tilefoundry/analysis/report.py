@@ -240,13 +240,8 @@ def report_data(
     labels: Mapping[int, str] | None = None,
     printer=None,
     functions: tuple[Function, ...] = (),
-    wave: tuple[int, int] | None = None,
 ) -> dict[str, object]:
-    """Project every definition once, in root-first order.
-
-    *wave* is the root's active positions against the physical units of the
-    selected level, as `AnalysisResult.wave` states it.
-    """
+    """Project every definition once, in root-first order."""
     if printer is None:
         from tilefoundry.inspection.python_printer import HirPrinter  # noqa: PLC0415
         printer = HirPrinter()
@@ -287,10 +282,6 @@ def report_data(
         "target": target.identity,
         "module": module.name,
         "topology": topology_level,
-        "wave": {
-            "active": 0 if wave is None else wave[0],
-            "physical": 0 if wave is None else wave[1],
-        },
         "requested": list(analyses),
         "executed": list(executed),
         "functions": rows,

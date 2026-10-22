@@ -157,8 +157,8 @@ def _performance_evidence(report: dict) -> str | None:
     envelope = record["timeline"]
     if envelope["start_ns"] != 0 or not envelope["end_ns"] > 0:
         return f"predicted interval is {envelope!r}"
-    wave = report["wave"]
-    waves = -(-wave["active"] // wave["physical"]) if wave["physical"] else 0
+    wave = record["wave"]
+    waves = -(-wave[0] // wave[1]) if wave[1] else 0
     if not waves > 0:
         return f"wave is {wave!r}"
     if envelope["end_ns"] % waves:

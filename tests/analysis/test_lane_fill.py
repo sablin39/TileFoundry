@@ -13,6 +13,7 @@ from pathlib import Path
 
 from tilefoundry.analysis import (
     PerformanceMetadata,
+    PerformanceSummaryMetadata,
     RegionMemoryMetadata,
     RooflineMetadata,
     analyze,
@@ -67,7 +68,7 @@ def _analyzed(owner):
 def test_forty_lanes_state_their_wave_and_share_the_hbm_peak_among_forty() -> None:
     result = _analyzed(UnderFilled)
     rendering = render_analysis(result)
-    assert rendering.data["wave"] == {"active": 40, "physical": 132}
+    assert get_metadata(result.function, PerformanceSummaryMetadata).wave == (40, 132)
     assert "wave=40/132" in render_text(rendering)
     load = next(expr for expr in collect_exprs(result.function.body) if isinstance(expr, Call))
     timeline = get_metadata(load, PerformanceMetadata).timeline
@@ -77,7 +78,7 @@ def test_forty_lanes_state_their_wave_and_share_the_hbm_peak_among_forty() -> No
 
 def test_one_position_is_bound_by_its_bytes_in_flight() -> None:
     result = _analyzed(Meshless)
-    assert render_analysis(result).data["wave"] == {"active": 1, "physical": 132}
+    assert get_metadata(result.function, PerformanceSummaryMetadata).wave == (1, 132)
     footprint = get_metadata(result.function, RegionMemoryMetadata).footprint.bytes_at("gmem")[1]
     roofline = get_metadata(result.function, RooflineMetadata)
     assert roofline.memory_ns == -(-(footprint * 1_000_000_000) // _SYNC_CTA)

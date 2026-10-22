@@ -778,7 +778,6 @@ def test_analyze_reports_retained_occurrences_from_one_rendering(tmp_path) -> No
         "shared_expert::placed": 33280,
         "v2": 30720,
     }
-    assert payload["wave"] == {"active": 132, "physical": 132}
     assert "cache" not in payload
     assert (
         not {
@@ -791,7 +790,7 @@ def test_analyze_reports_retained_occurrences_from_one_rendering(tmp_path) -> No
     )
     assert header.splitlines() == [
         "# analysis target=nvidia.h200_sxm module=MoEMegaKernel function=experts "
-        f"topology={payload['topology']} wave=132/132",
+        f"topology={payload['topology']}",
         f"# selection requested={','.join(payload['requested'])} "
         f"executed={','.join(payload['executed'])}",
         "# compute-cost "
@@ -804,7 +803,7 @@ def test_analyze_reports_retained_occurrences_from_one_rendering(tmp_path) -> No
         "footprint-precision=exact peak=gmem:90.00KiB persistent=gmem:30.00KiB",
         f"# roofline ideal-ns={bound['ideal_ns']} bound-by={bound['bound_by']}",
         "# performance root=MoEMegaKernel::experts "
-        f"predicted-ns={summary['timeline']['end_ns']}",
+        f"predicted-ns={summary['timeline']['end_ns']} wave=132/132",
     ]
     assert payload["functions"][0]["totals"]["flops"] == {
         name: spread["total"] for name, spread in cost["flops"].items()

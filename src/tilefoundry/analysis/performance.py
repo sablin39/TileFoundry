@@ -156,10 +156,9 @@ def analyze_performance(function: Function, context: AnalyzeContext) -> None:
         raise UnsupportedCapabilityError(
             f"{type(context.target).__name__}: no default parallel topology level"
         )
-    active = min(
-        context.scope.active_positions(context.topology_level),
-        topologies.level(context.topology_level).max_physical_units,
-    )
+    positions = context.scope.active_positions(context.topology_level)
+    physical = topologies.level(context.topology_level).max_physical_units
+    active = min(positions, physical)
     performance_context = PerformanceContext(
         **vars(context),
         facts=context.target.get_facts(ThroughputFacts),
@@ -178,6 +177,7 @@ def analyze_performance(function: Function, context: AnalyzeContext) -> None:
             timeline=TimelineMetadata(
                 start_ns=0, end_ns=summary_end * _waves(context.scope, level)
             ),
+            wave=(positions, physical),
         ),
     )
 

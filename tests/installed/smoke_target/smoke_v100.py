@@ -66,7 +66,7 @@ def test_external_v100_documents_analyse_a_copied_installed_model(tf, tmp_path) 
     )
     assert gmem["peak_bytes"] < 32_000_000_000
     record = report["functions"][0]['function_records']["performance"]
-    waves = -(-report["wave"]["active"] // report["wave"]["physical"])
+    waves = -(-record["wave"][0] // record["wave"][1])
     assert waves == 2
     assert report["functions"][0]['function_records']["memory"]["solver_status"] in (
         "optimal",

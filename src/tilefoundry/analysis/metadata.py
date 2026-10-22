@@ -340,12 +340,14 @@ class PerformanceSummaryMetadata(IRMetadata):
     """One Function's predicted time, and what reaching it took.
 
     ``timeline`` is the whole-Function envelope from zero, every wave the
-    Function's executing positions need, so its duration is the prediction. The
-    prediction is exact for the model it states, so there is nothing here about
-    how it was reached.
+    Function's executing positions need, so its duration is the prediction.
+    ``wave`` is those positions against the physical units of the selected
+    level. The prediction is exact for the model it states, so there is nothing
+    here about how it was reached.
     """
 
     timeline: TimelineMetadata
+    wave: tuple[int, int]
 
 
 __all__ = [

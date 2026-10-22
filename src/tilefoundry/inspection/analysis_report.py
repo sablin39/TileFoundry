@@ -70,7 +70,6 @@ def render_analysis(result: AnalysisResult, *, operands: bool = False) -> Analys
         module=result.module, function=result.function, analyses=result.analyses,
         topology_level=result.topology_level, executed=result.executed,
         metadata_types=result.metadata_types, labels=labels, functions=result.functions, printer=printer,
-        wave=result.wave,
     )
     selected = frozenset(selected_types_)
     summaries = tuple(
@@ -94,14 +93,12 @@ def _summary(
 ) -> tuple[IRMetadata, ...]:
     """One record per summary line: identity, selection, then findings."""
     module_name, _, function_name = data["function"].rpartition(".")
-    wave = data["wave"]
     views: list[IRMetadata] = [
         ReportIdentity(
             target=data["target"],
             module=module_name,
             function=function_name,
             topology=data["topology"] or "none",
-            wave=f"{wave['active']}/{wave['physical']}" if wave["active"] and wave["physical"] else "",
         ),
         ReportSelection(requested=tuple(data["requested"]), executed=tuple(data["executed"])),
     ]
@@ -121,6 +118,7 @@ def _summary(
             PerformanceSummaryView(
                 root=f"{module_name}::{function_name}",
                 predicted_ns=summary.timeline.end_ns - summary.timeline.start_ns,
+                wave="/".join(map(str, summary.wave)),
             )
         )
     return tuple(views)

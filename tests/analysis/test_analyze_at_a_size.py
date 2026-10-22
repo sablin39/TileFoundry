@@ -441,7 +441,7 @@ def assert_reported_contract(report: dict) -> None:
     assert 0 <= timeline["start_ns"] <= timeline["end_ns"]
     assert records["memory"]["solver_status"] in ("optimal", "feasible")
     predicted_ns = timeline["end_ns"] - timeline["start_ns"]
-    assert predicted_ns % -(-report["wave"]["active"] // report["wave"]["physical"]) == 0
+    assert predicted_ns % -(-summary["wave"][0] // summary["wave"][1]) == 0
     assert records["roofline"]["ideal_ns"] <= predicted_ns
 
     timed = 0
@@ -673,7 +673,6 @@ def test_every_internal_record_agrees(case: ConcreteCase) -> None:
         topology_level=result.topology_level,
         executed=result.executed,
         metadata_types=result.metadata_types,
-        wave=result.wave,
     )
     _assert_reported(case, json.loads(render_json(report)))
     context = _build_context(result.module, result.function, topology_level=result.level)
