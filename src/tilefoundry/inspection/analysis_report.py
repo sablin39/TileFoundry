@@ -25,7 +25,6 @@ from tilefoundry.inspection.python_printer import HirPrinter, PythonPrintOptions
 from tilefoundry.inspection.values import (
     AdvisorySummary,
     ErrorSummary,
-    FunctionMemoryView,
     PerformanceSummaryView,
     Prose,
     ReportIdentity,
@@ -74,13 +73,7 @@ def render_analysis(result: AnalysisResult, *, operands: bool = False) -> Analys
     )
     selected = frozenset(selected_types_)
     summaries = tuple(
-        _summary(
-            function,
-            {**data, **row},
-            row["function_records"],
-            selected,
-            role="entry" if function is result.function else "stage",
-        )
+        _summary(function, {**data, **row}, row["function_records"], selected)
         for function, row in zip(result.functions, data["functions"], strict=True)
     )
     return AnalysisRendering(
@@ -97,8 +90,6 @@ def _summary(
     data: dict[str, object],
     function_records: dict[str, object],
     selected: frozenset[type[IRMetadata]],
-    *,
-    role: str,
 ) -> tuple[IRMetadata, ...]:
     """One record per summary line: identity, selection, then findings."""
     module_name, _, function_name = data["function"].rpartition(".")
@@ -126,14 +117,7 @@ def _summary(
     if "memory" in function_records:
         memory = get_metadata(function, RegionMemoryMetadata)
         assert memory is not None
-        views.append(
-            FunctionMemoryView(
-                function=data["function"],
-                role=role,
-                covers="self+reached",
-                memory=memory,
-            )
-        )
+        views.append(memory)
         if RegionMemoryMetadata in selected:
             views.extend(memory_summary(memory)[1:])
     if "roofline" in function_records:

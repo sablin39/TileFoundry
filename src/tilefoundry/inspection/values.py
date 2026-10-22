@@ -6,7 +6,6 @@ import json
 from collections.abc import Mapping
 from dataclasses import dataclass, fields, is_dataclass
 
-from tilefoundry.analysis.metadata import RegionMemoryMetadata
 from tilefoundry.ir.core.metadata import IRMetadata
 from tilefoundry.ir.core.values import TripInterval
 from tilefoundry.utils.units import format_bytes
@@ -60,16 +59,6 @@ class PerformanceSummaryView(IRMetadata):
     root: str = ""
     predicted_ns: int = 0
     waves: int = 1
-
-
-@dataclass(frozen=True)
-class FunctionMemoryView(IRMetadata):
-    """One Function's memory record, labelled with whose it is and what it counts."""
-
-    function: str = ""
-    role: str = ""
-    covers: str = ""
-    memory: RegionMemoryMetadata | None = None
 
 
 class CommentPrinter:
@@ -190,40 +179,29 @@ class CommentPrinter:
             values.append(("operands", operands))
         return self._record("memory", values)
 
-    def _region_memory_fields(self, record):
-        return (
-            ("traffic", self._breakdown(record.traffic.storage, record.topologies)),
-            ("footprint", self._footprint(record.footprint)),
-            (
-                "footprint_precision",
-                record.footprint.precision if record.footprint else None,
-                None,
-            ),
-            (
-                "peak",
-                {item.memory_level: format_bytes(item.peak_bytes) for item in record.peaks},
-            ),
-            (
-                "persistent",
-                {
-                    item.memory_level: format_bytes(item.persistent_bytes)
-                    for item in record.peaks
-                    if item.persistent_bytes
-                },
-            ),
-        )
-
     def print_RegionMemoryMetadata(self, record, **_):
-        return self._record("memory", self._region_memory_fields(record))
-
-    def print_FunctionMemoryView(self, view, **_):
         return self._record(
             "memory",
             (
-                ("function", view.function, ""),
-                ("role", view.role, ""),
-                ("covers", view.covers, ""),
-                *self._region_memory_fields(view.memory),
+                ("traffic", self._breakdown(record.traffic.storage, record.topologies)),
+                ("footprint", self._footprint(record.footprint)),
+                (
+                    "footprint_precision",
+                    record.footprint.precision if record.footprint else None,
+                    None,
+                ),
+                (
+                    "peak",
+                    {item.memory_level: format_bytes(item.peak_bytes) for item in record.peaks},
+                ),
+                (
+                    "persistent",
+                    {
+                        item.memory_level: format_bytes(item.persistent_bytes)
+                        for item in record.peaks
+                        if item.persistent_bytes
+                    },
+                ),
             ),
         )
 
@@ -321,6 +299,5 @@ __all__ = [
     "ReportSelection",
     "AdvisorySummary",
     "ErrorSummary",
-    "FunctionMemoryView",
     "PerformanceSummaryView",
 ]

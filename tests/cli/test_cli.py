@@ -798,8 +798,7 @@ def test_analyze_reports_retained_occurrences_from_one_rendering(tmp_path) -> No
         f"flops=f32:{cost['flops']['f32']['logical']}@logical,"
         f"{cost['flops']['f32']['total']}@total,"
         f"{cost['flops']['f32']['per_unit'][0]}@{payload['topology']} precision=exact",
-        "# memory function=MoEMegaKernel.experts role=entry covers=self+reached "
-        "traffic=gmem:r120.00KB/w90.00KB@logical,"
+        "# memory traffic=gmem:r120.00KB/w90.00KB@logical,"
         "r7.79MB/w3.93MB@total,r62.75KB/w32.75KB@cta "
         "footprint=tokens:2.50KB;routed_expert::placed:30.25KB;shared_expert::placed:32.50KB;v2:30.00KB "
         "footprint-precision=exact peak=gmem:90.00KB persistent=gmem:30.00KB",
@@ -890,9 +889,7 @@ def test_analyze_writes_the_report_to_stdout_for_dash(capsys) -> None:
 
     assert cli.main(["analyze", selector, "-", "--memory"]) == 0
     text = capsys.readouterr().out
-    assert (
-        "# memory function=RmsnormModule.rmsnorm role=entry covers=self+reached " in text
-    )
+    assert "# memory traffic=" in text
     assert "def rmsnorm(" in text
 
     assert cli.main(["analyze", selector, "-", "--memory", "--json"]) == 0
@@ -901,8 +898,8 @@ def test_analyze_writes_the_report_to_stdout_for_dash(capsys) -> None:
     assert "def rmsnorm(" in payload["source"]
 
 
-def test_analyze_memory_lines_name_their_function_and_state_json_totals(tmp_path) -> None:
-    """Each # memory line names its Function; its @total is that Function's JSON totals."""
+def test_analyze_memory_lines_state_json_totals(tmp_path) -> None:
+    """Each Function's # memory @total is that Function's JSON totals."""
     source = Path(__file__).parents[1] / "fixtures" / "placed" / "moe_mega_kernel.py"
     selector = f"{source}:MoEMegaKernel"
     flags = ["--compute-cost", "--memory"]
@@ -914,18 +911,17 @@ def test_analyze_memory_lines_name_their_function_and_state_json_totals(tmp_path
     assert cli.main(["analyze", selector, str(text_path), *flags]) == 0
     text = text_path.read_text(encoding="utf-8")
 
-    memory_lines = {
-        line.split("function=", 1)[1].split(" ", 1)[0]: line
-        for line in text.splitlines()
-        if line.startswith("# memory function=")
-    }
+    memory_lines = {}
+    for line in text.splitlines():
+        if identity := re.match(r"# analysis .* module=(\S+) function=(\S+)", line):
+            current = ".".join(identity.groups())
+        elif line.startswith("# memory traffic="):
+            memory_lines[current] = line
     functions = payload["functions"]
-    assert len(functions) > 1, "the labels only answer something for a multi-function closure"
+    assert len(functions) > 1, "one Function has no other record to be confused with"
     assert set(memory_lines) == {row["function"] for row in functions}
-    for index, row in enumerate(functions):
+    for row in functions:
         line = memory_lines[row["function"]]
-        role = "entry" if index == 0 else "stage"
-        assert f"role={role} covers=self+reached" in line
         traffic = re.search(r"traffic=(\S+)", line).group(1)
         segments = {
             segment.split(":", 1)[0]: segment.split(":", 1)[1]
