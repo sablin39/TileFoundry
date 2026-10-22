@@ -421,8 +421,8 @@ def test_persistent_gemm_over_reuse_conclusions_match_the_reviewed_report(
     )
     assert all(row["precision"] == precision.value for row in memory["reuse_windows"])
     assert memory[category] == [
-        "l2 reuse window mi holds 176.00MB at a 132-unit wave, exceeding capacity 47.68MB",
-        "l2 reuse window ni holds 92.00MB at a 132-unit wave, exceeding capacity 47.68MB",
+        "l2 reuse window mi holds 176.00MiB at a 132-unit wave, exceeding capacity 47.68MiB",
+        "l2 reuse window ni holds 92.00MiB at a 132-unit wave, exceeding capacity 47.68MiB",
     ]
     assert memory["advisories" if category == "errors" else "errors"] == []
 
@@ -445,9 +445,9 @@ def test_capacity_exceeded_matches_the_written_ratio(
 
     assert (used, capacity, used * 100 / capacity) == (1_572_864, 1_048_576, 150.0)
     diagnosis = [
-        "l2 working set 1.50MB at the first iteration of a 1-unit wave exceeds capacity 1.00MB"
+        "l2 working set 1.50MiB at the first iteration of a 1-unit wave exceeds capacity 1.00MiB"
     ]
-    assert memory["errors"] == ["rmem placement peak 1.50MB exceeds capacity 256.00KB"] + (
+    assert memory["errors"] == ["rmem placement peak 1.50MiB exceeds capacity 256.00KiB"] + (
         diagnosis if category == "errors" else []
     )
     assert memory["advisories"] == (diagnosis if category == "advisories" else [])

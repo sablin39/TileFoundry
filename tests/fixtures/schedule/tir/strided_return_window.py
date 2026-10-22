@@ -1,6 +1,6 @@
 # analysis target=nvidia.h200_sxm module=StridedReturnWindow function=gemm topology=cta wave=32/32
 # selection requested=memory executed=memory
-# memory traffic=gmem:r12.00KB/w0@logical,r384.00KB/w0@total,r12.00KB/w0@cta,r12.00KB/w0@thread;rmem:r32B/w12.00KB@logical,r1.00KB/w384.00KB@total,r32B/w12.00KB@cta,r32B/w12.00KB@thread footprint=x:384.00KB footprint-precision=exact peak=gmem:896.00KB;rmem:12.00KB persistent=gmem:896.00KB
+# memory traffic=gmem:r12.00KiB/w0@logical,r384.00KiB/w0@total,r12.00KiB/w0@cta,r12.00KiB/w0@thread;rmem:r32B/w12.00KiB@logical,r1.00KiB/w384.00KiB@total,r32B/w12.00KiB@cta,r32B/w12.00KiB@thread footprint=x:384.00KiB footprint-precision=exact peak=gmem:896.00KiB;rmem:12.00KiB persistent=gmem:896.00KiB
 
 from __future__ import annotations
 

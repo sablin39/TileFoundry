@@ -733,7 +733,7 @@ def test_analyze_reports_retained_occurrences_from_one_rendering(tmp_path) -> No
     assert cli.main(["analyze", selector, str(operands_path), *flags, "--operands"]) == 0
     asked = operands_path.read_text(encoding="utf-8")
     assert "operands=" not in first
-    assert "operands=0:r30.00KB/w0;result:r0/w30.00KB" in asked
+    assert "operands=0:r30.00KiB/w0;result:r0/w30.00KiB" in asked
     assert (
         cli.main(["analyze", selector, str(operands_json_path), *flags, "--operands", "--json"])
         == 0
@@ -798,10 +798,10 @@ def test_analyze_reports_retained_occurrences_from_one_rendering(tmp_path) -> No
         f"flops=f32:{cost['flops']['f32']['logical']}@logical,"
         f"{cost['flops']['f32']['total']}@total,"
         f"{cost['flops']['f32']['per_unit'][0]}@{payload['topology']} precision=exact",
-        "# memory traffic=gmem:r120.00KB/w90.00KB@logical,"
-        "r7.79MB/w3.93MB@total,r62.75KB/w32.75KB@cta "
-        "footprint=tokens:2.50KB;routed_expert::placed:30.25KB;shared_expert::placed:32.50KB;v2:30.00KB "
-        "footprint-precision=exact peak=gmem:90.00KB persistent=gmem:30.00KB",
+        "# memory traffic=gmem:r120.00KiB/w90.00KiB@logical,"
+        "r7.79MiB/w3.93MiB@total,r62.75KiB/w32.75KiB@cta "
+        "footprint=tokens:2.50KiB;routed_expert::placed:30.25KiB;shared_expert::placed:32.50KiB;v2:30.00KiB "
+        "footprint-precision=exact peak=gmem:90.00KiB persistent=gmem:30.00KiB",
         f"# roofline ideal-ns={bound['ideal_ns']} bound-by={bound['bound_by']}",
         "# performance root=MoEMegaKernel::experts "
         f"predicted-ns={summary['timeline']['end_ns']} "

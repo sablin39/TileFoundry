@@ -1,6 +1,6 @@
 # analysis target=nvidia.h200_sxm module=MnMajorB function=gemm topology=cta wave=1/1
 # selection requested=memory executed=memory
-# memory traffic=gmem:r10.00KB/w64.00KB@logical,r10.00KB/w64.00KB@total,r10.00KB/w64.00KB@cta,r10.00KB/w32.25KB@thread;rmem:r64.03KB/w64.00KB@logical,r64.03KB/w64.00KB@total,r64.03KB/w64.00KB@cta,r544B/w512B@thread;smem:r6.00KB/w10.00KB@logical,r6.00KB/w10.00KB@total,r6.00KB/w10.00KB@cta,r1.06KB/w10.00KB@thread footprint=a:2.00KB;v:8.00KB;v9:24:32.00KB footprint-precision=exact peak=gmem:42.00KB;rmem:32.00KB;smem:10.00KB persistent=gmem:10.00KB
+# memory traffic=gmem:r10.00KiB/w64.00KiB@logical,r10.00KiB/w64.00KiB@total,r10.00KiB/w64.00KiB@cta,r10.00KiB/w32.25KiB@thread;rmem:r64.03KiB/w64.00KiB@logical,r64.03KiB/w64.00KiB@total,r64.03KiB/w64.00KiB@cta,r544B/w512B@thread;smem:r6.00KiB/w10.00KiB@logical,r6.00KiB/w10.00KiB@total,r6.00KiB/w10.00KiB@cta,r1.06KiB/w10.00KiB@thread footprint=a:2.00KiB;v:8.00KiB;v9:24:32.00KiB footprint-precision=exact peak=gmem:42.00KiB;rmem:32.00KiB;smem:10.00KiB persistent=gmem:10.00KiB
 
 from __future__ import annotations
 

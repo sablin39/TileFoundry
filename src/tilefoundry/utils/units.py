@@ -11,7 +11,7 @@ def format_bytes(value: int) -> str:
         return "0"
 
     amount = float(value)
-    units = ("B", "KB", "MB", "GB")
+    units = ("B", "KiB", "MiB", "GiB")
     unit = units[0]
     for candidate in units[1:]:
         if amount < 1024:

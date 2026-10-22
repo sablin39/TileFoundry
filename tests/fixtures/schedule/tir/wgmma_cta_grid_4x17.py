@@ -1,8 +1,8 @@
 # analysis target=nvidia.h200_sxm module=WGMMA_CTA_GRID_4X17 function=gemm topology=cta wave=68/68
 # selection requested=memory executed=memory
-# memory traffic=gmem:r18.00KB/w8.00KB@logical,r1.20MB/w544.00KB@total,r18.00KB/w8.00KB@cta,r18.00KB/w4.02KB@thread;rmem:r44.14KB/w44.00KB@logical,r2.93MB/w2.92MB@total,r44.14KB/w44.00KB@cta,r320B/w176B@thread;smem:r18.00KB/w18.00KB@logical,r1.20MB/w1.20MB@total,r18.00KB/w18.00KB@cta,r768B/w18.00KB@thread footprint=a:4.00KB;b:512B;v12:78:4.00KB footprint-precision=exact peak=gmem:22.00KB;rmem:8.00KB;smem:13.50KB persistent=gmem:18.00KB
-#   buffer=a holds=8.50KB time=none space=cta.bm,cta.bn reuse=268.00KB fits=yes precision=exact
-#   buffer=b holds=8.50KB time=none space=cta.bm,cta.bn reuse=33.50KB fits=yes precision=exact
+# memory traffic=gmem:r18.00KiB/w8.00KiB@logical,r1.20MiB/w544.00KiB@total,r18.00KiB/w8.00KiB@cta,r18.00KiB/w4.02KiB@thread;rmem:r44.14KiB/w44.00KiB@logical,r2.93MiB/w2.92MiB@total,r44.14KiB/w44.00KiB@cta,r320B/w176B@thread;smem:r18.00KiB/w18.00KiB@logical,r1.20MiB/w1.20MiB@total,r18.00KiB/w18.00KiB@cta,r768B/w18.00KiB@thread footprint=a:4.00KiB;b:512B;v12:78:4.00KiB footprint-precision=exact peak=gmem:22.00KiB;rmem:8.00KiB;smem:13.50KiB persistent=gmem:18.00KiB
+#   buffer=a holds=8.50KiB time=none space=cta.bm,cta.bn reuse=268.00KiB fits=yes precision=exact
+#   buffer=b holds=8.50KiB time=none space=cta.bm,cta.bn reuse=33.50KiB fits=yes precision=exact
 
 from __future__ import annotations
 

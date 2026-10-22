@@ -1,6 +1,6 @@
 # analysis target=nvidia.h200_sxm module=SM80_MMA_LDMATRIX function=gemm topology=cta wave=1/1
 # selection requested=memory executed=memory
-# memory traffic=gmem:r1.50KB/w256B@logical,r1.50KB/w256B@total,r1.50KB/w256B@cta,r1.50KB/w8B@thread;rmem:r3.33KB/w3.25KB@logical,r3.33KB/w3.25KB@total,r3.33KB/w3.25KB@cta,r168B/w88B@thread;smem:r1.50KB/w1.50KB@logical,r1.50KB/w1.50KB@total,r1.50KB/w1.50KB@cta,r48B/w1.50KB@thread footprint=a:512B;b:256B;v16:100:256B footprint-precision=exact peak=gmem:1.75KB;rmem:1.25KB;smem:1.50KB persistent=gmem:1.50KB
+# memory traffic=gmem:r1.50KiB/w256B@logical,r1.50KiB/w256B@total,r1.50KiB/w256B@cta,r1.50KiB/w8B@thread;rmem:r3.33KiB/w3.25KiB@logical,r3.33KiB/w3.25KiB@total,r3.33KiB/w3.25KiB@cta,r168B/w88B@thread;smem:r1.50KiB/w1.50KiB@logical,r1.50KiB/w1.50KiB@total,r1.50KiB/w1.50KiB@cta,r48B/w1.50KiB@thread footprint=a:512B;b:256B;v16:100:256B footprint-precision=exact peak=gmem:1.75KiB;rmem:1.25KiB;smem:1.50KiB persistent=gmem:1.50KiB
 
 from __future__ import annotations
 

@@ -1092,7 +1092,7 @@ memory traffic=<memory-level>:r<bytes>/w<bytes>@logical,r<bytes>/w<bytes>@total,
 A Function's memory record counts that Function and everything it reaches, so
 the per-Function lines of one report MUST NOT be summed.
 
-The `<bytes>` form selects the largest of `B`, `KB`, `MB`, and `GB` whose unit
+The `<bytes>` form selects the largest of `B`, `KiB`, `MiB`, and `GiB` whose unit
 the value reaches, with 1024 between adjacent units. `B` is an integer; every
 larger unit has two decimal places. Zero is `0`. This one form is used for every
 human-readable byte count, including error text; JSON keeps raw byte integers.
@@ -1107,7 +1107,7 @@ memory traffic=<memory-level>:r<bytes>/w<bytes>@logical,r<bytes>/w<bytes>@total,
 ```
 
 In the printed `footprint` field, a buffer's value label may itself contain `:`
-(for example, `v0:57:1.00KB`). The byte count is the formatted value after the
+(for example, `v0:57:1.00KiB`). The byte count is the formatted value after the
 last colon.
 A root that is a declared parameter keeps its own name; otherwise use the
 first capturing parameter, in program order, that resolves to that root;

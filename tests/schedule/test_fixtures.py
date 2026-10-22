@@ -1195,7 +1195,7 @@ def _check_smem_placement(out: Path, captured: pytest.CaptureResult[str]) -> Non
     peaks = next(
         item.removeprefix("peak=") for item in lines[2].split() if item.startswith("peak=")
     )
-    assert dict(item.split(":") for item in peaks.split(";"))["smem"] == "16.00KB", (
+    assert dict(item.split(":") for item in peaks.split(";"))["smem"] == "16.00KiB", (
         "two shared tiles need 16384 bytes"
     )
     key_view = next(i for i, line in enumerate(lines) if line.strip() == "ks = T.tensor_view(")
@@ -2143,7 +2143,7 @@ def test_lowering_reports_smem_placement_above_capacity(
     out = tmp_path / "finalized.py"
     assert cli_main(["schedule", "finalize", str(four_stage), str(out)]) == 0
     assert capsys.readouterr() == ("", "")
-    assert 'error="smem placement peak 256.00KB exceeds capacity 227.00KB"' in out.read_text()
+    assert 'error="smem placement peak 256.00KiB exceeds capacity 227.00KiB"' in out.read_text()
     verify_prim_function(_prim_in(out))
 
 

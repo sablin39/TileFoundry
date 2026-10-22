@@ -1,6 +1,6 @@
 # analysis target=nvidia.h200_sxm module=WGMMA_K_SLICES_OF_WIDE_RUN function=gemm topology=cta wave=1/1
 # selection requested=memory executed=memory
-# memory traffic=gmem:r12.00KB/w8.00KB@logical,r12.00KB/w8.00KB@total,r12.00KB/w8.00KB@cta,r12.00KB/w4.03KB@thread;rmem:r28.08KB/w28.00KB@logical,r28.08KB/w28.00KB@total,r28.08KB/w28.00KB@cta,r304B/w224B@thread;smem:r12.00KB/w12.00KB@logical,r12.00KB/w12.00KB@total,r12.00KB/w12.00KB@cta,r1.25KB/w12.00KB@thread footprint=a:4.00KB;b:2.00KB;v12:80:4.00KB footprint-precision=exact peak=gmem:16.00KB;rmem:8.00KB;smem:12.00KB persistent=gmem:12.00KB
+# memory traffic=gmem:r12.00KiB/w8.00KiB@logical,r12.00KiB/w8.00KiB@total,r12.00KiB/w8.00KiB@cta,r12.00KiB/w4.03KiB@thread;rmem:r28.08KiB/w28.00KiB@logical,r28.08KiB/w28.00KiB@total,r28.08KiB/w28.00KiB@cta,r304B/w224B@thread;smem:r12.00KiB/w12.00KiB@logical,r12.00KiB/w12.00KiB@total,r12.00KiB/w12.00KiB@cta,r1.25KiB/w12.00KiB@thread footprint=a:4.00KiB;b:2.00KiB;v12:80:4.00KiB footprint-precision=exact peak=gmem:16.00KiB;rmem:8.00KiB;smem:12.00KiB persistent=gmem:12.00KiB
 
 from __future__ import annotations
 

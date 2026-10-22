@@ -137,10 +137,10 @@ sed -n '/^from __future__/q;p' persistent.txt
 # analysis target=nvidia.h200_sxm module=PERSISTENT function=gemm topology=cta wave=132/132
 # selection requested=compute-cost,memory,performance executed=compute-cost,memory,roofline,performance
 # compute-cost flops=bf16:21476933632@logical,2834955239424@total,21476933632@cta,21476933632@thread;f32:167772160@logical,22145925120@total,167772160@cta,167772160@thread other-ops=integer:65@logical,16896@total,128@cta,128@thread precision=upper_bound
-# memory traffic=gmem:r86.50MB/w280.00MB@logical,r31.45GB/w1.30GB@total,r244.00MB/w10.06MB@cta,r244.00MB/w280.00MB@thread;rmem:r1.26GB/w1.25GB@logical,r166.57GB/w166.55GB@total,r1.26GB/w1.26GB@cta,r1.26GB/w1.26GB@thread;smem:r240.00MB/w82.50MB@logical,r30.94GB/w30.94GB@total,r240.00MB/w240.00MB@cta,r240.00MB/w240.00MB@thread footprint=tile_out:128.00KB;out_2:4.25MB;a:16.00KB;b:2.12MB footprint-precision=exact peak=gmem:522.00MB;rmem:256.00KB;smem:48.00KB persistent=gmem:250.00MB
-#   buffer=b holds=175.62MB time=mt space=none reuse=10.46GB fits=no precision=exact
-#   buffer=a holds=6.52MB time=none space=cta.p reuse=2.05MB fits=yes precision=exact
-#   error="l2 reuse window mt holds 175.62MB at a 132-unit wave, exceeding capacity 47.68MB"
+# memory traffic=gmem:r86.50MiB/w280.00MiB@logical,r31.45GiB/w1.30GiB@total,r244.00MiB/w10.06MiB@cta,r244.00MiB/w280.00MiB@thread;rmem:r1.26GiB/w1.25GiB@logical,r166.57GiB/w166.55GiB@total,r1.26GiB/w1.26GiB@cta,r1.26GiB/w1.26GiB@thread;smem:r240.00MiB/w82.50MiB@logical,r30.94GiB/w30.94GiB@total,r240.00MiB/w240.00MiB@cta,r240.00MiB/w240.00MiB@thread footprint=tile_out:128.00KiB;out_2:4.25MiB;a:16.00KiB;b:2.12MiB footprint-precision=exact peak=gmem:522.00MiB;rmem:256.00KiB;smem:48.00KiB persistent=gmem:250.00MiB
+#   buffer=b holds=175.62MiB time=mt space=none reuse=10.46GiB fits=no precision=exact
+#   buffer=a holds=6.52MiB time=none space=cta.p reuse=2.05MiB fits=yes precision=exact
+#   error="l2 reuse window mt holds 175.62MiB at a 132-unit wave, exceeding capacity 47.68MiB"
 # performance root=PERSISTENT::gemm predicted-ns=10533340 waves=1
 ```
 
@@ -377,8 +377,8 @@ sed -n '1,114p' optimal_tir.py
 ```text
 # analysis target=nvidia.h200_sxm module=GEMM_8192X17408X5120_OPTIMAL function=gemm topology=cta wave=132/132
 # selection requested=memory executed=memory
-# memory traffic=gmem:r125.81MB/w276.12MB@logical,r16.22GB/w816.50MB@total,r125.81MB/w6.19MB@cta,r125.81MB/w276.12MB@thread;rmem:r336.27MB/w332.19MB@logical,r43.35GB/w43.34GB@total,r336.27MB/w336.19MB@cta,r1.40MB/w1.31MB@thread;smem:r125.81MB/w125.81MB@logical,r16.22GB/w16.22GB@total,r125.81MB/w125.81MB@cta,r23.33MB/w123.76MB@thread footprint=a:16.00KB;b:288.00KB;tf.empty(type=Tensor[(128, 256), "bf16", (128, 256)]):64.00KB;tf.insert_slice(out, tile, (m, n)):576.00KB footprint-precision=upper_bound peak=gmem:794.06MB;rmem:128.00KB;smem:208.00KB persistent=gmem:250.00MB
-#   buffer=a holds=944.00KB time=none space=cta.persistent reuse=2.05MB fits=yes precision=upper_bound
+# memory traffic=gmem:r125.81MiB/w276.12MiB@logical,r16.22GiB/w816.50MiB@total,r125.81MiB/w6.19MiB@cta,r125.81MiB/w276.12MiB@thread;rmem:r336.27MiB/w332.19MiB@logical,r43.35GiB/w43.34GiB@total,r336.27MiB/w336.19MiB@cta,r1.40MiB/w1.31MiB@thread;smem:r125.81MiB/w125.81MiB@logical,r16.22GiB/w16.22GiB@total,r125.81MiB/w125.81MiB@cta,r23.33MiB/w123.76MiB@thread footprint=a:16.00KiB;b:288.00KiB;tf.empty(type=Tensor[(128, 256), "bf16", (128, 256)]):64.00KiB;tf.insert_slice(out, tile, (m, n)):576.00KiB footprint-precision=upper_bound peak=gmem:794.06MiB;rmem:128.00KiB;smem:208.00KiB persistent=gmem:250.00MiB
+#   buffer=a holds=944.00KiB time=none space=cta.persistent reuse=2.05MiB fits=yes precision=upper_bound
 
 from __future__ import annotations
 

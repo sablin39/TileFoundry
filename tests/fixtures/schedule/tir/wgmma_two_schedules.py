@@ -1,6 +1,6 @@
 # analysis target=nvidia.h200_sxm module=WGMMA_TWO_SCHEDULES function=gemm topology=cta wave=1/1
 # selection requested=memory executed=memory
-# memory traffic=gmem:r12.00KB/w8.00KB@logical,r12.00KB/w8.00KB@total,r12.00KB/w8.00KB@cta,r12.00KB/w4.03KB@thread;rmem:r44.14KB/w44.00KB@logical,r44.14KB/w44.00KB@total,r44.14KB/w44.00KB@cta,r496B/w352B@thread;smem:r12.00KB/w12.00KB@logical,r12.00KB/w12.00KB@total,r12.00KB/w12.00KB@cta,r1.25KB/w12.00KB@thread footprint=a:2.00KB;b:1.00KB;c:2.00KB;d:1.00KB;v21:113:4.00KB footprint-precision=exact peak=gmem:16.00KB;rmem:8.00KB;smem:12.00KB persistent=gmem:12.00KB
+# memory traffic=gmem:r12.00KiB/w8.00KiB@logical,r12.00KiB/w8.00KiB@total,r12.00KiB/w8.00KiB@cta,r12.00KiB/w4.03KiB@thread;rmem:r44.14KiB/w44.00KiB@logical,r44.14KiB/w44.00KiB@total,r44.14KiB/w44.00KiB@cta,r496B/w352B@thread;smem:r12.00KiB/w12.00KiB@logical,r12.00KiB/w12.00KiB@total,r12.00KiB/w12.00KiB@cta,r1.25KiB/w12.00KiB@thread footprint=a:2.00KiB;b:1.00KiB;c:2.00KiB;d:1.00KiB;v21:113:4.00KiB footprint-precision=exact peak=gmem:16.00KiB;rmem:8.00KiB;smem:12.00KiB persistent=gmem:12.00KiB
 
 from __future__ import annotations
 
