@@ -6,8 +6,7 @@ import argparse
 import json
 import sys
 import textwrap
-from collections.abc import Mapping
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -19,10 +18,10 @@ from tilefoundry.ir.hir.function import Function
 from tilefoundry.ir.hir.specialize import (
     canonical_specialization_signature,
     display_name,
+    instantiate,
+    origin_of,
     residual_dims,
-    variant_for,
 )
-from tilefoundry.ir.types.substitute import substitute_dims
 from tilefoundry.runtime import PREDICATES, RuntimeModule
 from tilefoundry.runtime.measure import Predicate, check, flatten_outputs
 from tilefoundry.runtime.resource import (
@@ -226,7 +225,6 @@ class CheckRequest:
     expected: tuple[Any, ...] | None
     device: str
     expectations: dict[str, tuple[Predicate, ...]]
-    dims: Mapping[str, int] = field(default_factory=dict)
 
 
 def _refuse_orchestration(module: Module, method: str) -> None:
@@ -280,17 +278,11 @@ def read_inputs(paths: Sequence[str], device: str) -> tuple[Any, ...]:
     return tuple(_read(path, device) for path in paths)
 
 
-def draw_inputs(module: Module, dims: dict[str, int], seed: int, device: str):
+def draw_inputs(module: Module, seed: int, device: str):
     function = module.entry_function()
     residual_dims(function, ValuationContext(module, function))
-    concrete = replace(
-        function,
-        params=tuple(
-            replace(param, type=substitute_dims(param.type, dims)) for param in function.params
-        ),
-    )
     generator = torch.Generator(device=device).manual_seed(seed)
-    return _random_activations(concrete, generator, device)
+    return _random_activations(function, generator, device)
 
 
 def build_resource(
@@ -315,7 +307,7 @@ def _scope(resource: RuntimeResource, children: Sequence[str]) -> RuntimeResourc
 def check_concrete(request: CheckRequest):
     loaded = request.module.load(request.weights)
     def reference_run(*args):
-        return evaluate(loaded, *args, dims=request.dims)
+        return evaluate(loaded, *args)
     if request.expected is not None:
         expected = request.expected[0] if len(request.expected) == 1 else request.expected
         def expected_run(*_args):
@@ -438,11 +430,11 @@ def _input_files(paths: Sequence[str], activations: Sequence[Any]) -> list[dict[
     return files
 
 
-def _variant(function: Function, dims: dict[str, int]) -> dict[str, Any] | None:
-    """Describe the implementation selected for concrete dimensions."""
-    if not function.variants:
+def _variant(function: Function) -> dict[str, Any] | None:
+    """Describe the implementation `instantiate` selected for *function*."""
+    chosen = origin_of(function)
+    if chosen is None or not chosen.specializations:
         return None
-    chosen = variant_for(function, dims)
     ranges = [
         {"dim": pattern.dim_var, "lo": pattern.lo, "hi": pattern.hi}
         for pattern in chosen.specializations
@@ -586,24 +578,13 @@ def run_check(arguments: argparse.Namespace) -> int:
     device = arguments.device or _device(selection.module)
     runs = []
     for dims in _combinations(stated):
-        concrete = None
+        module, fn = selection.module, selection.module.entry_function()
+        if dims:
+            module, fn = instantiate(module, fn, dims)
         selected_variant = None
         if arguments.inputs == "random":
-            fn = selection.module.entry_function()
-            variant_dims = {
-                pattern.dim_var
-                for variant in fn.variants
-                for pattern in variant.specializations
-            }
-            if variant_dims and variant_dims <= dims.keys():
-                selected_variant = _variant(fn, dims)
-            concrete = replace(
-                fn,
-                params=tuple(
-                    replace(p, type=substitute_dims(p.type, dims)) for p in fn.params
-                ),
-            )
-            inputs = draw_inputs(selection.module, dims, SEED, device)
+            selected_variant = _variant(fn)
+            inputs = draw_inputs(module, SEED, device)
         elif arguments.inputs.startswith("files:"):
             inputs = read_inputs(arguments.inputs[6:].split(","), device)
         else:
@@ -617,19 +598,18 @@ def run_check(arguments: argparse.Namespace) -> int:
             expected = expected_values
         report = check_concrete(
             CheckRequest(
-                selection.module,
+                module,
                 selection.twin,
                 inputs,
                 resource,
                 expected,
                 device,
                 expect,
-                dims=dims,
             )
         )
         declared = tuple(
             param.type.dtype.name
-            for param in (concrete.params if concrete is not None else ())
+            for param in (fn.params if arguments.inputs == "random" else ())
             if not param.is_const
         )
         if arguments.expected:

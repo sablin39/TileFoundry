@@ -14,7 +14,7 @@ import dataclasses
 from collections.abc import Mapping
 
 from tilefoundry.ir.core import Call, Constant, Expr, Op, Tuple, Var
-from tilefoundry.ir.core.module import ModuleList
+from tilefoundry.ir.core.module import Module, ModuleList
 from tilefoundry.ir.hir.loop_region import LoopRegion
 from tilefoundry.ir.pattern import Pattern, RangePattern
 from tilefoundry.ir.types import callable_type_for
@@ -28,6 +28,7 @@ from tilefoundry.ir.types.substitute import (
 )
 from tilefoundry.ir.types.tensor_type import TensorType
 from tilefoundry.ir.visitor import ExprCloner, ExprVisitor
+from tilefoundry.visitor_registry.contexts import ValuationContext
 
 from .function import Function
 
@@ -255,6 +256,48 @@ class InstantiateDimensionCloner(ExprCloner):
     def default_visit(self, value, ctx=None):
         rebuilt = super().default_visit(value, ctx)
         return dataclasses.replace(rebuilt, type=substitute_dims(value.type, self.dims))
+
+
+def instantiate(
+    module: Module, function: Function, dims: Mapping[str, int] | None
+) -> tuple[Module, Function]:
+    """Bind *dims* wherever *function* reaches them, in a clone of *module*.
+
+    A dimension may be declared by any reachable function, not only by the
+    signature of *function*; a name that nothing reachable declares is refused.
+    The authored Module and Function are untouched.
+    """
+    from tilefoundry.analysis.errors import AnalysisError  # noqa: PLC0415
+
+    supplied = {} if dims is None else dict(dims)
+    declared = {}
+    collector = _DimVarCollector(declared, supplied)
+    collector.visit_function(function, ValuationContext(module, function))
+    if collector.cycles:
+        raise AnalysisError(f"recursive call path through {collector.cycles[0]!r}")
+    if collector.missing_bodies:
+        name, path = collector.missing_bodies[0]
+        raise AnalysisError(f"cannot analyze Function {name!r} without a body at {path!r}")
+    unknown = sorted(set(supplied) - declared.keys())
+    if unknown:
+        if declared:
+            reached = ", ".join(
+                f"{name} ({collector.declared_by.get(name, function.name)})"
+                for name in sorted(declared)
+            )
+            detail = f"the dimensions it reaches are {reached}"
+        else:
+            detail = "no function it reaches declares a dimension"
+        raise SpecializationError(
+            f"{function.name!r} has no dimension named {unknown!r}; {detail}"
+        )
+    for name, extent in supplied.items():
+        substitute_shape_dim(declared[name], {name: extent})
+    cloner = InstantiateDimensionCloner(dims)
+    for reached, _frame in collector.functions:
+        cloner.function(reached)
+    root = cloner.function(function)
+    return cloner.module(module), root
 
 
 def _substitute_op_dims(target: object, dims: Mapping[str, int]) -> object:

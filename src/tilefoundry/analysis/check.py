@@ -19,14 +19,9 @@ from tilefoundry.ir.core import (
 )
 from tilefoundry.ir.core.module import Module, ModuleList
 from tilefoundry.ir.hir.function import Function
-from tilefoundry.ir.hir.specialize import (
-    InstantiateDimensionCloner,
-    SpecializationError,
-    _DimVarCollector,
-    dim_vars_reached,
-)
+from tilefoundry.ir.hir.specialize import SpecializationError, dim_vars_reached, instantiate
 from tilefoundry.ir.types import Topology, callable_type_for
-from tilefoundry.ir.types.substitute import dim_vars_by_name, substitute_shape_dim
+from tilefoundry.ir.types.substitute import dim_vars_by_name
 from tilefoundry.ir.visitor import collect_exprs
 from tilefoundry.target import UnsupportedCapabilityError
 from tilefoundry.target.facts import TopologyFacts
@@ -225,43 +220,17 @@ def check_program(
                 raise SpecializationError(
                     f"specialising {function.name!r}: dimension {name!r} takes an integer extent, got {extent!r}"
                 )
-    supplied = {} if dims is None else dict(dims)
-    original_frame = _required_frame(module, function)
-    declared = {}
-    collector = _DimVarCollector(declared, supplied)
-    collector.visit_function(function, original_frame)
-    if collector.cycles:
-        raise AnalysisError(f"recursive call path through {collector.cycles[0]!r}")
-    if collector.missing_bodies:
-        name, path = collector.missing_bodies[0]
-        raise AnalysisError(f"cannot analyze Function {name!r} without a body at {path!r}")
-    unknown = sorted(set(supplied) - declared.keys())
-    if unknown:
-        if declared:
-            reached = ", ".join(
-                f"{name} ({collector.declared_by.get(name, function.name)})"
-                for name in sorted(declared)
-            )
-            detail = f"the dimensions it reaches are {reached}"
-        else:
-            detail = "no function it reaches declares a dimension"
-        raise SpecializationError(
-            f"{function.name!r} has no dimension named {unknown!r}; {detail}"
-        )
-    for name, extent in supplied.items():
-        substitute_shape_dim(declared[name], {name: extent})
-    cloner = InstantiateDimensionCloner(dims)
-    for reached, _frame in collector.functions:
-        cloner.function(reached)
-    bound_root = cloner.function(function)
-    bound_module = cloner.module(module)
+    _required_frame(module, function)
+    bound_module, bound_root = instantiate(module, function, dims)
     initial = ValuationContext(bound_module, bound_root)
     residual = set(dim_vars_reached(bound_root, initial))
-    for owner in cloner.modules.values():
+    owners = [bound_module]
+    for owner in owners:
         residual.update(dim_vars_by_name(owner.topologies))
+        owners.extend(child for slot in owner.children.values() for child in slot.elements)
     if residual:
         raise SpecializationError(
-            f"{function.name!r} still states {sorted(residual)} as ranges after binding {sorted(supplied)}; every dimension has to be given an extent"
+            f"{function.name!r} still states {sorted(residual)} as ranges after binding {sorted(dims or ())}; every dimension has to be given an extent"
         )
     signatures = {}
 

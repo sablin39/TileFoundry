@@ -5,7 +5,6 @@ Walks a HIR ``Function`` body and returns concrete torch values.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any
 
 from tilefoundry.evaluator.context import EvaluateContext
@@ -84,25 +83,6 @@ def _bind_dim_vars(params, values) -> dict[str, int]:
                     )
                 binding[dim.name] = size
     return binding
-
-
-def _merge_supplied(
-    bindings: dict[str, int], supplied: Mapping[str, int]
-) -> dict[str, int]:
-    """Externally supplied extents, checked against what the arguments bound.
-
-    A dimension the caller named reaches whichever function declares it, no
-    matter how deep that function sits; one the argument shapes also pin has
-    to agree with them.
-    """
-    for name, extent in supplied.items():
-        bound = bindings.get(name)
-        if bound is not None and bound != extent:
-            raise EvalError(
-                f"evaluator: DimVar {name!r} was supplied as {extent} "
-                f"but the arguments bind it to {bound}"
-            )
-    return {**supplied, **bindings}
 
 
 class EvaluatorVisitor(ExprVisitor):
@@ -197,10 +177,7 @@ class EvaluatorVisitor(ExprVisitor):
         function_context = EvaluateContext(
             loaded_module=child if child is not None else ctx.loaded_module,
             device=ctx.device,
-            dim_bindings=_merge_supplied(
-                _bind_dim_vars(target.params, args), ctx.supplied_dims
-            ),
-            supplied_dims=ctx.supplied_dims,
+            dim_bindings=_bind_dim_vars(target.params, args),
         )
         memo = {id(param): (param, arg) for param, arg in zip(target.params, args)}
         return EvaluatorVisitor(memo=memo).visit(target.body, function_context)
@@ -311,18 +288,11 @@ def _read_weight(loaded_module, param, device: str, *, callee: Function | None =
     return value
 
 
-def _run_selected(
-    loaded_module,
-    fn: Function,
-    *activations,
-    device: str | None,
-    dims: Mapping[str, int] | None = None,
-):
+def _run_selected(loaded_module, fn: Function, *activations, device: str | None):
     """Run one loaded function, reading constants lazily at first use.
 
     *device* is where the activations already are; a weight somewhere else is
-    refused at its first use rather than moved. *dims* carries extents the
-    caller stated for dimensions no argument shape can pin.
+    refused at its first use rather than moved.
     """
     activation_params = tuple(param for param in fn.params if not param.is_const)
     if len(activations) != len(activation_params):
@@ -335,7 +305,7 @@ def _run_selected(
         _read_weight(loaded_module, param, device) if param.is_const else next(supplied)
         for param in fn.params
     ]
-    return _run_bound(fn, args, device=device, reading=loaded_module, dims=dims)
+    return _run_bound(fn, args, device=device, reading=loaded_module)
 
 
 def _unwrap(value: Value) -> Any:
@@ -395,9 +365,7 @@ def _selected_body(fn: Function, args) -> Function:
     return _select_variant(fn, _bound_values(fn, args))
 
 
-def _run_bound(
-    fn: Function, args, *, device: str | None = None, reading=None, dims=None
-):
+def _run_bound(fn: Function, args, *, device: str | None = None, reading=None):
     """Evaluate *fn* over fully bound *args*, with *reading* in hand.
 
     The entry a resource reading runs through: every child call reached from
@@ -407,8 +375,7 @@ def _run_bound(
     values = _bound_values(fn, args)
     target = _select_variant(fn, values) if fn.variants else fn
     memo = {id(param): (param, value) for param, value in zip(target.params, values)}
-    supplied = {} if dims is None else dict(dims)
-    dim_env = _merge_supplied(_bind_dim_vars(target.params, values), supplied)
+    dim_env = _bind_dim_vars(target.params, values)
     return _unwrap(
         EvaluatorVisitor(memo=memo).visit(
             target.body,
@@ -416,28 +383,25 @@ def _run_bound(
                 loaded_module=reading,
                 device=device,
                 dim_bindings=dim_env,
-                supplied_dims=supplied,
             ),
         )
     )
 
 
-def evaluate(target, *inputs, dims: Mapping[str, int] | None = None):
+def evaluate(target, *inputs):
     """Evaluate a HIR ``Function`` or a loaded module and return torch value(s).
 
     *target* answers which function to run and which reading, if any, supplies
     its ``ConstTensor`` parameters. The run happens where *inputs* already are:
-    the evaluator selects no device and no tensor engine of its own. *dims*
-    states extents for dimensions no input shape declares, such as one only a
-    callee allocates with.
+    the evaluator selects no device and no tensor engine of its own.
     """
     fn, reading = target.evaluation_target()
     device = _device_of(inputs)
     if reading is not None:
-        return _run_selected(reading, fn, *inputs, device=device, dims=dims)
+        return _run_selected(reading, fn, *inputs, device=device)
 
     if len(inputs) != len(fn.params):
         raise EvalError(
             f"evaluator: {fn.name!r} expects {len(fn.params)} inputs, got {len(inputs)}"
         )
-    return _run_bound(fn, inputs, device=device, dims=dims)
+    return _run_bound(fn, inputs, device=device)
