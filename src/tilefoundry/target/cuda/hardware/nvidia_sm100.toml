@@ -11,11 +11,11 @@ source = "https://docs.nvidia.com/cuda/blackwell-tuning-guide/index.html"
 conditions = "compilation architecture identity of compute capability 10.0"
 
 [facts.capabilities]
-value = ["mma.sync", "ldmatrix", "tcgen05", "cp.async", "cp.async.bulk.tensor"]
+value = ["mma.sync", "ldmatrix", "tcgen05", "cp.async", "cp.async.bulk.tensor", "cp.async.bulk", "mbarrier.expect_tx", "mbarrier.try_wait"]
 unit = "name"
 origin = "vendor"
 source = "https://docs.nvidia.com/cuda/parallel-thread-execution/index.html"
-conditions = "PTX instruction families the SM100 code path may select; the fifth-generation tensor-core family is tcgen05, and the SM90 wgmma family is not available here"
+conditions = "PTX instruction families the SM100 code path may select; the fifth-generation tensor-core family is tcgen05, and the SM90 wgmma family is not available here; cp.async.bulk, the mbarrier expect_tx forms and mbarrier.try_wait require sm_90 or higher"
 
 [facts.instruction.compute_dtypes]
 value = ["f32", "f16", "bf16", "fp8e4m3", "f4e2m1"]

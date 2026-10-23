@@ -98,12 +98,12 @@ struct CopyAsync {
             same_slice_size<decltype(s), decltype(d)>(),
             "ops::copy_async: the two projected slices must hold the same "
             "number of elements");
-        constexpr int V = bytes / int(sizeof(value_type));
 #if !defined(__CUDA_ARCH__) || (__CUDA_ARCH__ >= 800)
         auto s_v = cute::recast<cute::uint_bit_t<bytes * 8>>(s);
+        auto d_v = cute::recast<cute::uint_bit_t<bytes * 8>>(d);
         const int nv = int(cute::size(s_v));
         for (int i = 0; i < nv; ++i)
-            __pipeline_memcpy_async(&d(i * V), &s_v(i), bytes);
+            __pipeline_memcpy_async(&d_v(i), &s_v(i), bytes);
 #else
         static_assert(dependent_false_v<TSrc>,
                       "ops::copy_async: cp.async requires sm_80 or newer");

@@ -17,6 +17,7 @@ import torch
 import tilefoundry
 import tilefoundry.codegen.cuda  # noqa: F401 — trigger emitter autodiscovery
 from tests.fixtures.tir.async_sync import AsyncStage
+from tests.fixtures.tir.split_stage import SplitStage
 from tests.ops.tir.targets import CUDA_TARGETS, retarget
 from tilefoundry.ir.core import Var, VerifyError
 from tilefoundry.ir.tir.async_copy import CopyAsync, CpAsyncWait
@@ -24,7 +25,7 @@ from tilefoundry.ir.tir.prim_function import PrimFunction
 from tilefoundry.ir.tir.stmts import Evaluate, MeshScope, Return, Sequential
 from tilefoundry.ir.types import DType, Layout, Mesh, TensorType, Topology, make_tensor_type
 from tilefoundry.target import CudaTarget
-from tilefoundry.visitor_registry.verify import verify_prim_function
+from tilefoundry.visitor_registry.verify import verify_module, verify_prim_function
 
 
 def _copy_async_pf(src_ty: TensorType, dst_ty: TensorType) -> PrimFunction:
@@ -107,6 +108,21 @@ def test_async_copy_stage_matches_input(target: CudaTarget) -> None:
     source = torch.randn(128, 4, dtype=torch.float32, device="cuda")
     out = torch.empty_like(source)
     runtime = tilefoundry.compile(retarget(AsyncStage, target), target=target)
+    runtime(source, out)
+    torch.cuda.synchronize()
+    torch.testing.assert_close(out, source, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize("target", CUDA_TARGETS)
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires CUDA")
+def test_async_copy_stages_two_separate_runs_per_thread(target: CudaTarget) -> None:
+    """Each thread's second run lands 512 elements after its first, as the destination states."""
+    module = retarget(SplitStage, target)
+    verify_module(module)
+    runtime = tilefoundry.compile(module, target=target)
+    torch.manual_seed(4)
+    source = torch.randn(2, 128, 4, dtype=torch.float32, device="cuda")
+    out = torch.empty_like(source)
     runtime(source, out)
     torch.cuda.synchronize()
     torch.testing.assert_close(out, source, rtol=0, atol=0)

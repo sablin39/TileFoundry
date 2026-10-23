@@ -28,6 +28,7 @@ from .op import (
     capabilities_of,
     op_identifier,
     supported_op_capabilities,
+    target_capabilities,
 )
 from .values import TotalAndPerUnit, TripInterval
 from tilefoundry.visitor_registry.registries import (
@@ -68,6 +69,7 @@ __all__ = [
     "capabilities_of",
     "op_identifier",
     "supported_op_capabilities",
+    "target_capabilities",
     "TotalAndPerUnit",
     "TripInterval",
     "DispatchRegistry",

@@ -19,6 +19,7 @@ from tilefoundry.visitor_registry.contexts import TypeInferContext
 
 from .mma_atom import AtomPattern, FromAtom, MmaAtom
 from .sm80_mma import Mma as _Sm80Mma
+from .sm89_mma import Mma as _Sm89Mma
 from .wgmma import Wgmma
 
 _FP_ACC_WIDEN = {
@@ -46,6 +47,11 @@ class TiledMma(Op):
             declaration=_Sm80Mma,
             attribute="atom",
         ),
+        OpCapability(
+            _Sm89Mma.capability,
+            declaration=_Sm89Mma,
+            attribute="atom",
+        ),
     )
 
     @property
@@ -62,7 +68,7 @@ class TiledMma(Op):
     atom = ParamDef(
         kind="attribute",
         annotation=MmaAtom,
-        pattern=AtomPattern(Wgmma, _Sm80Mma),
+        pattern=AtomPattern(Wgmma, _Sm80Mma, _Sm89Mma),
     )
     execution_mesh = ParamDef(
         kind="attribute",
@@ -97,17 +103,6 @@ def _eval_scheduled_mma(ctx):
 
 
 @register_verify_stmt(TiledMma)
-def verify_mma(call: "Call", ctx: "VerifyContext") -> None:
-    """Check target capability and operand shapes/dtypes after shared admission."""
-    op = call.target
-    atom = op.atom
-    if ctx.module is not None and ctx.module is not None:
-        capabilities = ctx.target.architecture.capabilities
-        if atom.capability not in capabilities:
-            ctx.error(call, f"target does not support {atom.capability}")
-    verify_operand_shapes(call, ctx)
-
-
 def verify_operand_shapes(call: "Call", ctx: "VerifyContext") -> None:
     """Check A (M,K), B (K,N), and C (M,N) shapes and dtypes."""
     acc_ty, lhs_ty, rhs_ty = (ctx.type_of(arg) for arg in call.args[:3])
@@ -131,4 +126,4 @@ def verify_operand_shapes(call: "Call", ctx: "VerifyContext") -> None:
         )
 
 
-__all__ = ["TiledMma", "verify_mma", "verify_operand_shapes"]
+__all__ = ["TiledMma", "verify_operand_shapes"]

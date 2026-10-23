@@ -44,6 +44,7 @@ from tilefoundry.visitor_registry.contexts import TrafficBytes
 
 _MM = MatMul()
 _H200 = CudaTarget("nvidia.h200_sxm")
+_SM89 = CudaTarget("nvidia.rtx_6000_ada")
 
 
 _M = Mesh((Topology("gpu", 4),), Layout((4,), (1,)), ("g",))
@@ -281,6 +282,16 @@ CASES = [
         ),
         expected=make_tensor_type((64, 32), DType.f32, "rmem"),
         target=_H200,
+    ),
+    TypeInferCase(
+        name="cuda_fp8_registers_read_through_the_sm89_atom",
+        op=MatMul(out_dtype="f32"),
+        inputs=(
+            make_tensor_type((16, 32), DType.fp8e4m3, "rmem"),
+            make_tensor_type((32, 8), DType.fp8e4m3, "rmem"),
+        ),
+        expected=make_tensor_type((16, 8), DType.f32, "rmem"),
+        target=_SM89,
     ),
     TypeInferCase(
         name="cuda_on_chip_without_an_mma_is_refused",

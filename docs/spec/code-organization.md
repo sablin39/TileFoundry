@@ -154,8 +154,8 @@ compilation target nests as `ir/{dialect}/{target}/{category}/<name>.py`;
 target-neutral abstractions stay at `ir/{dialect}/{category}/`. For
 example the whole MMA surface is target-owned — `mma.py` defines the `TiledMma`
 op, `mma_atom.py` defines `MmaAtom` / `AtomPattern`, and `sm80_mma.py` /
-`wgmma.py` define the CUDA instruction declarations. All four live under
-`ir/tir/cuda/nn/`. A target-specific rule for a target-neutral Op nests the
+`sm89_mma.py` / `wgmma.py` define the CUDA instruction declarations. All five
+live under `ir/tir/cuda/nn/`. A target-specific rule for a target-neutral Op nests the
 same way: the CUDA `MatMul` type rule lives in `ir/hir/cuda/nn/matmul.py`
 beside no Op class of its own.
 The backend-bound construction stays in TIR: HIR is the checking reference

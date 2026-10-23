@@ -288,7 +288,13 @@ An instruction declaration keeps two independent names:
 | `resource` | Which execution engine performs it? | An `_engine` name |
 
 CUDA declarations use `mma.sync`, `wgmma.mma_async`, `ldmatrix`, `cp.async`,
-and `cp.async.bulk.tensor` as capabilities. The resource-bearing declarations
+`cp.async.bulk`, `cp.async.bulk.tensor`, `mbarrier.expect_tx` and
+`mbarrier.try_wait` as capabilities. Admission MUST refuse an instruction whose
+declared capability the target's architecture does not list, naming the
+capability and the target; where an attribute selects one of several
+declarations (an MMA atom), only the selected declaration's capability applies.
+A target without an architecture lists none, and admission without a target
+checks nothing. The resource-bearing declarations
 map the two MMA families, matrix load, and tensor-map copy respectively to
 `tensor_core_engine`, `wgmma_engine`, `tensor_core_engine`, and `tma_engine`;
 the current model gives `cp.async` no separately priced engine. The capability
@@ -399,8 +405,9 @@ The installed `nvidia.sm89` architecture document.
 
 - constraints:
   - Its recorded identity MUST be `sm_89`.
-  - Its instruction capabilities MUST NOT name `wgmma.mma_async` or
-    `cp.async.bulk.tensor`: this architecture runs neither, so its MMA is
+  - Its instruction capabilities MUST NOT name `wgmma.mma_async`,
+    `cp.async.bulk`, `cp.async.bulk.tensor`, `mbarrier.expect_tx` or
+    `mbarrier.try_wait`: this architecture runs none of them, so its MMA is
     `mma.sync` and its copy from global to shared memory is `cp.async`.
   - Storage and scale DTypes `f4e2m1` and `f8e8m0` MUST NOT be recorded as
     compute DTypes.

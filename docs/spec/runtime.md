@@ -1471,13 +1471,17 @@ __device__ void mma(TA const &a, TB const &b, TC &c);
 fragments, and the entry issues one instruction.
 
 - constraints:
-  - `a`, `b`, and `c` contain exactly the atom's `(8, 4, 4)` values per lane.
-    Other shapes are compile-time errors.
+  - The element type of `a` selects the atom: bf16 selects
+    `SM80_16x8x16_F32BF16BF16F32_TN` and e4m3 selects
+    `SM89_16x8x32_F32E4M3E4M3F32_TN`, both accumulating in f32.
+  - `b` holds the element type of `a`, `c` holds f32, and `a`, `b`, and `c`
+    contain exactly that atom's values per lane, `(8, 4, 4)` for bf16 and
+    `(16, 8, 4)` for e4m3. Other shapes and element types are compile-time
+    errors.
   - The fragment map is stated by each operand's `ShardLayout`; the runtime
     publishes no fragment-coordinate function and no accumulator constructor.
-  - Today's atom is `SM80_16x8x16_F32BF16BF16F32_TN`: bf16 operands, f32
-    accumulate. Another instruction is another atom under the same entry, not
-    another entry.
+  - Another instruction is another atom under the same entry, not another
+    entry.
 
 #### 2.6.6 `ops/reduce.cuh`
 
@@ -1651,7 +1655,7 @@ __device__ inline void ldmatrix(Src const &src, Dst &dst);
 **`ldmatrix`.**
 
 One warp loads a dense shared-memory `(16, 16)` bf16 tile into the per-lane A
-fragment consumed by `ops::mma`'s current SM80 atom.
+fragment consumed by `ops::mma`'s SM80 atom.
 
 - constraints:
   - All 32 lanes issue `ldmatrix.sync.aligned.m8n8.x4.shared.b16` together.

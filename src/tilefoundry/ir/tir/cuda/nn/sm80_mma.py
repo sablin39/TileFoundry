@@ -2,15 +2,9 @@
 
 from __future__ import annotations
 
-from tilefoundry.ir.pattern import (
-    LayoutPattern,
-    ShardLayoutPattern,
-    TensorPattern,
-)
 from tilefoundry.ir.types import DType, Layout, Mesh, ShardLayout, Split, Topology
-from tilefoundry.ir.types.storage import StorageKind as S
 
-from .mma_atom import MmaAtom, execution_mesh_pattern
+from .mma_atom import MmaAtom, rmem_fragment
 
 WARP = Mesh(
     topologies=(Topology("thread", 32),),
@@ -34,18 +28,6 @@ _C_FRAGMENT = ShardLayout(
     mesh=WARP,
 )
 
-def _fragment(shape: tuple, dtype, held: ShardLayout) -> TensorPattern:
-    return TensorPattern(
-        shape=shape,
-        dtype=dtype,
-        storage=S.RMEM,
-        layout=ShardLayoutPattern(
-            layout=LayoutPattern.from_layout(held.layout),
-            attrs=held.attrs,
-            mesh=execution_mesh_pattern(WARP),
-        ),
-    )
-
 
 class Mma(MmaAtom):
     """A BF16 warp MMA, 16 x 8 x 16, accumulating in F32."""
@@ -55,9 +37,9 @@ class Mma(MmaAtom):
     capability = "mma.sync"
     resource = "tensor_core_engine"
 
-    C = _fragment((16, 8), DType.f32, _C_FRAGMENT)
-    A = _fragment((16, 16), DType.bf16, _A_FRAGMENT)
-    B = _fragment((16, 8), DType.bf16, _B_FRAGMENT)
+    C = rmem_fragment((16, 8), DType.f32, _C_FRAGMENT)
+    A = rmem_fragment((16, 16), DType.bf16, _A_FRAGMENT)
+    B = rmem_fragment((16, 8), DType.bf16, _B_FRAGMENT)
 
 
 __all__ = ["Mma", "WARP"]

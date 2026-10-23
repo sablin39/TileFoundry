@@ -1,4 +1,6 @@
-"""SM80 register fragments compared with CuTe's MMA traits."""
+"""Warp MMA register fragments compared with CuTe's MMA traits."""
+
+import pytest
 
 from tilefoundry.dsl import T
 
@@ -10,16 +12,21 @@ from ._operand_layout import (
 )
 
 
-def test_mma_atom():
+@pytest.mark.parametrize(
+    ("declaration", "operand_dtype"),
+    [(T.cuda.sm80.Mma, "bf16"), (T.cuda.sm89.Mma, "fp8e4m3")],
+    ids=["sm80", "sm89"],
+)
+def test_mma_atom(declaration, operand_dtype):
     """Each operand holds the same elements on the same threads as CuTe."""
-    reference = cute_reference()["mma"]
+    reference = cute_reference()[f"mma-{operand_dtype}"]
     failures = []
     for role in ("A", "B", "C"):
-        atom = T.cuda.sm80.Mma()
+        atom = declaration()
         shard = _bound_fragment(atom, role)
         _check_split_extents_match_mesh(shard)
         shape = atom.operand_shapes()[("C", "A", "B").index(role)]
-        _assert_reshard_typeinfer_ok(shape, "f32" if role == "C" else "bf16", shard)
+        _assert_reshard_typeinfer_ok(shape, "f32" if role == "C" else operand_dtype, shard)
         ours = to_tv_layout(atom, role)
         theirs = reference_tv(reference[role])
         if ours != theirs:

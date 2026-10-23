@@ -5,7 +5,7 @@ See [tir §2.3](docs/spec/tir.md#23-tir-ops).
 
 from __future__ import annotations
 
-from tilefoundry.ir.core import Op
+from tilefoundry.ir.core import Op, OpCapability
 from tilefoundry.ir.core.param_def import MemoryEffect, ParamDef
 from tilefoundry.ir.core.register import register_op
 from tilefoundry.ir.pattern import WildcardPattern, is_scalar_tensor, utils
@@ -52,6 +52,7 @@ def _(call: "Call", ctx: "TypeInferContext") -> UnitType:
 class MBarrierArriveExpectTx(Op):
     """Arrive on ``barrier`` and declare ``tx_bytes`` of asynchronous data."""
 
+    capability = OpCapability("mbarrier.expect_tx")
     execution_mesh = utils.thread_execution_mesh()
 
     barrier = ParamDef(
@@ -75,6 +76,7 @@ def _(call: "Call", ctx: "TypeInferContext") -> UnitType:
 class MBarrierWaitParity(Op):
     """Block until ``barrier``'s phase parity reaches ``phase``."""
 
+    capability = OpCapability("mbarrier.try_wait")
     execution_mesh = utils.thread_execution_mesh()
 
     barrier = ParamDef(

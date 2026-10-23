@@ -240,7 +240,7 @@ def _platform_namespace_stub(dialect: str) -> str | None:
         )
 
     namespaces = []
-    for namespace_name in ("sm80", "sm90"):
+    for namespace_name in ("sm80", "sm89", "sm90"):
         namespace = getattr(cuda, namespace_name)
         declarations = sorted(
             (name, value)
@@ -271,6 +271,7 @@ def _platform_namespace_stub(dialect: str) -> str | None:
         [
             "class _Cuda:",
             "    sm80: _CudaSm80",
+            "    sm89: _CudaSm89",
             "    sm90: _CudaSm90",
             "",
             "cuda: _Cuda",

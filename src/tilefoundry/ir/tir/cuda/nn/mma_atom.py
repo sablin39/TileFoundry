@@ -12,8 +12,10 @@ from tilefoundry.ir.pattern import (
     LayoutPattern,
     MeshPattern,
     Pattern,
+    ShardLayoutPattern,
     StarPattern,
     SwitchPattern,
+    TensorPattern,
     WildcardPattern,
     matched,
 )
@@ -21,9 +23,10 @@ from tilefoundry.ir.pattern import (
     predicates as P,
 )
 from tilefoundry.ir.pattern.utils import declared_shape, selected_pattern
-from tilefoundry.ir.types import ComposedLayout, DType, Layout, Mesh
+from tilefoundry.ir.types import ComposedLayout, DType, Layout, Mesh, ShardLayout
 from tilefoundry.ir.types.layout_algebra import coalesce
 from tilefoundry.ir.types.mesh import levels, starts
+from tilefoundry.ir.types.storage import StorageKind
 
 _MISS = object()
 
@@ -46,6 +49,20 @@ def execution_mesh_pattern(execution_mesh: Mesh, *, groups=False) -> MeshPattern
         + ((P.Forward(), P.Injective()) if groups else ()),
     )
     return MeshPattern((topology.name,), layout)
+
+
+def rmem_fragment(shape: tuple, dtype: DType, held: ShardLayout) -> TensorPattern:
+    """A warp MMA operand held in registers as *held* lays it out over its mesh."""
+    return TensorPattern(
+        shape=shape,
+        dtype=dtype,
+        storage=StorageKind.RMEM,
+        layout=ShardLayoutPattern(
+            layout=LayoutPattern.from_layout(held.layout),
+            attrs=held.attrs,
+            mesh=execution_mesh_pattern(held.mesh),
+        ),
+    )
 
 
 class MmaAtom(Printable):
@@ -242,4 +259,5 @@ __all__ = [
     "MmaAtom",
     "physical_frames_match",
     "execution_mesh_pattern",
+    "rmem_fragment",
 ]

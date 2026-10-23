@@ -95,12 +95,17 @@ def capabilities_of(op_type: type) -> tuple[OpCapability, ...]:
     raise ValueError(f"{op_identifier(op_type)} has an invalid op capability declaration")
 
 
+def target_capabilities(target: object) -> frozenset[str]:
+    """The instruction capabilities ``target``'s architecture lists; none without one."""
+    architecture = getattr(target, "architecture", None)
+    return frozenset(getattr(architecture, "capabilities", ()))
+
+
 def supported_op_capabilities(target: object) -> tuple[tuple[type, OpCapability], ...]:
     """Enumerate registered TIR Ops admitted by ``target`` in registry order."""
     from tilefoundry.ir.core.op_registry import iter_schemas  # noqa: PLC0415
 
-    architecture = getattr(target, "architecture", None)
-    supported = frozenset(getattr(architecture, "capabilities", ()))
+    supported = target_capabilities(target)
     return tuple(
         (schema.op_class, capability)
         for schema in iter_schemas()
@@ -178,4 +183,5 @@ __all__ = [
     "capabilities_of",
     "op_identifier",
     "supported_op_capabilities",
+    "target_capabilities",
 ]

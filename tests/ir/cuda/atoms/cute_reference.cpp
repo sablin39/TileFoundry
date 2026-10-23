@@ -1,5 +1,6 @@
 #include <cute/arch/mma_sm90.hpp>
 #include <cute/atom/mma_traits_sm80.hpp>
+#include <cute/atom/mma_traits_sm89.hpp>
 #include <cute/atom/mma_traits_sm90_gmma.hpp>
 #include <cute/tensor.hpp>
 
@@ -107,8 +108,10 @@ int main() {
             std::cout << ',';
         first = false;
         std::cout << '"' << key << "\":";
-        if (kind == "mma") {
+        if (kind == "mma" && dtype == "bf16") {
             emit_tv<SM80_16x8x16_F32BF16BF16F32_TN>();
+        } else if (kind == "mma" && dtype == "fp8e4m3") {
+            emit_tv<SM89_16x8x32_F32E4M3E4M3F32_TN>();
         } else if (dtype == "bf16") {
             dispatch<bfloat16_t>(kind, form, n, major, swizzle);
         } else if (dtype == "f16") {

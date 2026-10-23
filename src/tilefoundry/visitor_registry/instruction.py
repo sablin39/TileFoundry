@@ -5,7 +5,17 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from enum import Enum
 
-from tilefoundry.ir.core import Call, Constant, Expr, Op, Var, VerifyError, op_identifier
+from tilefoundry.ir.core import (
+    Call,
+    Constant,
+    Expr,
+    Op,
+    Var,
+    VerifyError,
+    capabilities_of,
+    op_identifier,
+    target_capabilities,
+)
 from tilefoundry.ir.core.param_def import MemoryEffect, ParamDef
 from tilefoundry.ir.mesh_scope import covered_by_scope, storage_reaches
 from tilefoundry.ir.pattern import PatternMatcher, ShardLayoutPattern, TensorPattern, between_rules
@@ -313,8 +323,31 @@ def _pattern_refusal(matcher: PatternMatcher, op, parameter=None) -> ScheduleRef
     return ScheduleRefusal(PatternPrinter().refusal_reason(refusal, parameter), path=path, op=op)
 
 
+def _selects(op, capability) -> bool:
+    """Whether *op*'s attribute, as a class or an instance, names *capability*'s declaration."""
+    value = getattr(op, capability.attribute)
+    declaration = value if isinstance(value, type) else type(value)
+    return issubclass(declaration, capability.declaration)
+
+
+def _admit_capabilities(op, target) -> None:
+    """Refuse *op* if the target's architecture does not list a capability the op uses."""
+    if target is None:
+        return
+    listed = target_capabilities(target)
+    for capability in capabilities_of(type(op)):
+        if capability.name is None or capability.name in listed:
+            continue
+        if capability.attribute is not None and not _selects(op, capability):
+            continue
+        raise ScheduleRefusal(
+            f"needs {capability.name}, which {target.identity} does not list", op=op
+        )
+
+
 def admit_fields(op, operands, mesh, matcher, *, target=None):
     """Admit attributes, execution mesh and operand fields before tile projection."""
+    _admit_capabilities(op, target)
     for param in type(op)._op_schema.signature:
         if param.kind != "attribute" or param.name == "execution_mesh":
             continue

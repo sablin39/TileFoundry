@@ -185,19 +185,22 @@ WGMMA_FACTS = Path(__file__).parents[1] / "fixtures" / "schedule" / "Wgmma.facts
 _H200_FACTS_TEXT = """\
 target nvidia.h200_sxm
 instructions
-  T.arange             all targets
-  T.binary             all targets
-  T.cast               all targets
-  T.clamp              all targets
-  T.unary              all targets
-  T.where              all targets
-  T.copy_async         cp.async
-  T.copy_async_tensor  cp.async.bulk.tensor
-  T.copy               all targets
-  T.ldmatrix           ldmatrix
-  T.relu               all targets
-  T.tiled_mma          wgmma.mma_async, mma.sync
-  T.reduce             all targets
+  T.arange                     all targets
+  T.binary                     all targets
+  T.cast                       all targets
+  T.clamp                      all targets
+  T.unary                      all targets
+  T.where                      all targets
+  T.copy_async                 cp.async
+  T.copy_async_bulk            cp.async.bulk
+  T.copy_async_tensor          cp.async.bulk.tensor
+  T.copy                       all targets
+  T.ldmatrix                   ldmatrix
+  T.relu                       all targets
+  T.tiled_mma                  wgmma.mma_async, mma.sync
+  T.mbarrier_arrive_expect_tx  mbarrier.expect_tx
+  T.mbarrier_wait_parity       mbarrier.try_wait
+  T.reduce                     all targets
 """
 _H200_FACTS_JSON = {
     "target": "nvidia.h200_sxm",
@@ -209,11 +212,14 @@ _H200_FACTS_JSON = {
         {"id": "T.unary", "capability": None},
         {"id": "T.where", "capability": None},
         {"id": "T.copy_async", "capability": "cp.async"},
+        {"id": "T.copy_async_bulk", "capability": "cp.async.bulk"},
         {"id": "T.copy_async_tensor", "capability": "cp.async.bulk.tensor"},
         {"id": "T.copy", "capability": None},
         {"id": "T.ldmatrix", "capability": "ldmatrix"},
         {"id": "T.relu", "capability": None},
         {"id": "T.tiled_mma", "capability": ["wgmma.mma_async", "mma.sync"]},
+        {"id": "T.mbarrier_arrive_expect_tx", "capability": "mbarrier.expect_tx"},
+        {"id": "T.mbarrier_wait_parity", "capability": "mbarrier.try_wait"},
         {"id": "T.reduce", "capability": None},
     ],
 }
@@ -1876,7 +1882,11 @@ def test_schedule_candidates_reports_every_plain_site(
 
     for row in matmul_rows:
         assert not row["candidates"]
-        assert {item["id"] for item in row["refused"]} == {"T.cuda.sm90.Wgmma", "T.cuda.sm80.Mma"}
+        assert {item["id"] for item in row["refused"]} == {
+            "T.cuda.sm90.Wgmma",
+            "T.cuda.sm80.Mma",
+            "T.cuda.sm89.Mma",
+        }
         assert all(item["reason"] for item in row["refused"])
 
     if name == "chunk_rmsnorm":

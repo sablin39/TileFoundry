@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from tilefoundry.ir.core import Op
+from tilefoundry.ir.core import Op, OpCapability
 from tilefoundry.ir.core.param_def import MemoryEffect, ParamDef
 from tilefoundry.ir.core.register import register_op
 from tilefoundry.ir.pattern import SameConstraint, utils
@@ -21,6 +21,7 @@ from tilefoundry.visitor_registry.access_relation import (
 class CopyAsyncBulk(Op):
     """Stage a tile from global to shared memory, completing on a barrier."""
 
+    capability = OpCapability("cp.async.bulk")
     execution_mesh = utils.thread_execution_mesh()
 
     src = ParamDef(

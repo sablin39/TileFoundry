@@ -434,3 +434,43 @@ __global__ void k() {
     static_assert(int(cute::size(cta.layout)) == 32, "unreachable");
 }
 #endif
+
+#if CASE == 27
+/// mma: an e4m3 A with a bf16 B of the e4m3 atom's length.
+__global__ void k(float *p) {
+    __nv_fp8_e4m3 a[16] = {};
+    __nv_bfloat16 b[8] = {};
+    float c[4] = {};
+    auto at = cute::make_tensor(cute::make_rmem_ptr(&a[0]), cute::Int<16>{});
+    auto bt = cute::make_tensor(cute::make_rmem_ptr(&b[0]), cute::Int<8>{});
+    auto ct = cute::make_tensor(cute::make_rmem_ptr(&c[0]), cute::Int<4>{});
+    mma(at, bt, ct);
+    p[0] = c[0];
+}
+#endif
+
+#if CASE == 28
+/// mma: e4m3 A and B with a C that is not f32.
+__global__ void k(double *p) {
+    __nv_fp8_e4m3 a[16] = {}, b[8] = {};
+    double c[4] = {};
+    auto at = cute::make_tensor(cute::make_rmem_ptr(&a[0]), cute::Int<16>{});
+    auto bt = cute::make_tensor(cute::make_rmem_ptr(&b[0]), cute::Int<8>{});
+    auto ct = cute::make_tensor(cute::make_rmem_ptr(&c[0]), cute::Int<4>{});
+    mma(at, bt, ct);
+    p[0] = c[0];
+}
+#endif
+
+#if CASE == 29
+/// mma: e4m3 operands whose B has the bf16 atom's length.
+__global__ void k(float *p) {
+    __nv_fp8_e4m3 a[16] = {}, b[4] = {};
+    float c[4] = {};
+    auto at = cute::make_tensor(cute::make_rmem_ptr(&a[0]), cute::Int<16>{});
+    auto bt = cute::make_tensor(cute::make_rmem_ptr(&b[0]), cute::Int<4>{});
+    auto ct = cute::make_tensor(cute::make_rmem_ptr(&c[0]), cute::Int<4>{});
+    mma(at, bt, ct);
+    p[0] = c[0];
+}
+#endif

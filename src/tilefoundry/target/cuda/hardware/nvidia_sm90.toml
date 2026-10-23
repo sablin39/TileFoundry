@@ -11,11 +11,11 @@ source = "https://docs.nvidia.com/cuda/hopper-tuning-guide/index.html"
 conditions = "compilation architecture identity"
 
 [facts.capabilities]
-value = ["mma.sync", "wgmma.mma_async", "ldmatrix", "cp.async", "cp.async.bulk.tensor"]
+value = ["mma.sync", "wgmma.mma_async", "ldmatrix", "cp.async", "cp.async.bulk.tensor", "cp.async.bulk", "mbarrier.expect_tx", "mbarrier.try_wait"]
 unit = "name"
 origin = "vendor"
 source = "https://docs.nvidia.com/cuda/hopper-compatibility-guide/index.html"
-conditions = "PTX instruction families the SM90 code path may select"
+conditions = "PTX instruction families the SM90 code path may select; cp.async.bulk, the mbarrier expect_tx forms and mbarrier.try_wait require sm_90 in the PTX ISA"
 
 [facts.instruction.compute_dtypes]
 value = ["f32", "f16", "bf16", "fp8e4m3"]

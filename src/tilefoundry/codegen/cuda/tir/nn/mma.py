@@ -1,6 +1,7 @@
 """Emit effect-form matrix multiply-accumulate operations.
 
-The SM80 declaration emits one ``tilefoundry::ops::mma`` call. Other
+The SM80 and SM89 declarations each emit one ``tilefoundry::ops::mma`` call,
+which picks the instruction from the operands' element type. Other
 declarations need their own runtime mapping; in particular, WGMMA has no
 emitter in this stage ([runtime §2.6](docs/spec/runtime.md#26-cudaops)).
 """
@@ -10,6 +11,7 @@ from tilefoundry.codegen.cuda.context import CudaCodegenContext
 from tilefoundry.ir.core import Var
 from tilefoundry.ir.tir.cuda.nn.mma import TiledMma
 from tilefoundry.ir.tir.cuda.nn.sm80_mma import Mma as Sm80Mma
+from tilefoundry.ir.tir.cuda.nn.sm89_mma import Mma as Sm89Mma
 from tilefoundry.target import CudaTarget
 from tilefoundry.visitor_registry.registries import Role, register_codegen
 
@@ -25,7 +27,7 @@ def _emit(call, ctx: CudaCodegenContext) -> None:
     l = ctx.name_for(lhs)
     r = ctx.name_for(rhs)
     atom = call.target.atom
-    if not isinstance(atom, Sm80Mma):
+    if not isinstance(atom, (Sm80Mma, Sm89Mma)):
         raise RuntimeError(
             f"tir.cuda.nn.TiledMma: no codegen handler for atom {atom.reference_name}"
         )

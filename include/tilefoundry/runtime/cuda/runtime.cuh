@@ -13,6 +13,7 @@
 #include <cute/atom/mma_atom.hpp>
 #include <cute/atom/mma_traits_sm80.hpp>
 #include <cute/arch/mma_sm80.hpp>
+#include <cute/arch/mma_sm89.hpp>
 #include <cstdint>
 #include <cassert>
 #include <cuda_fp8.h>
