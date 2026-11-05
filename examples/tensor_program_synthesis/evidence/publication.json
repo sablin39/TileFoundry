@@ -1,0 +1,12 @@
+{
+  "scope": "publication of the existing experiment into the repository",
+  "regression_tests": 422,
+  "native_tests": 273,
+  "example_tests": 149,
+  "failures": 0,
+  "errors": 0,
+  "command": "OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES= python -m pytest tests/core/analysis tests/core/ir tests/core/passes tests/nvidia/cuda/analysis/test_allocation.py tests/nvidia/cuda/analysis/test_analysis_closure.py tests/nvidia/cuda/analysis/test_footprint.py tests/nvidia/cuda/analysis/test_shared_call_check.py examples/tensor_program_synthesis/synthesis -q",
+  "full_size_numerical_evidence": "bf16_8k/",
+  "full_size_status": "incomplete; strict gradient mismatches retained",
+  "gpu_execution_verified": false
+}

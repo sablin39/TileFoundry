@@ -1,0 +1,249 @@
+{
+  "reference": "matching forward arithmetic, independently differentiated by PyTorch autograd; candidate backward remains supplied formulas",
+  "shape": {
+    "model": "Qwen3.5-397B-A17B",
+    "batch": 1,
+    "length": 8192
+  },
+  "output_bitwise_equal": false,
+  "checks": [
+    {
+      "name": "output",
+      "dtype": "torch.bfloat16",
+      "reference_dtype": "torch.bfloat16",
+      "passed": true,
+      "finite": true,
+      "elementwise_passed": true,
+      "relative_l2": 0.000106119218260455,
+      "relative_l2_limit": 0.005,
+      "max_abs": 0.00390625,
+      "reference_rms": 0.17918695509433746,
+      "atol": 0.002,
+      "rtol": 0.02
+    },
+    {
+      "name": "hidden_states",
+      "dtype": "torch.bfloat16",
+      "reference_dtype": "torch.bfloat16",
+      "passed": true,
+      "finite": true,
+      "elementwise_passed": true,
+      "relative_l2": 0.000609472905091864,
+      "relative_l2_limit": 0.005,
+      "max_abs": 0.0078125,
+      "reference_rms": 0.37103766202926636,
+      "atol": 0.002,
+      "rtol": 0.02
+    },
+    {
+      "name": "in_proj_qkv.weight",
+      "dtype": "torch.float32",
+      "reference_dtype": "torch.float32",
+      "passed": false,
+      "finite": true,
+      "elementwise_passed": false,
+      "relative_l2": 0.00014253207844328392,
+      "relative_l2_limit": 0.005,
+      "max_abs": 0.1553802490234375,
+      "reference_rms": 28.95665740966797,
+      "atol": 0.05791331481933594,
+      "rtol": 0.02
+    },
+    {
+      "name": "in_proj_z.weight",
+      "dtype": "torch.float32",
+      "reference_dtype": "torch.float32",
+      "passed": true,
+      "finite": true,
+      "elementwise_passed": true,
+      "relative_l2": 2.6114896940966874e-05,
+      "relative_l2_limit": 0.005,
+      "max_abs": 0.062255859375,
+      "reference_rms": 20.318180084228516,
+      "atol": 0.04063636016845703,
+      "rtol": 0.02
+    },
+    {
+      "name": "in_proj_b.weight",
+      "dtype": "torch.float32",
+      "reference_dtype": "torch.float32",
+      "passed": true,
+      "finite": true,
+      "elementwise_passed": true,
+      "relative_l2": 0.00012715981817024402,
+      "relative_l2_limit": 0.005,
+      "max_abs": 0.10929107666015625,
+      "reference_rms": 59.117610931396484,
+      "atol": 0.11823522186279298,
+      "rtol": 0.02
+    },
+    {
+      "name": "in_proj_a.weight",
+      "dtype": "torch.float32",
+      "reference_dtype": "torch.float32",
+      "passed": true,
+      "finite": true,
+      "elementwise_passed": true,
+      "relative_l2": 0.00016104866942536468,
+      "relative_l2_limit": 0.005,
+      "max_abs": 0.009653329849243164,
+      "reference_rms": 5.052091121673584,
+      "atol": 0.010104182243347169,
+      "rtol": 0.02
+    },
+    {
+      "name": "conv1d.weight",
+      "dtype": "torch.float32",
+      "reference_dtype": "torch.float32",
+      "passed": true,
+      "finite": true,
+      "elementwise_passed": true,
+      "relative_l2": 0.00011416760774637594,
+      "relative_l2_limit": 0.005,
+      "max_abs": 0.0468745231628418,
+      "reference_rms": 29.29967498779297,
+      "atol": 0.05859934997558594,
+      "rtol": 0.02
+    },
+    {
+      "name": "A_log",
+      "dtype": "torch.float32",
+      "reference_dtype": "torch.float32",
+      "passed": true,
+      "finite": true,
+      "elementwise_passed": true,
+      "relative_l2": 2.9882402756418195e-05,
+      "relative_l2_limit": 0.005,
+      "max_abs": 0.00408935546875,
+      "reference_rms": 36.010032653808594,
+      "atol": 0.07202006530761719,
+      "rtol": 0.02
+    },
+    {
+      "name": "dt_bias",
+      "dtype": "torch.float32",
+      "reference_dtype": "torch.float32",
+      "passed": true,
+      "finite": true,
+      "elementwise_passed": true,
+      "relative_l2": 2.9967658532592826e-05,
+      "relative_l2_limit": 0.005,
+      "max_abs": 0.003997802734375,
+      "reference_rms": 34.6620979309082,
+      "atol": 0.0693241958618164,
+      "rtol": 0.02
+    },
+    {
+      "name": "norm.weight",
+      "dtype": "torch.float32",
+      "reference_dtype": "torch.float32",
+      "passed": true,
+      "finite": true,
+      "elementwise_passed": true,
+      "relative_l2": 2.0090897078086073e-05,
+      "relative_l2_limit": 0.005,
+      "max_abs": 0.00981903076171875,
+      "reference_rms": 88.71986389160156,
+      "atol": 0.17743972778320313,
+      "rtol": 0.02
+    },
+    {
+      "name": "out_proj.weight",
+      "dtype": "torch.float32",
+      "reference_dtype": "torch.float32",
+      "passed": true,
+      "finite": true,
+      "elementwise_passed": true,
+      "relative_l2": 1.9706049155905286e-05,
+      "relative_l2_limit": 0.005,
+      "max_abs": 0.0693359375,
+      "reference_rms": 28.086219787597656,
+      "atol": 0.05617243957519531,
+      "rtol": 0.02
+    }
+  ],
+  "passed": false,
+  "forward_boundaries_vs_independent_reference": {
+    "qkv_projection": {
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "changed_elements": 0,
+      "elements": 100663296,
+      "max_bf16_ulp": 0,
+      "more_than_one_ulp": 0
+    },
+    "conv_pre": {
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "changed_elements": 0,
+      "elements": 100663296,
+      "max_bf16_ulp": 0,
+      "more_than_one_ulp": 0
+    },
+    "conv": {
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "changed_elements": 0,
+      "elements": 100663296,
+      "max_bf16_ulp": 0,
+      "more_than_one_ulp": 0
+    },
+    "z": {
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "changed_elements": 0,
+      "elements": 67108864,
+      "max_bf16_ulp": 0,
+      "more_than_one_ulp": 0
+    },
+    "beta": {
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "changed_elements": 0,
+      "elements": 524288,
+      "max_bf16_ulp": 0,
+      "more_than_one_ulp": 0
+    },
+    "log_decay": {
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "changed_elements": 0,
+      "elements": 524288
+    },
+    "core_output": {
+      "max_abs": 0.0001220703125,
+      "relative_l2": 3.60805224674863e-05,
+      "changed_elements": 25214,
+      "elements": 67108864,
+      "max_bf16_ulp": 25280,
+      "more_than_one_ulp": 1604
+    },
+    "rms_unit_storage": {
+      "max_abs": 0.03125,
+      "relative_l2": 5.263265110087161e-05,
+      "changed_elements": 25066,
+      "elements": 67108864,
+      "max_bf16_ulp": 27268,
+      "more_than_one_ulp": 4619
+    },
+    "gated_norm_output": {
+      "max_abs": 0.03125,
+      "relative_l2": 5.899342778354152e-05,
+      "changed_elements": 23269,
+      "elements": 67108864,
+      "max_bf16_ulp": 26556,
+      "more_than_one_ulp": 6179
+    }
+  },
+  "matching_forward_boundary_exact": {
+    "qkv_projection": true,
+    "conv_pre": true,
+    "conv": true,
+    "z": true,
+    "beta": true,
+    "log_decay": true,
+    "core_output": true,
+    "rms_unit_storage": true,
+    "gated_norm_output": true
+  }
+}

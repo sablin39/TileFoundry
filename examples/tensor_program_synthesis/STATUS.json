@@ -1,0 +1,20 @@
+{
+  "status": "incomplete",
+  "scope": "full GDN training example",
+  "seqlen": 8192,
+  "precision": "BF16 compute operands and activation boundaries; FP32 accumulation and chunk core",
+  "parameter_gradient_tensors_checked": 9,
+  "strict_independent_reference_passed": false,
+  "strict_independent_reference_failed_parameters": [
+    "in_proj_qkv.weight",
+    "in_proj_z.weight",
+    "out_proj.weight"
+  ],
+  "native_forward_oracle_strict_parameter_gradients_passed": 8,
+  "native_forward_oracle_strict_failed_parameters": [
+    "in_proj_qkv.weight"
+  ],
+  "partition_bitwise_equal_to_whole_layer": true,
+  "gpu_execution_verified": false,
+  "optimal_plan_search_performed": false
+}

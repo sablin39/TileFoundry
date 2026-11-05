@@ -1,0 +1,2242 @@
+{
+  "model": "Qwen3.5-397B-A17B",
+  "batch": 1,
+  "length": 8192,
+  "key_heads": 16,
+  "value_heads": 64,
+  "hidden_size": 4096,
+  "chunk_size": 64,
+  "weights": "synthetic weights, BF16 compute copies, weak decay; no checkpoint weights loaded",
+  "precision_contract": "BF16 projection/convolution operands and activation boundaries; FP32 matmul/reduction accumulation, shared-head gradient sum, recurrent state, decay parameters and norm weights",
+  "gradient_contract": "nine FP32 parameter-gradient tensors; BF16 hidden-state gradient",
+  "reference": "independent PyTorch full-layer formulas with explicit BF16 rounding, FP32 master-gradient accumulation, and pinned official triangular-solve chunk core",
+  "reference_revision": "fd3cf0140de03f7619ac95b5cfed05b711ff9e22",
+  "policy": "one fixed selected-boundary residual policy; no solver or optimization",
+  "residual_bytes": 607125504,
+  "residuals": [
+    {
+      "id": 50,
+      "name": "layer.conv_activation",
+      "shape": [
+        1,
+        8192,
+        12288
+      ],
+      "bytes": 201326592,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 64,
+      "name": "layer.q_inv_norm",
+      "shape": [
+        1,
+        8192,
+        16,
+        1
+      ],
+      "bytes": 524288,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 68,
+      "name": "layer.k_inv_norm",
+      "shape": [
+        1,
+        8192,
+        16,
+        1
+      ],
+      "bytes": 524288,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 148,
+      "name": "core.c0.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 196,
+      "name": "core.c1.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 244,
+      "name": "core.c2.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 292,
+      "name": "core.c3.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 340,
+      "name": "core.c4.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 388,
+      "name": "core.c5.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 436,
+      "name": "core.c6.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 484,
+      "name": "core.c7.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 532,
+      "name": "core.c8.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 580,
+      "name": "core.c9.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 628,
+      "name": "core.c10.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 676,
+      "name": "core.c11.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 724,
+      "name": "core.c12.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 772,
+      "name": "core.c13.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 820,
+      "name": "core.c14.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 868,
+      "name": "core.c15.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 916,
+      "name": "core.c16.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 964,
+      "name": "core.c17.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1012,
+      "name": "core.c18.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1060,
+      "name": "core.c19.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1108,
+      "name": "core.c20.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1156,
+      "name": "core.c21.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1204,
+      "name": "core.c22.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1252,
+      "name": "core.c23.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1300,
+      "name": "core.c24.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1348,
+      "name": "core.c25.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1396,
+      "name": "core.c26.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1444,
+      "name": "core.c27.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1492,
+      "name": "core.c28.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1540,
+      "name": "core.c29.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1588,
+      "name": "core.c30.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1636,
+      "name": "core.c31.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1684,
+      "name": "core.c32.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1732,
+      "name": "core.c33.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1780,
+      "name": "core.c34.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1828,
+      "name": "core.c35.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1876,
+      "name": "core.c36.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1924,
+      "name": "core.c37.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 1972,
+      "name": "core.c38.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2020,
+      "name": "core.c39.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2068,
+      "name": "core.c40.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2116,
+      "name": "core.c41.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2164,
+      "name": "core.c42.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2212,
+      "name": "core.c43.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2260,
+      "name": "core.c44.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2308,
+      "name": "core.c45.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2356,
+      "name": "core.c46.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2404,
+      "name": "core.c47.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2452,
+      "name": "core.c48.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2500,
+      "name": "core.c49.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2548,
+      "name": "core.c50.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2596,
+      "name": "core.c51.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2644,
+      "name": "core.c52.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2692,
+      "name": "core.c53.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2740,
+      "name": "core.c54.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2788,
+      "name": "core.c55.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2836,
+      "name": "core.c56.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2884,
+      "name": "core.c57.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2932,
+      "name": "core.c58.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 2980,
+      "name": "core.c59.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3028,
+      "name": "core.c60.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3076,
+      "name": "core.c61.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3124,
+      "name": "core.c62.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3172,
+      "name": "core.c63.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3220,
+      "name": "core.c64.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3268,
+      "name": "core.c65.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3316,
+      "name": "core.c66.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3364,
+      "name": "core.c67.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3412,
+      "name": "core.c68.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3460,
+      "name": "core.c69.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3508,
+      "name": "core.c70.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3556,
+      "name": "core.c71.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3604,
+      "name": "core.c72.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3652,
+      "name": "core.c73.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3700,
+      "name": "core.c74.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3748,
+      "name": "core.c75.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3796,
+      "name": "core.c76.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3844,
+      "name": "core.c77.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3892,
+      "name": "core.c78.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3940,
+      "name": "core.c79.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 3988,
+      "name": "core.c80.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4036,
+      "name": "core.c81.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4084,
+      "name": "core.c82.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4132,
+      "name": "core.c83.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4180,
+      "name": "core.c84.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4228,
+      "name": "core.c85.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4276,
+      "name": "core.c86.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4324,
+      "name": "core.c87.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4372,
+      "name": "core.c88.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4420,
+      "name": "core.c89.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4468,
+      "name": "core.c90.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4516,
+      "name": "core.c91.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4564,
+      "name": "core.c92.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4612,
+      "name": "core.c93.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4660,
+      "name": "core.c94.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4708,
+      "name": "core.c95.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4756,
+      "name": "core.c96.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4804,
+      "name": "core.c97.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4852,
+      "name": "core.c98.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4900,
+      "name": "core.c99.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4948,
+      "name": "core.c100.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 4996,
+      "name": "core.c101.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5044,
+      "name": "core.c102.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5092,
+      "name": "core.c103.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5140,
+      "name": "core.c104.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5188,
+      "name": "core.c105.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5236,
+      "name": "core.c106.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5284,
+      "name": "core.c107.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5332,
+      "name": "core.c108.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5380,
+      "name": "core.c109.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5428,
+      "name": "core.c110.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5476,
+      "name": "core.c111.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5524,
+      "name": "core.c112.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5572,
+      "name": "core.c113.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5620,
+      "name": "core.c114.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5668,
+      "name": "core.c115.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5716,
+      "name": "core.c116.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5764,
+      "name": "core.c117.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5812,
+      "name": "core.c118.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5860,
+      "name": "core.c119.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5908,
+      "name": "core.c120.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 5956,
+      "name": "core.c121.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 6004,
+      "name": "core.c122.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 6052,
+      "name": "core.c123.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 6100,
+      "name": "core.c124.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 6148,
+      "name": "core.c125.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 6196,
+      "name": "core.c126.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 6244,
+      "name": "core.c127.inverse",
+      "shape": [
+        1,
+        16,
+        4,
+        64,
+        64
+      ],
+      "bytes": 1048576,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 8049,
+      "name": "layer.core_output",
+      "shape": [
+        1,
+        8192,
+        64,
+        128
+      ],
+      "bytes": 134217728,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 8056,
+      "name": "layer.rms_inv",
+      "shape": [
+        1,
+        8192,
+        64,
+        1
+      ],
+      "bytes": 2097152,
+      "synthesized_in_forward": false
+    },
+    {
+      "id": 8065,
+      "name": "layer.gated_norm_output",
+      "shape": [
+        1,
+        8192,
+        64,
+        128
+      ],
+      "bytes": 134217728,
+      "synthesized_in_forward": false
+    }
+  ],
+  "acceptance": "per tensor: relative L2 <= 0.005 and elementwise atol=0.002*max(reference_RMS,1), rtol=0.02; all values finite",
+  "executions": [
+    {
+      "backend": "whole_layer",
+      "native_program_check": true,
+      "checks": [
+        {
+          "name": "output",
+          "dtype": "torch.bfloat16",
+          "reference_dtype": "torch.bfloat16",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 0.00027878142859706704,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.00390625,
+          "reference_rms": 0.17918692529201508,
+          "atol": 0.002,
+          "rtol": 0.02
+        },
+        {
+          "name": "hidden_states",
+          "dtype": "torch.bfloat16",
+          "reference_dtype": "torch.bfloat16",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 0.0009326445822349916,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.0078125,
+          "reference_rms": 0.3710375428199768,
+          "atol": 0.002,
+          "rtol": 0.02
+        },
+        {
+          "name": "in_proj_qkv.weight",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": false,
+          "finite": true,
+          "elementwise_passed": false,
+          "relative_l2": 0.00029086279352872506,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.2052478790283203,
+          "reference_rms": 28.956647872924805,
+          "atol": 0.05791329574584961,
+          "rtol": 0.02
+        },
+        {
+          "name": "in_proj_z.weight",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": false,
+          "finite": true,
+          "elementwise_passed": false,
+          "relative_l2": 6.0124499428143375e-05,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.06121826171875,
+          "reference_rms": 20.318180084228516,
+          "atol": 0.04063636016845703,
+          "rtol": 0.02
+        },
+        {
+          "name": "in_proj_b.weight",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 0.00025692979595017256,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.07906341552734375,
+          "reference_rms": 59.117591857910156,
+          "atol": 0.11823518371582031,
+          "rtol": 0.02
+        },
+        {
+          "name": "in_proj_a.weight",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 0.0003784873910261041,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.012096166610717773,
+          "reference_rms": 5.052065849304199,
+          "atol": 0.010104131698608399,
+          "rtol": 0.02
+        },
+        {
+          "name": "conv1d.weight",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 0.00023432305513828344,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.09880924224853516,
+          "reference_rms": 29.299726486206055,
+          "atol": 0.05859945297241211,
+          "rtol": 0.02
+        },
+        {
+          "name": "A_log",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 7.68755684303854e-05,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.008062362670898438,
+          "reference_rms": 36.009490966796875,
+          "atol": 0.07201898193359375,
+          "rtol": 0.02
+        },
+        {
+          "name": "dt_bias",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 7.6856872159302e-05,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.007747650146484375,
+          "reference_rms": 34.66157531738281,
+          "atol": 0.06932315063476563,
+          "rtol": 0.02
+        },
+        {
+          "name": "norm.weight",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 5.8503732594752195e-05,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.017791748046875,
+          "reference_rms": 88.72046661376953,
+          "atol": 0.17744093322753907,
+          "rtol": 0.02
+        },
+        {
+          "name": "out_proj.weight",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": false,
+          "finite": true,
+          "elementwise_passed": false,
+          "relative_l2": 6.079611346632342e-05,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.11425399780273438,
+          "reference_rms": 28.086219787597656,
+          "atol": 0.05617243957519531,
+          "rtol": 0.02
+        }
+      ],
+      "passed": false,
+      "source": "results/full_gdn_bf16_8k/generated/whole_layer.py"
+    },
+    {
+      "backend": "candidate_regions",
+      "native_program_check": true,
+      "checks": [
+        {
+          "name": "output",
+          "dtype": "torch.bfloat16",
+          "reference_dtype": "torch.bfloat16",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 0.00027878142859706704,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.00390625,
+          "reference_rms": 0.17918692529201508,
+          "atol": 0.002,
+          "rtol": 0.02
+        },
+        {
+          "name": "hidden_states",
+          "dtype": "torch.bfloat16",
+          "reference_dtype": "torch.bfloat16",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 0.0009326445822349916,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.0078125,
+          "reference_rms": 0.3710375428199768,
+          "atol": 0.002,
+          "rtol": 0.02
+        },
+        {
+          "name": "in_proj_qkv.weight",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": false,
+          "finite": true,
+          "elementwise_passed": false,
+          "relative_l2": 0.00029086279352872506,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.2052478790283203,
+          "reference_rms": 28.956647872924805,
+          "atol": 0.05791329574584961,
+          "rtol": 0.02
+        },
+        {
+          "name": "in_proj_z.weight",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": false,
+          "finite": true,
+          "elementwise_passed": false,
+          "relative_l2": 6.0124499428143375e-05,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.06121826171875,
+          "reference_rms": 20.318180084228516,
+          "atol": 0.04063636016845703,
+          "rtol": 0.02
+        },
+        {
+          "name": "in_proj_b.weight",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 0.00025692979595017256,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.07906341552734375,
+          "reference_rms": 59.117591857910156,
+          "atol": 0.11823518371582031,
+          "rtol": 0.02
+        },
+        {
+          "name": "in_proj_a.weight",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 0.0003784873910261041,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.012096166610717773,
+          "reference_rms": 5.052065849304199,
+          "atol": 0.010104131698608399,
+          "rtol": 0.02
+        },
+        {
+          "name": "conv1d.weight",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 0.00023432305513828344,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.09880924224853516,
+          "reference_rms": 29.299726486206055,
+          "atol": 0.05859945297241211,
+          "rtol": 0.02
+        },
+        {
+          "name": "A_log",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 7.68755684303854e-05,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.008062362670898438,
+          "reference_rms": 36.009490966796875,
+          "atol": 0.07201898193359375,
+          "rtol": 0.02
+        },
+        {
+          "name": "dt_bias",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 7.6856872159302e-05,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.007747650146484375,
+          "reference_rms": 34.66157531738281,
+          "atol": 0.06932315063476563,
+          "rtol": 0.02
+        },
+        {
+          "name": "norm.weight",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": true,
+          "finite": true,
+          "elementwise_passed": true,
+          "relative_l2": 5.8503732594752195e-05,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.017791748046875,
+          "reference_rms": 88.72046661376953,
+          "atol": 0.17744093322753907,
+          "rtol": 0.02
+        },
+        {
+          "name": "out_proj.weight",
+          "dtype": "torch.float32",
+          "reference_dtype": "torch.float32",
+          "passed": false,
+          "finite": true,
+          "elementwise_passed": false,
+          "relative_l2": 6.079611346632342e-05,
+          "relative_l2_limit": 0.005,
+          "max_abs": 0.11425399780273438,
+          "reference_rms": 28.086219787597656,
+          "atol": 0.05617243957519531,
+          "rtol": 0.02
+        }
+      ],
+      "passed": false,
+      "source": "results/full_gdn_bf16_8k/generated/candidate_regions.py",
+      "bitwise_equal_to_whole_layer": true
+    }
+  ],
+  "literal_official_rounding": {
+    "scope": "unchanged pinned BF16 module, with BF16 parameter-gradient storage; numerical rounding comparison, not identical gradient-storage semantics",
+    "checks": [
+      {
+        "name": "output",
+        "dtype": "torch.bfloat16",
+        "reference_dtype": "torch.bfloat16",
+        "passed": true,
+        "finite": true,
+        "elementwise_passed": true,
+        "relative_l2": 0.0011896087793509002,
+        "relative_l2_limit": 0.02,
+        "max_abs": 0.00390625,
+        "reference_rms": 0.17918692529201508,
+        "atol": 0.002,
+        "rtol": 0.02
+      },
+      {
+        "name": "hidden_states",
+        "dtype": "torch.bfloat16",
+        "reference_dtype": "torch.bfloat16",
+        "passed": false,
+        "finite": true,
+        "elementwise_passed": false,
+        "relative_l2": 0.003935463899341147,
+        "relative_l2_limit": 0.02,
+        "max_abs": 0.0078125,
+        "reference_rms": 0.3710375428199768,
+        "atol": 0.002,
+        "rtol": 0.02
+      },
+      {
+        "name": "in_proj_qkv.weight",
+        "dtype": "torch.bfloat16",
+        "reference_dtype": "torch.float32",
+        "passed": false,
+        "finite": true,
+        "elementwise_passed": false,
+        "relative_l2": 0.0033111412045179816,
+        "relative_l2_limit": 0.02,
+        "max_abs": 1.8773193359375,
+        "reference_rms": 28.956647872924805,
+        "atol": 0.05791329574584961,
+        "rtol": 0.02
+      },
+      {
+        "name": "in_proj_z.weight",
+        "dtype": "torch.bfloat16",
+        "reference_dtype": "torch.float32",
+        "passed": false,
+        "finite": true,
+        "elementwise_passed": false,
+        "relative_l2": 0.0017137936023206353,
+        "relative_l2_limit": 0.02,
+        "max_abs": 0.5350494384765625,
+        "reference_rms": 20.318180084228516,
+        "atol": 0.04063636016845703,
+        "rtol": 0.02
+      },
+      {
+        "name": "in_proj_b.weight",
+        "dtype": "torch.bfloat16",
+        "reference_dtype": "torch.float32",
+        "passed": false,
+        "finite": true,
+        "elementwise_passed": false,
+        "relative_l2": 0.0019170899274968622,
+        "relative_l2_limit": 0.02,
+        "max_abs": 0.695709228515625,
+        "reference_rms": 59.117591857910156,
+        "atol": 0.11823518371582031,
+        "rtol": 0.02
+      },
+      {
+        "name": "in_proj_a.weight",
+        "dtype": "torch.bfloat16",
+        "reference_dtype": "torch.float32",
+        "passed": false,
+        "finite": true,
+        "elementwise_passed": false,
+        "relative_l2": 0.002080547999822625,
+        "relative_l2_limit": 0.02,
+        "max_abs": 0.07454299926757812,
+        "reference_rms": 5.052065849304199,
+        "atol": 0.010104131698608399,
+        "rtol": 0.02
+      },
+      {
+        "name": "conv1d.weight",
+        "dtype": "torch.bfloat16",
+        "reference_dtype": "torch.float32",
+        "passed": false,
+        "finite": true,
+        "elementwise_passed": false,
+        "relative_l2": 0.0029731197631778657,
+        "relative_l2_limit": 0.02,
+        "max_abs": 0.815704345703125,
+        "reference_rms": 29.299726486206055,
+        "atol": 0.05859945297241211,
+        "rtol": 0.02
+      },
+      {
+        "name": "A_log",
+        "dtype": "torch.float32",
+        "reference_dtype": "torch.float32",
+        "passed": true,
+        "finite": true,
+        "elementwise_passed": true,
+        "relative_l2": 0.0006439693369982096,
+        "relative_l2_limit": 0.02,
+        "max_abs": 0.054988861083984375,
+        "reference_rms": 36.009490966796875,
+        "atol": 0.07201898193359375,
+        "rtol": 0.02
+      },
+      {
+        "name": "dt_bias",
+        "dtype": "torch.float32",
+        "reference_dtype": "torch.float32",
+        "passed": true,
+        "finite": true,
+        "elementwise_passed": true,
+        "relative_l2": 0.0006442770077446349,
+        "relative_l2_limit": 0.02,
+        "max_abs": 0.05309104919433594,
+        "reference_rms": 34.66157531738281,
+        "atol": 0.06932315063476563,
+        "rtol": 0.02
+      },
+      {
+        "name": "norm.weight",
+        "dtype": "torch.float32",
+        "reference_dtype": "torch.float32",
+        "passed": true,
+        "finite": true,
+        "elementwise_passed": true,
+        "relative_l2": 0.00041140786015831667,
+        "relative_l2_limit": 0.02,
+        "max_abs": 0.10973739624023438,
+        "reference_rms": 88.72046661376953,
+        "atol": 0.17744093322753907,
+        "rtol": 0.02
+      },
+      {
+        "name": "out_proj.weight",
+        "dtype": "torch.bfloat16",
+        "reference_dtype": "torch.float32",
+        "passed": false,
+        "finite": true,
+        "elementwise_passed": false,
+        "relative_l2": 0.001714042454092092,
+        "relative_l2_limit": 0.02,
+        "max_abs": 1.02325439453125,
+        "reference_rms": 28.086219787597656,
+        "atol": 0.05617243957519531,
+        "rtol": 0.02
+      }
+    ],
+    "passed": false
+  },
+  "passed": false
+}

@@ -1,0 +1,53 @@
+{
+  "checkpoints": {
+    "layer.d_gated_norm_output": {
+      "dtype": "torch.bfloat16",
+      "exact": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0,
+      "bf16_changed_elements": 0,
+      "elements": 67108864
+    },
+    "layer.d_core_output_fp32": {
+      "dtype": "torch.float32",
+      "exact": false,
+      "max_abs": 0.0001220703125,
+      "relative_l2": 6.72438689180689e-08,
+      "bf16_changed_elements": 2261,
+      "elements": 67108864
+    },
+    "layer.d_qkv_projection": {
+      "dtype": "torch.bfloat16",
+      "exact": false,
+      "max_abs": 0.03125,
+      "relative_l2": 0.00012857804610659628,
+      "bf16_changed_elements": 63713,
+      "elements": 100663296
+    }
+  },
+  "candidate_qkv_dW_from_its_cotangent": {
+    "dtype": "torch.float32",
+    "exact": true,
+    "max_abs": 0.0,
+    "relative_l2": 0.0,
+    "bf16_changed_elements": 0,
+    "elements": 50331648
+  },
+  "autograd_qkv_dW_from_its_cotangent": {
+    "dtype": "torch.float32",
+    "exact": true,
+    "max_abs": 0.0,
+    "relative_l2": 0.0,
+    "bf16_changed_elements": 0,
+    "elements": 50331648
+  },
+  "qkv_dW_difference_explanation": {
+    "dtype": "torch.float32",
+    "exact": true,
+    "max_abs": 0.0,
+    "relative_l2": 0.0,
+    "bf16_changed_elements": 0,
+    "elements": 50331648
+  },
+  "scope": "diagnostic attribution only; original strict failures are retained"
+}
