@@ -164,11 +164,13 @@ def _prepare_function(function):
 
 
 class _CheckCalls(ValuationVisitor[None]):
+    """Label call occurrences by identity without expanding shared DAG hashes."""
+
     def __init__(self, derive, label, function):
         super().__init__()
         self.derive, self.label = derive, label
         calls = tuple(node for node in collect_exprs(function.body) if isinstance(node, Call))
-        self.labels = dict(zip(calls, value_labels(calls), strict=True))
+        self.labels = {id(call): name for call, name in zip(calls, value_labels(calls), strict=True)}
 
     def visit_Call(self, call, ctx):
         self.visit_operands(call, ctx)
@@ -182,7 +184,7 @@ class _CheckCalls(ValuationVisitor[None]):
             param.type if implicit and param.is_const else next(given).type
             for param in callee.params
         )
-        self.derive(inner, types, ctx.current_mesh, f"{self.label}/{self.labels[call]}")
+        self.derive(inner, types, ctx.current_mesh, f"{self.label}/{self.labels[id(call)]}")
 
 
 def check_program(
