@@ -35,6 +35,7 @@ from .metadata import (
 from .registry import Analyzer
 from .api import AnalysisResult, analyze
 from .check import check_program
+from .tile_pipeline import TileInterval, TileStage, tile_pipeline
 
 
 __all__ = [
@@ -62,8 +63,11 @@ __all__ = [
     "Spread",
     "ThroughputFacts",
     "TimelineMetadata",
+    "TileInterval",
+    "TileStage",
     "TrafficBytes",
     "ValueLifetime",
     "analyze",
     "check_program",
+    "tile_pipeline",
 ]

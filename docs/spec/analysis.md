@@ -1990,3 +1990,19 @@ class Target:
     removal alike: deleting another analysis's record changes the IR as much as
     overwriting it. An equal-valued overwrite of another analysis's record MUST
     also count as a violation.
+
+## 3. Explicit tile pipelines
+
+`tilefoundry.analysis.tile_pipeline(phases, *, tiles, slots, policy)` lays out
+authored stages independently of HIR performance analysis. Each `TileStage`
+names an operation, a serial resource, and a positive finite duration. All
+durations use the caller's unit. A `TileInterval` records the stage, tile
+index and half-open start/end interval. A phase begins after the preceding
+phase completes.
+
+Under `bulk`, each stage runs every tile before the next stage begins.
+Under `tile_ready`, each tile can consume the preceding stage's output as
+soon as it is ready. Each edge has `slots` buffers. Tile `t` may reuse its
+slot after the next stage finishes tile `t - slots`. Operations sharing a
+resource issue in authored FIFO order. Disjoint resources may overlap subject
+to these dependencies. Zero tiles produce an empty timeline.
