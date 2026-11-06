@@ -1,0 +1,782 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1180" viewBox="0 0 1500 1180" role="img" aria-labelledby="title desc">
+<title id="title">DeepSeek-V3 training across nodes</title>
+<desc id="desc">A training pass and the InfiniBand, NVLink and expert compute stages of a remote route, in forward and backward.</desc>
+<rect width="1500" height="1180" fill="#fbfaf6"/>
+<g font-family="Arial, Helvetica, sans-serif">
+<text x="42.00" y="51" font-size="35" font-weight="700" fill="#20333e" text-anchor="start">DeepSeek-V3 training across nodes</text>
+<text x="44.00" y="80" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">B300 study  ·  32 × 16 GPUs  ·  60 sequences × 1,048,576 tokens per update  ·  decoder-only backbone</text>
+<rect x="38.00" y="100.00" width="1424.00" height="135.00" fill="#eef1e9"/>
+<text x="58.00" y="128" font-size="20" font-weight="700" fill="#20333e" text-anchor="start">Next-token training · 61 decoder blocks</text>
+<text x="58.00" y="162" font-size="17" font-weight="700" fill="#20333e" text-anchor="start">Embedding →</text>
+<g><title>Block 0: MLA and dense FFN</title>
+<rect x="211.00" y="144.00" width="11.00" height="21.00" fill="#637b89"/>
+</g>
+<g><title>Block 1: MLA and dense FFN</title>
+<rect x="224.00" y="144.00" width="11.00" height="21.00" fill="#637b89"/>
+</g>
+<g><title>Block 2: MLA and dense FFN</title>
+<rect x="237.00" y="144.00" width="11.00" height="21.00" fill="#637b89"/>
+</g>
+<g><title>Block 3: MLA and shared and routed experts</title>
+<rect x="250.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+<rect x="249.00" y="139.00" width="13.00" height="4.00" fill="#a04c2e"/>
+<rect x="249.00" y="166.00" width="13.00" height="4.00" fill="#a04c2e"/>
+</g>
+<g><title>Block 4: MLA and shared and routed experts</title>
+<rect x="263.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 5: MLA and shared and routed experts</title>
+<rect x="276.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 6: MLA and shared and routed experts</title>
+<rect x="289.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 7: MLA and shared and routed experts</title>
+<rect x="302.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 8: MLA and shared and routed experts</title>
+<rect x="315.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 9: MLA and shared and routed experts</title>
+<rect x="328.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 10: MLA and shared and routed experts</title>
+<rect x="341.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 11: MLA and shared and routed experts</title>
+<rect x="354.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 12: MLA and shared and routed experts</title>
+<rect x="367.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 13: MLA and shared and routed experts</title>
+<rect x="380.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 14: MLA and shared and routed experts</title>
+<rect x="393.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 15: MLA and shared and routed experts</title>
+<rect x="406.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 16: MLA and shared and routed experts</title>
+<rect x="419.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 17: MLA and shared and routed experts</title>
+<rect x="432.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 18: MLA and shared and routed experts</title>
+<rect x="445.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 19: MLA and shared and routed experts</title>
+<rect x="458.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 20: MLA and shared and routed experts</title>
+<rect x="471.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 21: MLA and shared and routed experts</title>
+<rect x="484.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 22: MLA and shared and routed experts</title>
+<rect x="497.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 23: MLA and shared and routed experts</title>
+<rect x="510.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 24: MLA and shared and routed experts</title>
+<rect x="523.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 25: MLA and shared and routed experts</title>
+<rect x="536.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 26: MLA and shared and routed experts</title>
+<rect x="549.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 27: MLA and shared and routed experts</title>
+<rect x="562.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 28: MLA and shared and routed experts</title>
+<rect x="575.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 29: MLA and shared and routed experts</title>
+<rect x="588.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 30: MLA and shared and routed experts</title>
+<rect x="601.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 31: MLA and shared and routed experts</title>
+<rect x="614.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 32: MLA and shared and routed experts</title>
+<rect x="627.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 33: MLA and shared and routed experts</title>
+<rect x="640.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 34: MLA and shared and routed experts</title>
+<rect x="653.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 35: MLA and shared and routed experts</title>
+<rect x="666.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 36: MLA and shared and routed experts</title>
+<rect x="679.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 37: MLA and shared and routed experts</title>
+<rect x="692.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 38: MLA and shared and routed experts</title>
+<rect x="705.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 39: MLA and shared and routed experts</title>
+<rect x="718.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 40: MLA and shared and routed experts</title>
+<rect x="731.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 41: MLA and shared and routed experts</title>
+<rect x="744.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 42: MLA and shared and routed experts</title>
+<rect x="757.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 43: MLA and shared and routed experts</title>
+<rect x="770.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 44: MLA and shared and routed experts</title>
+<rect x="783.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 45: MLA and shared and routed experts</title>
+<rect x="796.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 46: MLA and shared and routed experts</title>
+<rect x="809.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 47: MLA and shared and routed experts</title>
+<rect x="822.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 48: MLA and shared and routed experts</title>
+<rect x="835.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 49: MLA and shared and routed experts</title>
+<rect x="848.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 50: MLA and shared and routed experts</title>
+<rect x="861.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 51: MLA and shared and routed experts</title>
+<rect x="874.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 52: MLA and shared and routed experts</title>
+<rect x="887.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 53: MLA and shared and routed experts</title>
+<rect x="900.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 54: MLA and shared and routed experts</title>
+<rect x="913.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 55: MLA and shared and routed experts</title>
+<rect x="926.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 56: MLA and shared and routed experts</title>
+<rect x="939.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 57: MLA and shared and routed experts</title>
+<rect x="952.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 58: MLA and shared and routed experts</title>
+<rect x="965.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 59: MLA and shared and routed experts</title>
+<rect x="978.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<g><title>Block 60: MLA and shared and routed experts</title>
+<rect x="991.00" y="144.00" width="11.00" height="21.00" fill="#548978"/>
+</g>
+<text x="1027.00" y="162" font-size="17" font-weight="700" fill="#20333e" text-anchor="start">→  Final norm  →  LM head  →  Cross-entropy</text>
+<text x="58.00" y="193" font-size="15" font-weight="700" fill="#20333e" text-anchor="start">Forward</text>
+<text x="155.00" y="193" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">0–2: MLA + dense FFN     ·     3–60: MLA + one shared expert and 8 of 256 routed experts</text>
+<text x="58.00" y="218" font-size="15" font-weight="700" fill="#20333e" text-anchor="start">Backward</text>
+<text x="155.00" y="218" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Loss gradient → head → blocks 60 to 0 → embedding. Parameter gradients feed the optimizer.</text>
+<text x="44.00" y="272" font-size="24" font-weight="700" fill="#20333e" text-anchor="start">One remote expert route</text>
+<text x="44.00" y="300" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">InfiniBand connects the nodes. A gateway GPU relays the tile over NVLink to the expert GPU; the result follows the reverse path.</text>
+<rect x="46.00" y="322.00" width="15.00" height="15.00" fill="#794d96"/>
+<text x="70.00" y="335" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">InfiniBand · between nodes</text>
+<rect x="390.00" y="322.00" width="15.00" height="15.00" fill="#22649a"/>
+<text x="414.00" y="335" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">NVLink · within one node</text>
+<rect x="735.00" y="322.00" width="15.00" height="15.00" fill="#207461"/>
+<text x="759.00" y="335" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Compute · expert GPU</text>
+<text x="1452.00" y="335" font-size="15" font-weight="400" fill="#20333e" text-anchor="end">4 tiles  /  2 staging slots</text>
+<text x="44.00" y="391" font-size="25" font-weight="700" fill="#20333e" text-anchor="start">Forward · routed block 3</text>
+<text x="498.00" y="391" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Bulk exchanges  ·  24 ticks</text>
+<text x="985.00" y="391" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Tile-ready pipeline  ·  12 ticks</text>
+<rect x="45.00" y="412.00" width="4.00" height="31.00" fill="#794d96"/>
+<text x="60.00" y="425" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Send activation to the expert node</text>
+<text x="60.00" y="442" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Source GPU → remote gateway · token row x</text>
+<rect x="498.00" y="416.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="416.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="452.00" width="4.00" height="31.00" fill="#22649a"/>
+<text x="60.00" y="465" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Relay x to the expert owner</text>
+<text x="60.00" y="482" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Gateway → expert GPU · input tile becomes ready</text>
+<rect x="498.00" y="456.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="456.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="492.00" width="4.00" height="31.00" fill="#207461"/>
+<text x="60.00" y="505" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Project gate and up</text>
+<text x="60.00" y="522" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Expert GPU · x × Wgate and x × Wup</text>
+<rect x="498.00" y="496.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="496.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="532.00" width="4.00" height="31.00" fill="#207461"/>
+<text x="60.00" y="545" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Activate and project down</text>
+<text x="60.00" y="562" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Expert GPU · SwiGLU followed by Wdown</text>
+<rect x="498.00" y="536.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="536.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="572.00" width="4.00" height="31.00" fill="#22649a"/>
+<text x="60.00" y="585" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Return the expert contribution</text>
+<text x="60.00" y="602" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Expert GPU → gateway · output tile</text>
+<rect x="498.00" y="576.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="576.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="612.00" width="4.00" height="31.00" fill="#794d96"/>
+<text x="60.00" y="625" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Return to the token owner</text>
+<text x="60.00" y="642" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Gateway → source node · ready for weighted sum</text>
+<rect x="498.00" y="616.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="616.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="498.00" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="498.00" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">0</text>
+<rect x="609.25" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="609.25" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">6</text>
+<rect x="720.50" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="720.50" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">12</text>
+<rect x="831.75" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="831.75" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">18</text>
+<rect x="943.00" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="943.00" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">24</text>
+<g><title>x_ib · tile 1 · 0–1 ticks</title>
+<rect x="498.00" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="507.27" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>x_ib · tile 2 · 1–2 ticks</title>
+<rect x="516.54" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="525.81" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>x_ib · tile 3 · 2–3 ticks</title>
+<rect x="535.08" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="544.35" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>x_ib · tile 4 · 3–4 ticks</title>
+<rect x="553.62" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="562.90" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>x_nvl · tile 1 · 4–5 ticks</title>
+<rect x="572.17" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="581.44" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>x_nvl · tile 2 · 5–6 ticks</title>
+<rect x="590.71" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="599.98" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>x_nvl · tile 3 · 6–7 ticks</title>
+<rect x="609.25" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="618.52" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>x_nvl · tile 4 · 7–8 ticks</title>
+<rect x="627.79" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="637.06" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>gate_up · tile 1 · 8–9 ticks</title>
+<rect x="646.33" y="496.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="655.60" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>gate_up · tile 2 · 9–10 ticks</title>
+<rect x="664.88" y="496.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="674.15" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>gate_up · tile 3 · 10–11 ticks</title>
+<rect x="683.42" y="496.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="692.69" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>gate_up · tile 4 · 11–12 ticks</title>
+<rect x="701.96" y="496.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="711.23" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>down · tile 1 · 12–13 ticks</title>
+<rect x="720.50" y="536.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="729.77" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>down · tile 2 · 13–14 ticks</title>
+<rect x="739.04" y="536.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="748.31" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>down · tile 3 · 14–15 ticks</title>
+<rect x="757.58" y="536.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="766.85" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>down · tile 4 · 15–16 ticks</title>
+<rect x="776.12" y="536.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="785.40" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>y_nvl · tile 1 · 16–17 ticks</title>
+<rect x="794.67" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="803.94" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>y_nvl · tile 2 · 17–18 ticks</title>
+<rect x="813.21" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="822.48" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>y_nvl · tile 3 · 18–19 ticks</title>
+<rect x="831.75" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="841.02" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>y_nvl · tile 4 · 19–20 ticks</title>
+<rect x="850.29" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="859.56" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>y_ib · tile 1 · 20–21 ticks</title>
+<rect x="868.83" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="878.10" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>y_ib · tile 2 · 21–22 ticks</title>
+<rect x="887.38" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="896.65" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>y_ib · tile 3 · 22–23 ticks</title>
+<rect x="905.92" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="915.19" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>y_ib · tile 4 · 23–24 ticks</title>
+<rect x="924.46" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="933.73" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<rect x="1022.08" y="409.00" width="37.08" height="5.00" fill="#cc9222"/>
+<rect x="1133.33" y="409.00" width="37.08" height="5.00" fill="#cc9222"/>
+<rect x="985.00" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="985.00" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">0</text>
+<rect x="1096.25" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="1096.25" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">6</text>
+<rect x="1207.50" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="1207.50" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">12</text>
+<rect x="1318.75" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="1318.75" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">18</text>
+<rect x="1430.00" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="1430.00" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">24</text>
+<g><title>x_ib · tile 1 · 0–1 ticks</title>
+<rect x="985.00" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="994.27" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>x_nvl · tile 1 · 1–2 ticks</title>
+<rect x="1003.54" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1012.81" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>gate_up · tile 1 · 2–3 ticks</title>
+<rect x="1022.08" y="496.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1031.35" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>x_ib · tile 2 · 1–2 ticks</title>
+<rect x="1003.54" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="1012.81" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>x_nvl · tile 2 · 2–3 ticks</title>
+<rect x="1022.08" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1031.35" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>gate_up · tile 2 · 3–4 ticks</title>
+<rect x="1040.62" y="496.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1049.90" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>x_ib · tile 3 · 2–3 ticks</title>
+<rect x="1022.08" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="1031.35" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>x_nvl · tile 3 · 3–4 ticks</title>
+<rect x="1040.62" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1049.90" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>gate_up · tile 3 · 4–5 ticks</title>
+<rect x="1059.17" y="496.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1068.44" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>x_ib · tile 4 · 3–4 ticks</title>
+<rect x="1040.62" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="1049.90" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>x_nvl · tile 4 · 4–5 ticks</title>
+<rect x="1059.17" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1068.44" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>gate_up · tile 4 · 5–6 ticks</title>
+<rect x="1077.71" y="496.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1086.98" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>down · tile 1 · 6–7 ticks</title>
+<rect x="1096.25" y="536.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1105.52" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>y_nvl · tile 1 · 7–8 ticks</title>
+<rect x="1114.79" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1124.06" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>y_ib · tile 1 · 8–9 ticks</title>
+<rect x="1133.33" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="1142.60" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>down · tile 2 · 7–8 ticks</title>
+<rect x="1114.79" y="536.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1124.06" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>y_nvl · tile 2 · 8–9 ticks</title>
+<rect x="1133.33" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1142.60" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>y_ib · tile 2 · 9–10 ticks</title>
+<rect x="1151.88" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="1161.15" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>down · tile 3 · 8–9 ticks</title>
+<rect x="1133.33" y="536.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1142.60" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>y_nvl · tile 3 · 9–10 ticks</title>
+<rect x="1151.88" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1161.15" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>y_ib · tile 3 · 10–11 ticks</title>
+<rect x="1170.42" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="1179.69" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>down · tile 4 · 9–10 ticks</title>
+<rect x="1151.88" y="536.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1161.15" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>y_nvl · tile 4 · 10–11 ticks</title>
+<rect x="1170.42" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1179.69" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>y_ib · tile 4 · 11–12 ticks</title>
+<rect x="1188.96" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="1198.23" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<text x="498.00" y="692" font-size="14" font-weight="700" fill="#74521b" text-anchor="start">During the first gold interval: IB carries tile 3, NVLink relays tile 2, and compute uses tile 1.</text>
+<text x="44.00" y="723" font-size="25" font-weight="700" fill="#20333e" text-anchor="start">Backward · routed block 3</text>
+<text x="498.00" y="723" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Bulk exchanges  ·  32 ticks</text>
+<text x="985.00" y="723" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Tile-ready pipeline  ·  20 ticks</text>
+<rect x="45.00" y="744.00" width="4.00" height="31.00" fill="#794d96"/>
+<text x="60.00" y="757" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Send the output gradient</text>
+<text x="60.00" y="774" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Source GPU → remote gateway · weighted dY</text>
+<rect x="498.00" y="748.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="748.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="784.00" width="4.00" height="31.00" fill="#22649a"/>
+<text x="60.00" y="797" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Deliver dY to the expert</text>
+<text x="60.00" y="814" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Gateway → expert GPU · saved forward route</text>
+<rect x="498.00" y="788.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="788.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="824.00" width="4.00" height="31.00" fill="#207461"/>
+<text x="60.00" y="837" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Backpropagate through Wdown</text>
+<text x="60.00" y="854" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Expert GPU · produce the hidden-state gradient</text>
+<rect x="498.00" y="828.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="828.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="864.00" width="4.00" height="31.00" fill="#207461"/>
+<text x="60.00" y="877" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Accumulate the Wdown gradient</text>
+<text x="60.00" y="894" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Saved hidden rows and incoming dY → dWdown</text>
+<rect x="498.00" y="868.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="868.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="904.00" width="4.00" height="31.00" fill="#207461"/>
+<text x="60.00" y="917" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Backpropagate to the input</text>
+<text x="60.00" y="934" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">SwiGLU derivative and gate/up weights → dX</text>
+<rect x="498.00" y="908.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="908.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="944.00" width="4.00" height="31.00" fill="#22649a"/>
+<text x="60.00" y="957" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Return the input gradient</text>
+<text x="60.00" y="974" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Expert GPU → gateway · one contribution to dX</text>
+<rect x="498.00" y="948.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="948.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="984.00" width="4.00" height="31.00" fill="#794d96"/>
+<text x="60.00" y="997" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Send dX back to its origin</text>
+<text x="60.00" y="1014" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Gateway → source node · sum by original token</text>
+<rect x="498.00" y="988.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="988.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="1024.00" width="4.00" height="31.00" fill="#207461"/>
+<text x="60.00" y="1037" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Accumulate gate and up gradients</text>
+<text x="60.00" y="1054" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Saved inputs and activation derivatives → dWgate, dWup</text>
+<rect x="498.00" y="1028.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="1028.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="498.00" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="498.00" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">0</text>
+<rect x="609.25" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="609.25" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">8</text>
+<rect x="720.50" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="720.50" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">16</text>
+<rect x="831.75" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="831.75" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">24</text>
+<rect x="943.00" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="943.00" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">32</text>
+<g><title>dy_ib · tile 1 · 0–1 ticks</title>
+<rect x="498.00" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="504.95" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>dy_ib · tile 2 · 1–2 ticks</title>
+<rect x="511.91" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="518.86" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>dy_ib · tile 3 · 2–3 ticks</title>
+<rect x="525.81" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="532.77" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>dy_ib · tile 4 · 3–4 ticks</title>
+<rect x="539.72" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="546.67" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>dy_nvl · tile 1 · 4–5 ticks</title>
+<rect x="553.62" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="560.58" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>dy_nvl · tile 2 · 5–6 ticks</title>
+<rect x="567.53" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="574.48" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>dy_nvl · tile 3 · 6–7 ticks</title>
+<rect x="581.44" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="588.39" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>dy_nvl · tile 4 · 7–8 ticks</title>
+<rect x="595.34" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="602.30" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>down_input · tile 1 · 8–9 ticks</title>
+<rect x="609.25" y="828.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="616.20" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>down_input · tile 2 · 9–10 ticks</title>
+<rect x="623.16" y="828.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="630.11" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>down_input · tile 3 · 10–11 ticks</title>
+<rect x="637.06" y="828.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="644.02" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>down_input · tile 4 · 11–12 ticks</title>
+<rect x="650.97" y="828.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="657.92" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>down_weight · tile 1 · 12–13 ticks</title>
+<rect x="664.88" y="868.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="671.83" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>down_weight · tile 2 · 13–14 ticks</title>
+<rect x="678.78" y="868.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="685.73" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>down_weight · tile 3 · 14–15 ticks</title>
+<rect x="692.69" y="868.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="699.64" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>down_weight · tile 4 · 15–16 ticks</title>
+<rect x="706.59" y="868.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="713.55" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>up_input · tile 1 · 16–17 ticks</title>
+<rect x="720.50" y="908.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="727.45" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>up_input · tile 2 · 17–18 ticks</title>
+<rect x="734.41" y="908.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="741.36" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>up_input · tile 3 · 18–19 ticks</title>
+<rect x="748.31" y="908.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="755.27" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>up_input · tile 4 · 19–20 ticks</title>
+<rect x="762.22" y="908.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="769.17" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>dx_nvl · tile 1 · 20–21 ticks</title>
+<rect x="776.12" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="783.08" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>dx_nvl · tile 2 · 21–22 ticks</title>
+<rect x="790.03" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="796.98" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>dx_nvl · tile 3 · 22–23 ticks</title>
+<rect x="803.94" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="810.89" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>dx_nvl · tile 4 · 23–24 ticks</title>
+<rect x="817.84" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="824.80" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>dx_ib · tile 1 · 24–25 ticks</title>
+<rect x="831.75" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="838.70" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>dx_ib · tile 2 · 25–26 ticks</title>
+<rect x="845.66" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="852.61" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>dx_ib · tile 3 · 26–27 ticks</title>
+<rect x="859.56" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="866.52" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>dx_ib · tile 4 · 27–28 ticks</title>
+<rect x="873.47" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="880.42" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>up_weight · tile 1 · 28–29 ticks</title>
+<rect x="887.38" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="894.33" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>up_weight · tile 2 · 29–30 ticks</title>
+<rect x="901.28" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="908.23" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>up_weight · tile 3 · 30–31 ticks</title>
+<rect x="915.19" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="922.14" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>up_weight · tile 4 · 31–32 ticks</title>
+<rect x="929.09" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="936.05" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<rect x="1012.81" y="741.00" width="27.81" height="5.00" fill="#cc9222"/>
+<rect x="1151.88" y="741.00" width="27.81" height="5.00" fill="#cc9222"/>
+<rect x="985.00" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="985.00" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">0</text>
+<rect x="1096.25" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="1096.25" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">8</text>
+<rect x="1207.50" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="1207.50" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">16</text>
+<rect x="1318.75" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="1318.75" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">24</text>
+<rect x="1430.00" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="1430.00" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">32</text>
+<g><title>dy_ib · tile 1 · 0–1 ticks</title>
+<rect x="985.00" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="991.95" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>dy_nvl · tile 1 · 1–2 ticks</title>
+<rect x="998.91" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1005.86" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>down_input · tile 1 · 2–3 ticks</title>
+<rect x="1012.81" y="828.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1019.77" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>dy_ib · tile 2 · 1–2 ticks</title>
+<rect x="998.91" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="1005.86" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>dy_nvl · tile 2 · 2–3 ticks</title>
+<rect x="1012.81" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1019.77" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>down_input · tile 2 · 3–4 ticks</title>
+<rect x="1026.72" y="828.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1033.67" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>dy_ib · tile 3 · 2–3 ticks</title>
+<rect x="1012.81" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="1019.77" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>dy_nvl · tile 3 · 3–4 ticks</title>
+<rect x="1026.72" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1033.67" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>down_input · tile 3 · 4–5 ticks</title>
+<rect x="1040.62" y="828.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1047.58" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>dy_ib · tile 4 · 3–4 ticks</title>
+<rect x="1026.72" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="1033.67" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>dy_nvl · tile 4 · 4–5 ticks</title>
+<rect x="1040.62" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1047.58" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>down_input · tile 4 · 5–6 ticks</title>
+<rect x="1054.53" y="828.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1061.48" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>down_weight · tile 1 · 6–7 ticks</title>
+<rect x="1068.44" y="868.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1075.39" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>down_weight · tile 2 · 7–8 ticks</title>
+<rect x="1082.34" y="868.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1089.30" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>down_weight · tile 3 · 8–9 ticks</title>
+<rect x="1096.25" y="868.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1103.20" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>down_weight · tile 4 · 9–10 ticks</title>
+<rect x="1110.16" y="868.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1117.11" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>up_input · tile 1 · 10–11 ticks</title>
+<rect x="1124.06" y="908.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1131.02" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>dx_nvl · tile 1 · 11–12 ticks</title>
+<rect x="1137.97" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1144.92" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>dx_ib · tile 1 · 12–13 ticks</title>
+<rect x="1151.88" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="1158.83" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>up_input · tile 2 · 11–12 ticks</title>
+<rect x="1137.97" y="908.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1144.92" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>dx_nvl · tile 2 · 12–13 ticks</title>
+<rect x="1151.88" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1158.83" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>dx_ib · tile 2 · 13–14 ticks</title>
+<rect x="1165.78" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="1172.73" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>up_input · tile 3 · 12–13 ticks</title>
+<rect x="1151.88" y="908.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1158.83" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>dx_nvl · tile 3 · 13–14 ticks</title>
+<rect x="1165.78" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1172.73" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>dx_ib · tile 3 · 14–15 ticks</title>
+<rect x="1179.69" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="1186.64" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>up_input · tile 4 · 13–14 ticks</title>
+<rect x="1165.78" y="908.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1172.73" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>dx_nvl · tile 4 · 14–15 ticks</title>
+<rect x="1179.69" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1186.64" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>dx_ib · tile 4 · 15–16 ticks</title>
+<rect x="1193.59" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="1200.55" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>up_weight · tile 1 · 16–17 ticks</title>
+<rect x="1207.50" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1214.45" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>up_weight · tile 2 · 17–18 ticks</title>
+<rect x="1221.41" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1228.36" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>up_weight · tile 3 · 18–19 ticks</title>
+<rect x="1235.31" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1242.27" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>up_weight · tile 4 · 19–20 ticks</title>
+<rect x="1249.22" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1256.17" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<text x="498.00" y="1104" font-size="14" font-weight="700" fill="#74521b" text-anchor="start">During the first gold interval: IB carries tile 3, NVLink relays tile 2, and compute uses tile 1.</text>
+<text x="44.00" y="1130" font-size="17" font-weight="700" fill="#20333e" text-anchor="start">Read a number down the rows to follow that tile. Vertically aligned bars on different resources can overlap.</text>
+<text x="44.00" y="1158" font-size="15" font-weight="400" fill="#4a5e66" text-anchor="start">Unit ticks show dependencies. Isolated B300 probes available: none. Pending: compute, ib, nvlink.</text>
+</g></svg>
