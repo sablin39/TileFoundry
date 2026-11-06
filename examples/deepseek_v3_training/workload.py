@@ -140,3 +140,34 @@ def trace(phases, tiles, slots, policy, samples):
         for phase in phases
     )
     return tile_pipeline(stages, tiles=tiles, slots=slots, policy=policy)
+
+
+def cp_payload(ranks):
+    """Logical BF16 bytes sent per rank per MLA layer, with one sequence per CP group."""
+    heads, q, k, v, shared, latent = 128, 192, 128, 128, 64, 512
+    if ranks <= 0 or CONTEXT % ranks or heads % ranks:
+        raise ValueError("CP degree must divide both the sequence length and 128 heads")
+    block_bytes = 2 * (CONTEXT // ranks)
+    # A transpose sends (P-1)/P of each rank's tensor to other ranks.
+    inputs = block_bytes * (heads // ranks) * (ranks - 1) * (q + k + v)
+    output = block_bytes * (heads // ranks) * (ranks - 1) * v
+    shared_key = block_bytes * (ranks - 1) * shared
+    compact = block_bytes * (latent + shared)
+    return {
+        "Ulysses": (inputs, shared_key, output),
+        "Ring": ((ranks - 1) * compact, ranks * compact if ranks > 1 else 0),
+    }
+
+
+def expert_ids(token, case):
+    """Controlled top-eight choices over 32 toy experts, eight on each rank."""
+    source = token % 4
+    if case == "colocated":
+        owners = [source ^ 1] * 4 + [source ^ 2] * 4
+    elif case == "spread":
+        owners = [(source + slot) % 4 for slot in range(TOP_K)]
+    elif case == "empty":
+        owners = [3] * TOP_K
+    else:
+        raise ValueError(case)
+    return [rank * TOP_K + slot for slot, rank in enumerate(owners)]
