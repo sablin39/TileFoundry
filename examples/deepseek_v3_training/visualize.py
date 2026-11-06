@@ -34,8 +34,13 @@ def read_samples(paths):
             raise ValueError(f"{path}: expected matching BF16 DeepSeek-V3 measurements")
         if kind not in PROBES or kind in probes or set(p["samples_us"]) != PROBES[kind]:
             raise ValueError(f"{path}: unknown, duplicate or incomplete probe")
-        if not p["devices"] or any(d["cc"] != [10, 3] for d in p["devices"]):
+        expected_devices = 1 if kind == "compute" else 2
+        if len(p["devices"]) != expected_devices or any(d["cc"] != [10, 3] for d in p["devices"]):
             raise ValueError(f"{path}: expected SM103 device evidence")
+        if kind != "compute":
+            channel = "via P2P/" if kind == "nvlink" else "via NET/IB"
+            if not any(channel in line for rank in p["evidence"]["nccl_channels"] for line in rank):
+                raise ValueError(f"{path}: missing NCCL channel evidence for {kind}")
         if type(p["rows"]) is not int or p["rows"] < 1 or (rows is not None and p["rows"] != rows):
             raise ValueError(f"{path}: match the row count across probes")
         rows = p["rows"]
@@ -46,7 +51,7 @@ def read_samples(paths):
                 raise ValueError(f"{path}: invalid samples for {name}")
             values[name] = median(v)
         probes.add(kind)
-    return values, probes
+    return values, probes, rows
 
 
 def simultaneous(spans, tolerance=0):
@@ -218,6 +223,9 @@ def panel(svg, phase, y, layer, tiles, slots, samples, complete, captures, toler
         svg.box(45, yy + 3, 4, 31, COLOR[a.resource])
         svg.text(60, yy + 16, a.title, 16, 700)
         svg.text(60, yy + 33, a.detail, 13, 400, "#4a5e66")
+        if samples:
+            value = f"{samples[a.sample]:.2f} µs" if a.sample in samples else "pending"
+            svg.text(468, yy + 16, value, 14, 700, COLOR[a.resource], anchor="end")
         for x in xcols:
             svg.box(x, yy + 7, width, 24, "#e6e9e3")
     scale = width / max(ends)
@@ -272,7 +280,7 @@ def main():
     args = p.parse_args()
     if min(args.slots, args.nodes, args.sequences) < 1:
         p.error("slots, nodes and sequences must be positive")
-    samples, probes = read_samples(args.samples)
+    samples, probes, rows = read_samples(args.samples)
     captures, tolerance = observed(args.trace, args.tiles, args.slots)
     complete = probes == PROBES.keys()
     svg = SVG()
@@ -334,6 +342,9 @@ def main():
         foot = f"Observed role intervals on the capture clock. Gold excludes {tolerance:g} µs of uncertainty at each end."
     elif complete:
         foot = "Modeled µs from isolated BF16 compute and one-hop NCCL medians. Co-running workload contention needs a device trace."
+    elif samples:
+        missing = ", ".join(sorted(PROBES.keys() - probes))
+        foot = f"Left: isolated medians for {rows} BF16 rows. Bars: dependency ticks. Pending fabric measurements: {missing}."
     else:
         have = ", ".join(sorted(probes)) or "none"
         missing = ", ".join(sorted(PROBES.keys() - probes))

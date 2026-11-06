@@ -90,10 +90,14 @@ def nvlink_path(devices):
     pair = [by_uuid[d["uuid"].lower().removeprefix("gpu-")] for d in devices]
     if pair[0] == pair[1]:
         raise ValueError("NVLink requires two distinct GPUs")
-    topology = [
-        line.split() for line in capture("nvidia-smi", "topo", "-m").splitlines() if line.strip()
-    ]
-    header = next(row for row in topology if row[0] == "GPU0" and row[1].startswith("GPU"))
+    # Some driver builds decorate the header even when stdout is a pipe.
+    matrix = re.sub(r"\x1b\[[0-9;]*m", "", capture("nvidia-smi", "topo", "-m"))
+    topology = [line.split() for line in matrix.splitlines() if line.strip()]
+    header = next(
+        row
+        for row in topology
+        if len(row) > 1 and row[0] in by_uuid.values() and row[1].startswith("GPU")
+    )
     source = next(row for row in topology if row[0] == pair[0] and row != header)
     link = source[1 + header.index(pair[1])]
     if not re.fullmatch(r"NV\d+", link):
