@@ -8,7 +8,7 @@ from html import escape
 from pathlib import Path
 from statistics import median
 
-from workload import BLOCKS, CONTEXT, EXPERT, HIDDEN, PASSES, trace
+from workload import BLOCKS, CONTEXT, EXPERT, HIDDEN, PASSES, TOP_K, trace
 
 INK, PAPER = "#20333e", "#fbfaf6"
 COLOR = {"IB": "#794d96", "NVLink": "#22649a", "Compute": "#207461"}
@@ -141,14 +141,18 @@ def observed(path, tiles, slots):
 
 
 class SVG:
-    def __init__(self):
+    def __init__(
+        self,
+        width=1500,
+        height=1180,
+        title="DeepSeek-V3 training across nodes",
+        description="Forward and backward stages of a remote expert route over InfiniBand and NVLink.",
+    ):
         self.items = [
-            '<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1180" '
-            'viewBox="0 0 1500 1180" role="img" aria-labelledby="title desc">',
-            '<title id="title">DeepSeek-V3 training across nodes</title>',
-            '<desc id="desc">A training pass and the InfiniBand, NVLink and expert '
-            "compute stages of a remote route, in forward and backward.</desc>",
-            f'<rect width="1500" height="1180" fill="{PAPER}"/>',
+            f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+            f'viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">',
+            f'<title id="title">{escape(title)}</title><desc id="desc">{escape(description)}</desc>',
+            f'<rect width="{width}" height="{height}" fill="{PAPER}"/>',
             '<g font-family="Arial, Helvetica, sans-serif">',
         ]
 
@@ -276,19 +280,20 @@ def main():
     evidence.add_argument("--samples", type=Path, nargs="+", default=[])
     evidence.add_argument("--trace", type=Path, help="paired per-tile intervals on a common clock")
     p.add_argument("--nodes", type=int, default=32)
-    p.add_argument("--sequences", type=int, default=60)
+    p.add_argument("--sequences", type=int, help="optional global sequences per optimizer update")
     args = p.parse_args()
-    if min(args.slots, args.nodes, args.sequences) < 1:
+    if min(args.slots, args.nodes) < 1 or (args.sequences is not None and args.sequences < 1):
         p.error("slots, nodes and sequences must be positive")
     samples, probes, rows = read_samples(args.samples)
     captures, tolerance = observed(args.trace, args.tiles, args.slots)
     complete = probes == PROBES.keys()
+    batch = f"{args.sequences:,} sequences/update" if args.sequences else "training batch open"
     svg = SVG()
     svg.text(42, 51, "DeepSeek-V3 training across nodes", 35, 700)
     svg.text(
         44,
         80,
-        f"B300 study  ·  {args.nodes:,} × 16 GPUs  ·  {args.sequences:,} sequences × {CONTEXT:,} tokens per update  ·  decoder-only backbone",
+        f"B300 study  ·  {args.nodes:,} × 16 GPUs  ·  {CONTEXT:,} tokens per sequence  ·  {batch}",
         17,
     )
     backbone(svg, args.layer)
@@ -351,10 +356,11 @@ def main():
         foot = f"Unit ticks show dependencies. Isolated B300 probes available: {have}. Pending: {missing}."
     svg.text(44, 1158, foot, 15, color="#4a5e66")
     svg.save(args.out)
-    tokens = args.sequences * CONTEXT
     print(
-        f"{args.nodes * 16:,} GPUs; {tokens:,} tokens/update; {8 * tokens:,} routed assignments per MoE layer"
+        f"{args.nodes * 16:,} GPUs; {CONTEXT:,} tokens/sequence; {TOP_K * CONTEXT:,} assignments/sequence/routed layer"
     )
+    if args.sequences:
+        print(f"{args.sequences:,} sequences/update; {args.sequences * CONTEXT:,} tokens/update")
 
 
 if __name__ == "__main__":

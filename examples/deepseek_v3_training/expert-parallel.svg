@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="838" viewBox="0 0 1240 838" role="img" aria-labelledby="title desc">
+<title id="title">One token through three expert dispatchers</title><desc id="desc">Eight selected experts share two destination ranks. The diagram counts logical activation rows and shows where the backward reductions run.</desc>
+<rect width="1240" height="838" fill="#fbfaf6"/>
+<g font-family="Arial, Helvetica, sans-serif">
+<text x="40.00" y="52" font-size="33" font-weight="700" fill="#20333e" text-anchor="start">One token through three expert dispatchers</text>
+<text x="42.00" y="82" font-size="17" font-weight="400" fill="#465e69" text-anchor="start">Token owner r0   ·   top 8   ·   7,168 channels   ·   one BF16 activation row = 14 KiB</text>
+<rect x="34.00" y="107.00" width="1172.00" height="141.00" fill="#f0f3ef"/>
+<text x="54.00" y="138" font-size="20" font-weight="700" fill="#20333e" text-anchor="start">Selected experts for token 0</text>
+<rect x="55.00" y="158.00" width="58.00" height="33.00" fill="#99542f"/>
+<text x="84.00" y="180" font-size="15" font-weight="700" fill="white" text-anchor="middle">e8</text>
+<rect x="120.00" y="158.00" width="58.00" height="33.00" fill="#99542f"/>
+<text x="149.00" y="180" font-size="15" font-weight="700" fill="white" text-anchor="middle">e9</text>
+<rect x="185.00" y="158.00" width="58.00" height="33.00" fill="#99542f"/>
+<text x="214.00" y="180" font-size="15" font-weight="700" fill="white" text-anchor="middle">e10</text>
+<rect x="250.00" y="158.00" width="58.00" height="33.00" fill="#99542f"/>
+<text x="279.00" y="180" font-size="15" font-weight="700" fill="white" text-anchor="middle">e11</text>
+<rect x="315.00" y="158.00" width="58.00" height="33.00" fill="#3a755b"/>
+<text x="344.00" y="180" font-size="15" font-weight="700" fill="white" text-anchor="middle">e20</text>
+<rect x="380.00" y="158.00" width="58.00" height="33.00" fill="#3a755b"/>
+<text x="409.00" y="180" font-size="15" font-weight="700" fill="white" text-anchor="middle">e21</text>
+<rect x="445.00" y="158.00" width="58.00" height="33.00" fill="#3a755b"/>
+<text x="474.00" y="180" font-size="15" font-weight="700" fill="white" text-anchor="middle">e22</text>
+<rect x="510.00" y="158.00" width="58.00" height="33.00" fill="#3a755b"/>
+<text x="539.00" y="180" font-size="15" font-weight="700" fill="white" text-anchor="middle">e23</text>
+<text x="54.00" y="218" font-size="15" font-weight="700" fill="#99542f" text-anchor="start">r1  ·  same node</text>
+<text x="315.00" y="218" font-size="15" font-weight="700" fill="#3a755b" text-anchor="start">r2  ·  other node</text>
+<text x="641.00" y="170" font-size="20" font-weight="700" fill="#20333e" text-anchor="start">Eight expert MLPs run in every plan.</text>
+<text x="641.00" y="196" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">The plans differ in which rows cross an ownership boundary</text>
+<text x="641.00" y="219" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">and where the token’s weighted contributions are reduced.</text>
+<text x="45.00" y="290" font-size="16" font-weight="700" fill="#465e69" text-anchor="start">Protocol</text>
+<text x="252.00" y="290" font-size="16" font-weight="700" fill="#465e69" text-anchor="start">Activation dispatch</text>
+<text x="570.00" y="290" font-size="16" font-weight="700" fill="#465e69" text-anchor="start">Expert output and combine</text>
+<text x="960.00" y="290" font-size="16" font-weight="700" fill="#465e69" text-anchor="start">Activation payload¹</text>
+<rect x="39.00" y="305.00" width="1162.00" height="1.00" fill="#ced8d5"/>
+<text x="45.00" y="340" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Naive EP</text>
+<text x="45.00" y="367" font-size="14" font-weight="400" fill="#465e69" text-anchor="start">Variable-split exchange</text>
+<rect x="39.00" y="414.00" width="1162.00" height="1.00" fill="#ced8d5"/>
+<text x="45.00" y="449" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Compact DeepEP</text>
+<text x="45.00" y="476" font-size="14" font-weight="400" fill="#465e69" text-anchor="start">Deduplicated layout</text>
+<rect x="39.00" y="523.00" width="1162.00" height="1.00" fill="#ced8d5"/>
+<text x="45.00" y="558" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Dist-MoE style</text>
+<text x="45.00" y="585" font-size="14" font-weight="400" fill="#465e69" text-anchor="start">Peer-addressed GEMMs</text>
+<rect x="252.00" y="323.00" width="23.00" height="22.00" fill="#99542f"/>
+<text x="263.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r1</text>
+<rect x="278.00" y="323.00" width="23.00" height="22.00" fill="#99542f"/>
+<text x="289.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r1</text>
+<rect x="304.00" y="323.00" width="23.00" height="22.00" fill="#99542f"/>
+<text x="315.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r1</text>
+<rect x="330.00" y="323.00" width="23.00" height="22.00" fill="#99542f"/>
+<text x="341.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r1</text>
+<rect x="356.00" y="323.00" width="23.00" height="22.00" fill="#3a755b"/>
+<text x="367.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r2</text>
+<rect x="382.00" y="323.00" width="23.00" height="22.00" fill="#3a755b"/>
+<text x="393.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r2</text>
+<rect x="408.00" y="323.00" width="23.00" height="22.00" fill="#3a755b"/>
+<text x="419.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r2</text>
+<rect x="434.00" y="323.00" width="23.00" height="22.00" fill="#3a755b"/>
+<text x="445.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r2</text>
+<text x="252.00" y="369" font-size="15" font-weight="400" fill="#20333e" text-anchor="start">One row per selected expert.</text>
+<rect x="570.00" y="323.00" width="23.00" height="22.00" fill="#99542f"/>
+<text x="581.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r1</text>
+<rect x="596.00" y="323.00" width="23.00" height="22.00" fill="#99542f"/>
+<text x="607.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r1</text>
+<rect x="622.00" y="323.00" width="23.00" height="22.00" fill="#99542f"/>
+<text x="633.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r1</text>
+<rect x="648.00" y="323.00" width="23.00" height="22.00" fill="#99542f"/>
+<text x="659.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r1</text>
+<rect x="674.00" y="323.00" width="23.00" height="22.00" fill="#3a755b"/>
+<text x="685.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r2</text>
+<rect x="700.00" y="323.00" width="23.00" height="22.00" fill="#3a755b"/>
+<text x="711.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r2</text>
+<rect x="726.00" y="323.00" width="23.00" height="22.00" fill="#3a755b"/>
+<text x="737.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r2</text>
+<rect x="752.00" y="323.00" width="23.00" height="22.00" fill="#3a755b"/>
+<text x="763.50" y="339" font-size="12" font-weight="700" fill="white" text-anchor="middle">r2</text>
+<text x="570.00" y="369" font-size="15" font-weight="400" fill="#20333e" text-anchor="start">Return eight Y rows. r0 weights and sums.</text>
+<text x="960.00" y="345" font-size="18" font-weight="700" fill="#20333e" text-anchor="start">8 × 14 = 112 KiB</text>
+<rect x="252.00" y="432.00" width="56.00" height="22.00" fill="#99542f"/>
+<text x="280.00" y="448" font-size="12" font-weight="700" fill="white" text-anchor="middle">r1</text>
+<rect x="311.00" y="432.00" width="56.00" height="22.00" fill="#3a755b"/>
+<text x="339.00" y="448" font-size="12" font-weight="700" fill="white" text-anchor="middle">r2</text>
+<text x="252.00" y="478" font-size="15" font-weight="400" fill="#20333e" text-anchor="start">Two rows fan out to eight experts.</text>
+<rect x="570.00" y="432.00" width="56.00" height="22.00" fill="#99542f"/>
+<text x="598.00" y="448" font-size="12" font-weight="700" fill="white" text-anchor="middle">r1</text>
+<rect x="629.00" y="432.00" width="56.00" height="22.00" fill="#3a755b"/>
+<text x="657.00" y="448" font-size="12" font-weight="700" fill="white" text-anchor="middle">r2</text>
+<text x="570.00" y="478" font-size="15" font-weight="400" fill="#20333e" text-anchor="start">Weight and sum locally. r0 adds two rows.</text>
+<text x="960.00" y="454" font-size="18" font-weight="700" fill="#20333e" text-anchor="start">2 × 14 = 28 KiB</text>
+<rect x="252.00" y="540.00" width="121.00" height="26.00" fill="#dcebf0"/>
+<text x="312.00" y="558" font-size="14" font-weight="700" fill="#246984" text-anchor="middle">r0 publishes X</text>
+<text x="252.00" y="588" font-size="15" font-weight="400" fill="#20333e" text-anchor="start">W13 gathers by (rank, row).</text>
+<text x="570.00" y="555" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">W2 writes to eight origin slots.</text>
+<text x="570.00" y="588" font-size="15" font-weight="400" fill="#20333e" text-anchor="start">r0 weights and sums after peer writes finish.</text>
+<text x="960.00" y="554" font-size="17" font-weight="700" fill="#20333e" text-anchor="start">8 addressed reads</text>
+<text x="960.00" y="581" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">8 route writes</text>
+<rect x="34.00" y="634.00" width="1172.00" height="131.00" fill="#f0f3ef"/>
+<text x="54.00" y="665" font-size="20" font-weight="700" fill="#20333e" text-anchor="start">Read the routes backward</text>
+<text x="54.00" y="695" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Naive and peer-addressed paths weight dY per slot at r0. The token owner sums returning dX contributions.</text>
+<text x="54.00" y="722" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Compact dispatch sends dY once per owner. Each owner weights expert rows, adds their dX locally and returns selected-score gradients.</text>
+<text x="54.00" y="748" font-size="15" font-weight="700" fill="#465e69" text-anchor="start">Every plan accumulates W13 and W2 gradients at the expert and produces one dX per source token.</text>
+<text x="40.00" y="805" font-size="15" font-weight="400" fill="#465e69" text-anchor="start">¹ Payload for one direction of forward in this route. Counts exclude scores, indices and protocol overhead. Peer addresses count logical accesses.</text>
+</g></svg>

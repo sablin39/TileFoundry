@@ -1,10 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1180" viewBox="0 0 1500 1180" role="img" aria-labelledby="title desc">
-<title id="title">DeepSeek-V3 training across nodes</title>
-<desc id="desc">A training pass and the InfiniBand, NVLink and expert compute stages of a remote route, in forward and backward.</desc>
+<title id="title">DeepSeek-V3 training across nodes</title><desc id="desc">Forward and backward stages of a remote expert route over InfiniBand and NVLink.</desc>
 <rect width="1500" height="1180" fill="#fbfaf6"/>
 <g font-family="Arial, Helvetica, sans-serif">
 <text x="42.00" y="51" font-size="35" font-weight="700" fill="#20333e" text-anchor="start">DeepSeek-V3 training across nodes</text>
-<text x="44.00" y="80" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">B300 study  ·  32 × 16 GPUs  ·  60 sequences × 1,048,576 tokens per update  ·  decoder-only backbone</text>
+<text x="44.00" y="80" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">B300 study  ·  32 × 16 GPUs  ·  1,048,576 tokens per sequence  ·  training batch open</text>
 <rect x="38.00" y="100.00" width="1424.00" height="135.00" fill="#eef1e9"/>
 <text x="58.00" y="128" font-size="20" font-weight="700" fill="#20333e" text-anchor="start">Next-token training · 61 decoder blocks</text>
 <text x="58.00" y="162" font-size="17" font-weight="700" fill="#20333e" text-anchor="start">Embedding →</text>
