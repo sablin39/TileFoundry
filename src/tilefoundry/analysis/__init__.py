@@ -36,10 +36,14 @@ from .registry import Analyzer
 from .api import AnalysisResult, analyze
 from .check import check_program
 from .tile_pipeline import TileInterval, TileStage, tile_pipeline
+from .buffer_lifetime import BufferAccess, BufferHazard, BufferLifetime, check_buffer_lifetimes
 
 
 __all__ = [
     "Analyzer",
+    "BufferAccess",
+    "BufferHazard",
+    "BufferLifetime",
     "AnalysisError",
     "AnalysisPrecision",
     "AnalysisResult",
@@ -69,5 +73,6 @@ __all__ = [
     "ValueLifetime",
     "analyze",
     "check_program",
+    "check_buffer_lifetimes",
     "tile_pipeline",
 ]

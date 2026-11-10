@@ -2006,3 +2006,26 @@ soon as it is ready. Each edge has `slots` buffers. Tile `t` may reuse its
 slot after the next stage finishes tile `t - slots`. Operations sharing a
 resource issue in authored FIFO order. Disjoint resources may overlap subject
 to these dependencies. Zero tiles produce an empty timeline.
+
+## 4. Explicit execution buffer lifetimes
+
+`check_buffer_lifetimes(lifetimes)` checks physical storage reuse on a supplied
+execution trace. `BufferLifetime` identifies a uniquely named produced value,
+an allocation, a byte offset and size, one producer `BufferAccess`, and all its
+consumer accesses. Allocation identifiers include the owning device; different
+identifiers denote disjoint storage. Each access names an operation and its
+half-open start/end interval in a common caller-selected time unit. An initially
+available input may have a zero-duration producer.
+
+The returned `BufferHazard` records distinguish `read_before_ready`, where a
+consumer starts before its producer completes, from `overwrite_live_value`,
+where a new value's producer overlaps the byte range of an earlier live value.
+The earlier value remains live through the end of every consumer, including
+asynchronous transfers and deferred weight gradients. Reuse at exactly that
+completion time is legal. Malformed ranges, intervals and duplicate value names
+raise `ValueError`.
+
+These records describe explicit execution intervals independently of the HIR
+SSA event lifetimes. The caller supplies complete accesses on an ordered time
+base, including synchronization needed for visibility. The checker does not
+derive memory accesses, select a schedule or verify device synchronization.
