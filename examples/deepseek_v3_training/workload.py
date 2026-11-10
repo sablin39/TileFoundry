@@ -28,7 +28,7 @@ FORWARD = (
             "x_nvl",
             "NVLink",
             "Deliver the token activation",
-            "Gateway → expert GPU · input tile becomes ready",
+            "Gateway → expert GPU · activation chunk ready",
             "nvlink_out",
         ),
         Action(
@@ -51,7 +51,7 @@ FORWARD = (
             "y_nvl",
             "NVLink",
             "Return the expert output",
-            "Expert GPU → gateway · expert output tile",
+            "Expert GPU → gateway · expert output chunk",
             "nvlink_back",
         ),
         Action(

@@ -222,6 +222,47 @@ def backbone(svg, layer):
     )
 
 
+def chunk_guide(svg, y, rows):
+    """Separate the example's scheduling unit from a GEMM kernel's tiling."""
+    svg.box(34, y, 1432, 188, "#edf2f3", radius=12)
+    svg.text(
+        54, y + 31, "A token chunk = a bundle of routed rows (the scheduler's “tile”)", 22, 700
+    )
+    svg.text(172, y + 62, f"{HIDDEN:,} input channels →", 15, 700, COLOR["NVLink"], "middle")
+    for row in range(4):
+        svg.box(55, y + 76 + row * 19, 235, 16, "#6994b3", radius=2)
+    svg.text(302, y + 119, "rows", 14, color=COLOR["NVLink"])
+    svg.text(55, y + 171, "One row = one routed token activation", 14, color="#4a5e66")
+    svg.text(358, y + 69, "Transfer and schedule this row bundle together.", 17, 700)
+    svg.text(358, y + 97, "Its ID follows activations, outputs and input gradients.", 16)
+    example_rows = rows if rows is not None else 128
+    label = "Profile" if rows is not None else "Example size"
+    svg.text(
+        358,
+        y + 125,
+        f"{label}: {example_rows:,} BF16 rows = {example_rows * HIDDEN * 2 / 2**20:g} MiB per activation hop.",
+        16,
+    )
+    svg.text(358, y + 153, "Chunk count is separate from the full sequence length.", 16)
+    svg.box(922, y + 19, 1, 150, "#bdccd1")
+    svg.text(943, y + 32, "GEMM tiling · fwd projection example", 20, 700)
+    for row in range(4):
+        for col in range(6):
+            svg.box(
+                945 + col * 24,
+                y + 70 + row * 20,
+                21,
+                17,
+                COLOR["Compute"] if row < 2 and col < 2 else "#cedcd7",
+                radius=2,
+            )
+    svg.text(945, y + 171, "Output matrix sketch", 14, color="#4a5e66")
+    svg.text(1110, y + 68, "M: token rows · N: output channels", 16, 700)
+    svg.text(1110, y + 96, "K: reduction channels", 16, 700)
+    svg.text(1110, y + 124, "M / N / K tile sizes are selected", 15)
+    svg.text(1110, y + 152, "separately for tensor-core compute.", 15)
+
+
 def panel(svg, phase, y, layer, tiles, slots, samples, complete, captures, tolerance):
     phases = PASSES[phase]
     actions = [a for part in phases for a in part]
@@ -238,7 +279,7 @@ def panel(svg, phase, y, layer, tiles, slots, samples, complete, captures, toler
     direction = "fwd" if phase == "Forward" else "bwd"
     svg.text(44, y, f"{direction} · routed block {layer}", 25, 700)
     xcols, width, row = (498, 985), 445, 40
-    for x, name, end in zip(xcols, ("Bulk exchanges", "Tile-ready pipeline"), ends):
+    for x, name, end in zip(xcols, ("Bulk exchanges", "Chunk-ready pipeline"), ends):
         svg.text(x, y, f"{name}  ·  {end:,.3g} {unit}", 19, 700)
     y0 = y + 18
     for i, a in enumerate(actions):
@@ -266,7 +307,7 @@ def panel(svg, phase, y, layer, tiles, slots, samples, complete, captures, toler
             xx, bar = x + s.start * scale, (s.end - s.start) * scale
             yy = y0 + by_key[s.stage.name] * row + 7
             svg.items.append(
-                f"<g><title>{actions[by_key[s.stage.name]].title} · tile {s.tile + 1} · {s.start:g}–{s.end:g} {unit}</title>"
+                f"<g><title>{actions[by_key[s.stage.name]].title} · token chunk {s.tile + 1} · {s.start:g}–{s.end:g} {unit}</title>"
             )
             svg.box(xx, yy, max(0.35, bar - 0.8), 24, COLOR[s.stage.resource])
             if bar > 12:
@@ -282,7 +323,7 @@ def panel(svg, phase, y, layer, tiles, slots, samples, complete, captures, toler
         svg.text(
             498,
             y0 + len(actions) * row + 43,
-            f"First overlap · InfiniBand carries tile {roles['IB']}, NVLink relays tile {roles['NVLink']}, and compute uses tile {roles['Compute']}.",
+            f"First overlap · InfiniBand carries chunk {roles['IB']}, NVLink relays chunk {roles['NVLink']}, and compute uses chunk {roles['Compute']}.",
             14,
             700,
             color="#74521b",
@@ -293,11 +334,18 @@ def arguments(description=__doc__, default_out="pipeline.svg"):
     p = argparse.ArgumentParser(description=description)
     p.add_argument("--out", type=Path, default=Path(default_out))
     p.add_argument("--layer", type=int, choices=range(3, len(BLOCKS)), default=3, metavar="3..60")
-    p.add_argument("--tiles", type=int, default=4, choices=range(1, 65), metavar="1..64")
+    p.add_argument(
+        "--tiles",
+        type=int,
+        default=4,
+        choices=range(1, 65),
+        metavar="1..64",
+        help="number of routed token chunks (the scheduler's tiles)",
+    )
     p.add_argument("--slots", type=int, default=2)
     evidence = p.add_mutually_exclusive_group()
     evidence.add_argument("--samples", type=Path, nargs="+", default=[])
-    evidence.add_argument("--trace", type=Path, help="paired per-tile intervals on a common clock")
+    evidence.add_argument("--trace", type=Path, help="paired per-chunk intervals on a common clock")
     p.add_argument("--nodes", type=int, default=32)
     p.add_argument("--sequences", type=int, help="optional global sequences per optimizer update")
     args = p.parse_args()
@@ -312,7 +360,7 @@ def main():
     captures, tolerance = observed(args.trace, args.tiles, args.slots)
     complete = probes == PROBES.keys()
     batch = f"{args.sequences:,} sequences/update" if args.sequences else "training batch open"
-    svg = SVG()
+    svg = SVG(height=1390)
     svg.text(42, 51, "DeepSeek-V3 training across nodes", 35, 700)
     svg.text(
         44,
@@ -335,11 +383,14 @@ def main():
     ]:
         svg.box(x, 322, 15, 15, COLOR[name])
         svg.text(x + 24, 335, role, 16, 700)
-    svg.text(1452, 335, f"{args.tiles} tiles  /  {args.slots} staging slots", 15, anchor="end")
+    svg.text(
+        1452, 335, f"{args.tiles} token chunks  /  {args.slots} staging slots", 15, anchor="end"
+    )
+    chunk_guide(svg, 358, rows)
     panel(
         svg,
         "Forward",
-        391,
+        601,
         args.layer,
         args.tiles,
         args.slots,
@@ -351,7 +402,7 @@ def main():
     panel(
         svg,
         "Backward",
-        723,
+        933,
         args.layer,
         args.tiles,
         args.slots,
@@ -362,8 +413,8 @@ def main():
     )
     svg.text(
         44,
-        1130,
-        "Read a number down the rows to follow that tile. Vertically aligned bars on different resources can overlap.",
+        1340,
+        "Bar numbers identify token chunks. Follow the same number down the rows as its activations, outputs and gradients move.",
         17,
         700,
     )
@@ -378,7 +429,7 @@ def main():
         have = ", ".join(PROBE_LABELS[name] for name in sorted(probes)) or "none"
         missing = ", ".join(PROBE_LABELS[name] for name in sorted(PROBES.keys() - probes))
         foot = f"Unit ticks show dependencies. Isolated B300 probes available: {have}. Pending: {missing}."
-    svg.text(44, 1158, foot, 15, color="#4a5e66")
+    svg.text(44, 1368, foot, 15, color="#4a5e66")
     svg.save(args.out)
     print(
         f"{args.nodes * 16:,} GPUs; {CONTEXT:,} tokens/sequence; {TOP_K * CONTEXT:,} assignments/sequence/routed layer"

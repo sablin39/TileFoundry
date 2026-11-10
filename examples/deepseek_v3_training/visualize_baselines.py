@@ -187,141 +187,176 @@ def context(out):
     svg.save(out)
 
 
-def row_packets(svg, x, y, owners, compact=False):
-    groups = list(dict.fromkeys(owners)) if compact else owners
-    for index, owner in enumerate(groups):
-        width = 82 if compact else 49
-        left = x + index * (width + 5)
-        svg.box(left, y, width, 35, OWNER[owner], radius=4)
-        svg.text(
-            left + width / 2,
-            y + 23,
-            f"GPU {owner}",
-            12 if not compact else 15,
-            700,
-            "white",
-            "middle",
+def row_copies(svg, center, y, count, color):
+    """One small horizontal rectangle represents one full tensor row."""
+    width, gap = 37, 6
+    left = center - (count * (width + gap) - gap) / 2
+    for index in range(count):
+        svg.box(left + index * (width + gap), y, width, 9, color, radius=3)
+
+
+def expert_plan(svg, top, method, selected):
+    compact, peer = method == "compact", method == "peer"
+    owners = tuple(selected)
+    count = len(owners) if compact else TOP_K
+    kib = count * HIDDEN * 2 // 1024
+    title = {
+        "naive": "Naive EP · one transfer row per expert",
+        "compact": "Compact DeepEP · one transfer row per destination GPU",
+        "peer": "Dist-MoE-style peer access · address rows at their source",
+    }[method]
+    svg.box(34, top, 1432, 335, PANEL, radius=12)
+    svg.text(54, top + 34, title, 24, 700)
+    payload = (
+        f"{TOP_K} input-row reads + {TOP_K} output-slot writes"
+        if peer
+        else f"Dispatch {kib} KiB + return {kib} KiB"
+    )
+    svg.text(1446, top + 34, payload, 17, 700, MUTED, "end")
+    for x, label in (
+        (385, "fwd · read during compute" if peer else "fwd · dispatch"),
+        (738, "expert compute"),
+        (1100, "fwd · write during compute" if peer else "fwd · return"),
+    ):
+        svg.text(x, top + 70, label, 17, 700, MUTED, "middle")
+    body = top + 93
+    center = body + 80
+    for x in (54, 1255):
+        svg.box(x, body + 4, 191, 154, PALE[0], radius=9, stroke="#a8c4ce")
+        svg.text(x + 95, body + 32, "Source GPU 0", 19, 700, OWNER[0], "middle")
+    svg.text(
+        149, body + 68, "Published input" if peer else "Token activation", 18, 700, anchor="middle"
+    )
+    svg.text(149, body + 95, "1 full row", 18, anchor="middle")
+    row_copies(svg, 149, body + 113, 1, OWNER[0])
+    svg.text(
+        1350,
+        body + 66,
+        "Sum owner partials" if compact else "Weight + sum",
+        18,
+        700,
+        anchor="middle",
+    )
+    svg.text(1350, body + 94, f"{count} rows → 1 row", 18, anchor="middle")
+    svg.text(1350, body + 133, "Combined output", 16, 700, OWNER[0], "middle")
+    for index, owner in enumerate(owners):
+        y = body + 38 + index * 84
+        color = OWNER[owner]
+        copies = 1 if compact else len(selected[owner])
+        outward = (
+            f"{copies} addressed reads"
+            if peer
+            else f"{copies} activation {'row' if compact else 'copies'}"
         )
+        inward = (
+            f"{copies} output-slot writes"
+            if peer
+            else ("1 weighted partial sum" if compact else f"{copies} expert outputs")
+        )
+        svg.arrow([(249, center), (267, center), (267, y), (508, y)], color)
+        svg.text(387, y - 12, outward, 17, 700, color, "middle")
+        row_copies(svg, 387, y + 12, copies, color)
+        svg.box(520, y - 32, 435, 64, PALE[owner], radius=7)
+        first, last = selected[owner][0], selected[owner][-1]
+        svg.text(537, y - 5, f"GPU {owner} · experts {first}–{last}", 19, 700, color)
+        operation = (
+            "Fan out → 4 MLPs → weight + sum locally"
+            if compact
+            else (
+                "4 MLPs · read/write source addresses"
+                if peer
+                else "4 MLPs → 4 separate expert outputs"
+            )
+        )
+        svg.text(537, y + 21, operation, 17)
+        svg.arrow([(966, y), (1236, y)], color)
+        svg.text(1100, y - 12, inward, 17, 700, color, "middle")
+        row_copies(svg, 1100, y + 12, copies, color)
+        svg.arrow([(1237, y), (1246, y), (1246, center), (1253, center)], color)
+    backward = {
+        "naive": (
+            "Source sends 8 weighted output-gradient rows. Experts return 8 input-gradient contributions; source sums them.",
+            "The source computes each selected-score gradient from its saved expert output.",
+        ),
+        "compact": (
+            "Source sends 2 output-gradient rows. Each owner weights its 4 expert gradients and sums their input gradients.",
+            "Owners return 2 input-gradient rows for the source to sum, plus the individual selected-score gradients.",
+        ),
+        "peer": (
+            "Experts read 8 weighted output-gradient rows by address and write 8 input-gradient slots for the source to sum.",
+            "The source computes selected-score gradients. Reads and writes are logical accesses; physical traffic depends on the implementation.",
+        ),
+    }[method]
+    svg.text(54, top + 284, "bwd", 18, 700)
+    svg.text(110, top + 284, backward[0], 16)
+    svg.text(110, top + 312, backward[1], 15, color=MUTED)
 
 
 def experts(out):
     choice = expert_ids(0, "colocated")
-    owners = [expert // TOP_K for expert in choice]
-    unique = tuple(dict.fromkeys(owners))
+    selected = {owner: [e for e in choice if e // TOP_K == owner] for owner in (1, 2)}
     row_kib = HIDDEN * 2 // 1024
     svg = SVG(
         WIDTH,
-        1084,
-        "Follow one token through expert dispatch and combine",
-        "Eight selected experts on two destination GPUs. Rows represent token activations and expert outputs, with explicit forward and backward reductions.",
+        1455,
+        "One token, eight experts, one combined output",
+        "Three expert-parallel plans follow the same token. Arrows show tensor movement, colors identify expert owners, and the source and local reductions are explicit.",
     )
-    svg.text(40, 51, "Follow one token through expert dispatch and combine", 33, 700)
+    svg.text(40, 51, "One token → eight experts → one combined output", 34, 700)
     svg.text(
         42,
-        82,
-        f"Top {TOP_K} selected experts · {HIDDEN:,} channels · one BF16 token activation row = {row_kib} KiB",
+        83,
+        f"One BF16 row = {HIDDEN:,} channels = {row_kib} KiB. All three plans execute the same eight expert MLPs.",
         18,
         color=MUTED,
     )
-    svg.box(34, 111, 300, 195, PALE[0], radius=12)
-    svg.text(54, 146, "Source GPU 0", 24, 700, OWNER[0])
-    svg.text(54, 175, "Node 0 · owns the input token", 16)
-    svg.text(54, 213, "token activation", 19, 700)
-    for column in range(8):
-        svg.box(55 + column * 29, 230, 25, 30, OWNER[0], radius=3)
-    svg.text(54, 284, "One row before expert dispatch", 15, color=MUTED)
-    for owner, label, x in [
-        (1, "Node 0 · same-node experts", 405),
-        (2, "Node 1 · remote experts", 950),
-    ]:
-        svg.box(x, 111, 516, 195, PALE[owner], radius=12)
-        svg.text(x + 20, 146, f"Expert GPU {owner}", 24, 700, OWNER[owner])
-        svg.text(x + 20, 175, label, 16)
-        selected = [expert for expert in choice if expert // TOP_K == owner]
-        for index, expert in enumerate(selected):
-            left = x + 20 + index * 121
-            svg.box(left, 201, 111, 52, OWNER[owner], radius=5)
-            svg.text(left + 55, 233, f"Expert {expert}", 16, 700, "white", "middle")
-        svg.text(x + 20, 284, "Four gate/up → SwiGLU → down computations", 16, color=MUTED)
-    svg.arrow([(339, 210), (395, 210)], OWNER[1])
-    svg.arrow([(362, 210), (362, 100), (932, 100), (932, 210), (946, 210)], OWNER[2])
+    svg.box(34, 110, 310, 142, PALE[0], radius=10)
+    svg.text(54, 143, "Source GPU 0 · node 0", 22, 700, OWNER[0])
+    svg.text(54, 174, "Owns this token before dispatch", 17)
+    svg.text(54, 201, "and after the outputs combine.", 17)
+    svg.text(54, 231, "Each small bar below = one full row.", 15, color=MUTED)
+    for owner, x in ((1, 367), (2, 928)):
+        svg.box(x, 110, 538, 142, PALE[owner], radius=10)
+        svg.text(
+            x + 20,
+            143,
+            f"Expert GPU {owner} · node {0 if owner == 1 else 1}",
+            22,
+            700,
+            OWNER[owner],
+        )
+        for index, expert in enumerate(selected[owner]):
+            left = x + 20 + index * 126
+            svg.box(left, 161, 117, 39, OWNER[owner], radius=5)
+            svg.text(left + 58, 187, f"Expert {expert}", 17, 700, "white", "middle")
+        svg.text(x + 20, 231, "Each MLP: gate/up projection → SwiGLU → down projection", 16)
     svg.text(
         42,
-        342,
-        "Each box below is one activation or output row. Its label identifies the destination or contributing GPU.",
-        18,
+        284,
+        "Read each fwd path left → right. The left and right blue boxes are the same source GPU. Colors identify the two expert owners.",
+        17,
         color=MUTED,
     )
-    for x, label in [
-        (43, "Protocol"),
-        (262, "fwd · token activation dispatch"),
-        (750, "fwd · expert output combine"),
-        (1240, "Payload / direction"),
-    ]:
-        svg.text(x, 385, label, 17, 700)
-    for y, title, sub in [
-        (420, "Naive EP", "Per-assignment exchange"),
-        (548, "Compact DeepEP", "Per-destination exchange"),
-        (676, "Dist-MoE style", "Peer-addressed expert tiles"),
-    ]:
-        svg.box(40, y - 15, 1420, 1, RULE)
-        svg.text(44, y + 25, title, 21, 700)
-        svg.text(44, y + 52, sub, 14, color=MUTED)
-    row_packets(svg, 262, 421, owners)
-    row_packets(svg, 750, 421, owners)
-    svg.text(262, 479, "One activation row for each selected expert.", 16)
-    svg.text(750, 479, "Source GPU 0 weights and sums eight outputs.", 16)
-    svg.text(1240, 447, f"{TOP_K * row_kib} KiB", 23, 700)
-    svg.text(1240, 478, "8 activation rows", 16, color=MUTED)
-    row_packets(svg, 262, 549, owners, True)
-    row_packets(svg, 750, 549, owners, True)
-    svg.text(262, 607, "Two rows fan out locally to eight expert computations.", 16)
-    svg.text(750, 607, "Each expert GPU weights and combines its outputs.", 16)
-    svg.text(1240, 575, f"{len(unique) * row_kib} KiB", 23, 700)
-    svg.text(1240, 606, "2 activation rows", 16, color=MUTED)
-    svg.box(262, 676, 250, 38, PALE[0], radius=5)
-    svg.text(387, 701, "Source GPU 0 publishes the row", 15, 700, OWNER[0], "middle")
-    svg.text(262, 735, "Gate/up projection gathers each tile by source address.", 16)
-    svg.text(750, 700, "Down projection writes to each original token slot.", 16, 700)
-    svg.text(750, 735, "Source GPU 0 weights and sums the completed outputs.", 16)
-    svg.text(1240, 700, "8 addressed reads", 18, 700)
-    svg.text(1240, 733, "8 output writes", 17, color=MUTED)
-    svg.box(34, 779, 1432, 222, PANEL, radius=12)
-    svg.text(54, 816, "bwd · output gradients travel out and input gradients return", 24, 700)
-    svg.text(54, 854, "Naive / peer", 18, 700)
+    for top, method in ((304, "naive"), (655, "compact"), (1006, "peer")):
+        expert_plan(svg, top, method, selected)
     svg.text(
-        233,
-        854,
-        "Source GPU 0 weights an output gradient per expert slot, then sums the returning input gradients.",
-        17,
-    )
-    svg.text(54, 892, "Compact", 18, 700)
-    svg.text(
-        233,
-        892,
-        "Each destination receives one output gradient, weights its expert slots and sums their input gradients locally.",
-        17,
-    )
-    svg.text(233, 924, "Selected-score gradients also return to the source GPU.", 17)
-    svg.text(
-        54,
-        970,
+        40,
+        1381,
         "Expert owners accumulate the gate/up and down weight gradients in every plan.",
         18,
         700,
-        MUTED,
     )
     svg.text(
         40,
-        1040,
-        "Payloads count activation data in one direction. Scores, indices and protocol overhead need separate accounting.",
+        1410,
+        "Payloads sum both destination GPUs for this token. Counts cover activation / output data; scores, indices and protocol overhead are additional.",
         16,
         color=MUTED,
     )
     svg.text(
         40,
-        1064,
-        "Peer reads and writes count logical accesses. Their physical traffic depends on the implementation and fabric.",
+        1437,
+        "The pipeline figures group many routed rows into token chunks; this comparison follows just one token.",
         16,
         color=MUTED,
     )

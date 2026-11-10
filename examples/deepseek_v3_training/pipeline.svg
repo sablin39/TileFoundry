@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1180" viewBox="0 0 1500 1180" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1390" viewBox="0 0 1500 1390" role="img" aria-labelledby="title desc">
 <title id="title">DeepSeek-V3 training across nodes</title><desc id="desc">Forward and backward stages of a remote expert route over InfiniBand and NVLink.</desc>
-<rect width="1500" height="1180" fill="#fbfaf6"/>
+<rect width="1500" height="1390" fill="#fbfaf6"/>
 <g font-family="Arial, Helvetica, sans-serif">
 <text x="42.00" y="51" font-size="35" font-weight="700" fill="#20333e" text-anchor="start">DeepSeek-V3 training across nodes</text>
 <text x="44.00" y="80" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">B300 study  ·  32 × 16 GPUs  ·  1,048,576 tokens per sequence  ·  training batch open</text>
@@ -205,577 +205,621 @@
 <text x="414.00" y="335" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">NVLink · within one node</text>
 <rect x="735.00" y="322.00" width="15.00" height="15.00" fill="#207461"/>
 <text x="759.00" y="335" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Compute · expert GPU</text>
-<text x="1452.00" y="335" font-size="15" font-weight="400" fill="#20333e" text-anchor="end">4 tiles  /  2 staging slots</text>
-<text x="44.00" y="391" font-size="25" font-weight="700" fill="#20333e" text-anchor="start">fwd · routed block 3</text>
-<text x="498.00" y="391" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Bulk exchanges  ·  24 ticks</text>
-<text x="985.00" y="391" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Tile-ready pipeline  ·  12 ticks</text>
-<rect x="45.00" y="412.00" width="4.00" height="31.00" fill="#794d96"/>
-<text x="60.00" y="425" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Send activation to the expert node</text>
-<text x="60.00" y="442" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Source GPU → remote gateway · token activation</text>
-<rect x="498.00" y="416.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="985.00" y="416.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="45.00" y="452.00" width="4.00" height="31.00" fill="#22649a"/>
-<text x="60.00" y="465" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Deliver the token activation</text>
-<text x="60.00" y="482" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Gateway → expert GPU · input tile becomes ready</text>
-<rect x="498.00" y="456.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="985.00" y="456.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="45.00" y="492.00" width="4.00" height="31.00" fill="#207461"/>
-<text x="60.00" y="505" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Gate/up projection · Expert.w13</text>
-<text x="60.00" y="522" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Token activation × gate and up weights</text>
-<rect x="498.00" y="496.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="985.00" y="496.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="45.00" y="532.00" width="4.00" height="31.00" fill="#207461"/>
-<text x="60.00" y="545" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">SwiGLU + down projection · Expert.w2</text>
-<text x="60.00" y="562" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Hidden activation → expert output</text>
-<rect x="498.00" y="536.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="985.00" y="536.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="45.00" y="572.00" width="4.00" height="31.00" fill="#22649a"/>
-<text x="60.00" y="585" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Return the expert output</text>
-<text x="60.00" y="602" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Expert GPU → gateway · expert output tile</text>
-<rect x="498.00" y="576.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="985.00" y="576.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="45.00" y="612.00" width="4.00" height="31.00" fill="#794d96"/>
-<text x="60.00" y="625" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Return to the token owner</text>
-<text x="60.00" y="642" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Gateway → source node · ready for weighted sum</text>
-<rect x="498.00" y="616.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="985.00" y="616.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="498.00" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
-<text x="498.00" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">0</text>
-<rect x="609.25" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
-<text x="609.25" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">6</text>
-<rect x="720.50" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
-<text x="720.50" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">12</text>
-<rect x="831.75" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
-<text x="831.75" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">18</text>
-<rect x="943.00" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
-<text x="943.00" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">24</text>
-<g><title>Send activation to the expert node · tile 1 · 0–1 ticks</title>
-<rect x="498.00" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="507.27" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Send activation to the expert node · tile 2 · 1–2 ticks</title>
-<rect x="516.54" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="525.81" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Send activation to the expert node · tile 3 · 2–3 ticks</title>
-<rect x="535.08" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="544.35" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Send activation to the expert node · tile 4 · 3–4 ticks</title>
-<rect x="553.62" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="562.90" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Deliver the token activation · tile 1 · 4–5 ticks</title>
-<rect x="572.17" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="581.44" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Deliver the token activation · tile 2 · 5–6 ticks</title>
-<rect x="590.71" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="599.98" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Deliver the token activation · tile 3 · 6–7 ticks</title>
-<rect x="609.25" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="618.52" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Deliver the token activation · tile 4 · 7–8 ticks</title>
-<rect x="627.79" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="637.06" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Gate/up projection · Expert.w13 · tile 1 · 8–9 ticks</title>
-<rect x="646.33" y="496.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="655.60" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Gate/up projection · Expert.w13 · tile 2 · 9–10 ticks</title>
-<rect x="664.88" y="496.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="674.15" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Gate/up projection · Expert.w13 · tile 3 · 10–11 ticks</title>
-<rect x="683.42" y="496.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="692.69" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Gate/up projection · Expert.w13 · tile 4 · 11–12 ticks</title>
-<rect x="701.96" y="496.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="711.23" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>SwiGLU + down projection · Expert.w2 · tile 1 · 12–13 ticks</title>
-<rect x="720.50" y="536.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="729.77" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>SwiGLU + down projection · Expert.w2 · tile 2 · 13–14 ticks</title>
-<rect x="739.04" y="536.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="748.31" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>SwiGLU + down projection · Expert.w2 · tile 3 · 14–15 ticks</title>
-<rect x="757.58" y="536.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="766.85" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>SwiGLU + down projection · Expert.w2 · tile 4 · 15–16 ticks</title>
-<rect x="776.12" y="536.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="785.40" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Return the expert output · tile 1 · 16–17 ticks</title>
-<rect x="794.67" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="803.94" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Return the expert output · tile 2 · 17–18 ticks</title>
-<rect x="813.21" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="822.48" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Return the expert output · tile 3 · 18–19 ticks</title>
-<rect x="831.75" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="841.02" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Return the expert output · tile 4 · 19–20 ticks</title>
-<rect x="850.29" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="859.56" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Return to the token owner · tile 1 · 20–21 ticks</title>
-<rect x="868.83" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="878.10" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Return to the token owner · tile 2 · 21–22 ticks</title>
-<rect x="887.38" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="896.65" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Return to the token owner · tile 3 · 22–23 ticks</title>
-<rect x="905.92" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="915.19" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Return to the token owner · tile 4 · 23–24 ticks</title>
-<rect x="924.46" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="933.73" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<rect x="1022.08" y="409.00" width="37.08" height="5.00" fill="#cc9222"/>
-<rect x="1133.33" y="409.00" width="37.08" height="5.00" fill="#cc9222"/>
-<rect x="985.00" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
-<text x="985.00" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">0</text>
-<rect x="1096.25" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
-<text x="1096.25" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">6</text>
-<rect x="1207.50" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
-<text x="1207.50" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">12</text>
-<rect x="1318.75" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
-<text x="1318.75" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">18</text>
-<rect x="1430.00" y="411.00" width="0.80" height="240.00" fill="#cbd2cc"/>
-<text x="1430.00" y="667" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">24</text>
-<g><title>Send activation to the expert node · tile 1 · 0–1 ticks</title>
-<rect x="985.00" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="994.27" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Deliver the token activation · tile 1 · 1–2 ticks</title>
-<rect x="1003.54" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="1012.81" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Gate/up projection · Expert.w13 · tile 1 · 2–3 ticks</title>
-<rect x="1022.08" y="496.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="1031.35" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Send activation to the expert node · tile 2 · 1–2 ticks</title>
-<rect x="1003.54" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="1012.81" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Deliver the token activation · tile 2 · 2–3 ticks</title>
-<rect x="1022.08" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="1031.35" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Gate/up projection · Expert.w13 · tile 2 · 3–4 ticks</title>
-<rect x="1040.62" y="496.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="1049.90" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Send activation to the expert node · tile 3 · 2–3 ticks</title>
-<rect x="1022.08" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="1031.35" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Deliver the token activation · tile 3 · 3–4 ticks</title>
-<rect x="1040.62" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="1049.90" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Gate/up projection · Expert.w13 · tile 3 · 4–5 ticks</title>
-<rect x="1059.17" y="496.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="1068.44" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Send activation to the expert node · tile 4 · 3–4 ticks</title>
-<rect x="1040.62" y="416.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="1049.90" y="433" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Deliver the token activation · tile 4 · 4–5 ticks</title>
-<rect x="1059.17" y="456.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="1068.44" y="473" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Gate/up projection · Expert.w13 · tile 4 · 5–6 ticks</title>
-<rect x="1077.71" y="496.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="1086.98" y="513" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>SwiGLU + down projection · Expert.w2 · tile 1 · 6–7 ticks</title>
-<rect x="1096.25" y="536.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="1105.52" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Return the expert output · tile 1 · 7–8 ticks</title>
-<rect x="1114.79" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="1124.06" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Return to the token owner · tile 1 · 8–9 ticks</title>
-<rect x="1133.33" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="1142.60" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>SwiGLU + down projection · Expert.w2 · tile 2 · 7–8 ticks</title>
-<rect x="1114.79" y="536.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="1124.06" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Return the expert output · tile 2 · 8–9 ticks</title>
-<rect x="1133.33" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="1142.60" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Return to the token owner · tile 2 · 9–10 ticks</title>
-<rect x="1151.88" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="1161.15" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>SwiGLU + down projection · Expert.w2 · tile 3 · 8–9 ticks</title>
-<rect x="1133.33" y="536.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="1142.60" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Return the expert output · tile 3 · 9–10 ticks</title>
-<rect x="1151.88" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="1161.15" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Return to the token owner · tile 3 · 10–11 ticks</title>
-<rect x="1170.42" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="1179.69" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>SwiGLU + down projection · Expert.w2 · tile 4 · 9–10 ticks</title>
-<rect x="1151.88" y="536.00" width="17.74" height="24.00" fill="#207461"/>
-<text x="1161.15" y="553" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Return the expert output · tile 4 · 10–11 ticks</title>
-<rect x="1170.42" y="576.00" width="17.74" height="24.00" fill="#22649a"/>
-<text x="1179.69" y="593" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Return to the token owner · tile 4 · 11–12 ticks</title>
-<rect x="1188.96" y="616.00" width="17.74" height="24.00" fill="#794d96"/>
-<text x="1198.23" y="633" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<text x="498.00" y="692" font-size="14" font-weight="700" fill="#74521b" text-anchor="start">First overlap · InfiniBand carries tile 3, NVLink relays tile 2, and compute uses tile 1.</text>
-<text x="44.00" y="723" font-size="25" font-weight="700" fill="#20333e" text-anchor="start">bwd · routed block 3</text>
-<text x="498.00" y="723" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Bulk exchanges  ·  32 ticks</text>
-<text x="985.00" y="723" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Tile-ready pipeline  ·  20 ticks</text>
-<rect x="45.00" y="744.00" width="4.00" height="31.00" fill="#794d96"/>
-<text x="60.00" y="757" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Send the output gradient</text>
-<text x="60.00" y="774" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Source GPU → gateway · weighted output gradient</text>
-<rect x="498.00" y="748.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="985.00" y="748.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="45.00" y="784.00" width="4.00" height="31.00" fill="#22649a"/>
-<text x="60.00" y="797" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Deliver the output gradient</text>
-<text x="60.00" y="814" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Gateway → expert GPU · saved forward route</text>
-<rect x="498.00" y="788.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="985.00" y="788.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="45.00" y="824.00" width="4.00" height="31.00" fill="#207461"/>
-<text x="60.00" y="837" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Down projection · input gradient</text>
-<text x="60.00" y="854" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Output gradient → hidden-activation gradient</text>
-<rect x="498.00" y="828.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="985.00" y="828.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="45.00" y="864.00" width="4.00" height="31.00" fill="#207461"/>
-<text x="60.00" y="877" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Down projection · weight gradient</text>
-<text x="60.00" y="894" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Saved hidden activation × output gradient</text>
-<rect x="498.00" y="868.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="985.00" y="868.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="45.00" y="904.00" width="4.00" height="31.00" fill="#207461"/>
-<text x="60.00" y="917" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Gate/up projections · input gradient</text>
-<text x="60.00" y="934" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">SwiGLU derivative → token input gradient</text>
-<rect x="498.00" y="908.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="985.00" y="908.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="45.00" y="944.00" width="4.00" height="31.00" fill="#22649a"/>
-<text x="60.00" y="957" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Return the input gradient</text>
-<text x="60.00" y="974" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Expert GPU → gateway · token input gradient</text>
-<rect x="498.00" y="948.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="985.00" y="948.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="45.00" y="984.00" width="4.00" height="31.00" fill="#794d96"/>
-<text x="60.00" y="997" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Reduce at the token owner</text>
-<text x="60.00" y="1014" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Gateway → source node · sum by original token</text>
-<rect x="498.00" y="988.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="985.00" y="988.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="45.00" y="1024.00" width="4.00" height="31.00" fill="#207461"/>
-<text x="60.00" y="1037" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Gate/up projections · weight gradients</text>
-<text x="60.00" y="1054" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Saved inputs × activation gradients</text>
-<rect x="498.00" y="1028.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="985.00" y="1028.00" width="445.00" height="24.00" fill="#e6e9e3"/>
-<rect x="498.00" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
-<text x="498.00" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">0</text>
-<rect x="609.25" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
-<text x="609.25" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">8</text>
-<rect x="720.50" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
-<text x="720.50" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">16</text>
-<rect x="831.75" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
-<text x="831.75" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">24</text>
-<rect x="943.00" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
-<text x="943.00" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">32</text>
-<g><title>Send the output gradient · tile 1 · 0–1 ticks</title>
-<rect x="498.00" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="504.95" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Send the output gradient · tile 2 · 1–2 ticks</title>
-<rect x="511.91" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="518.86" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Send the output gradient · tile 3 · 2–3 ticks</title>
-<rect x="525.81" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="532.77" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Send the output gradient · tile 4 · 3–4 ticks</title>
-<rect x="539.72" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="546.67" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Deliver the output gradient · tile 1 · 4–5 ticks</title>
-<rect x="553.62" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="560.58" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Deliver the output gradient · tile 2 · 5–6 ticks</title>
-<rect x="567.53" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="574.48" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Deliver the output gradient · tile 3 · 6–7 ticks</title>
-<rect x="581.44" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="588.39" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Deliver the output gradient · tile 4 · 7–8 ticks</title>
-<rect x="595.34" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="602.30" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Down projection · input gradient · tile 1 · 8–9 ticks</title>
-<rect x="609.25" y="828.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="616.20" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Down projection · input gradient · tile 2 · 9–10 ticks</title>
-<rect x="623.16" y="828.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="630.11" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Down projection · input gradient · tile 3 · 10–11 ticks</title>
-<rect x="637.06" y="828.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="644.02" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Down projection · input gradient · tile 4 · 11–12 ticks</title>
-<rect x="650.97" y="828.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="657.92" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Down projection · weight gradient · tile 1 · 12–13 ticks</title>
-<rect x="664.88" y="868.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="671.83" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Down projection · weight gradient · tile 2 · 13–14 ticks</title>
-<rect x="678.78" y="868.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="685.73" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Down projection · weight gradient · tile 3 · 14–15 ticks</title>
-<rect x="692.69" y="868.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="699.64" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Down projection · weight gradient · tile 4 · 15–16 ticks</title>
-<rect x="706.59" y="868.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="713.55" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Gate/up projections · input gradient · tile 1 · 16–17 ticks</title>
-<rect x="720.50" y="908.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="727.45" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Gate/up projections · input gradient · tile 2 · 17–18 ticks</title>
-<rect x="734.41" y="908.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="741.36" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Gate/up projections · input gradient · tile 3 · 18–19 ticks</title>
-<rect x="748.31" y="908.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="755.27" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Gate/up projections · input gradient · tile 4 · 19–20 ticks</title>
-<rect x="762.22" y="908.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="769.17" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Return the input gradient · tile 1 · 20–21 ticks</title>
-<rect x="776.12" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="783.08" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Return the input gradient · tile 2 · 21–22 ticks</title>
-<rect x="790.03" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="796.98" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Return the input gradient · tile 3 · 22–23 ticks</title>
-<rect x="803.94" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="810.89" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Return the input gradient · tile 4 · 23–24 ticks</title>
-<rect x="817.84" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="824.80" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Reduce at the token owner · tile 1 · 24–25 ticks</title>
-<rect x="831.75" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="838.70" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Reduce at the token owner · tile 2 · 25–26 ticks</title>
-<rect x="845.66" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="852.61" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Reduce at the token owner · tile 3 · 26–27 ticks</title>
-<rect x="859.56" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="866.52" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Reduce at the token owner · tile 4 · 27–28 ticks</title>
-<rect x="873.47" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="880.42" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Gate/up projections · weight gradients · tile 1 · 28–29 ticks</title>
-<rect x="887.38" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="894.33" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Gate/up projections · weight gradients · tile 2 · 29–30 ticks</title>
-<rect x="901.28" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="908.23" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Gate/up projections · weight gradients · tile 3 · 30–31 ticks</title>
-<rect x="915.19" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="922.14" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Gate/up projections · weight gradients · tile 4 · 31–32 ticks</title>
-<rect x="929.09" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="936.05" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<rect x="1012.81" y="741.00" width="27.81" height="5.00" fill="#cc9222"/>
-<rect x="1151.88" y="741.00" width="27.81" height="5.00" fill="#cc9222"/>
-<rect x="985.00" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
-<text x="985.00" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">0</text>
-<rect x="1096.25" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
-<text x="1096.25" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">8</text>
-<rect x="1207.50" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
-<text x="1207.50" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">16</text>
-<rect x="1318.75" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
-<text x="1318.75" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">24</text>
-<rect x="1430.00" y="743.00" width="0.80" height="320.00" fill="#cbd2cc"/>
-<text x="1430.00" y="1079" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">32</text>
-<g><title>Send the output gradient · tile 1 · 0–1 ticks</title>
-<rect x="985.00" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="991.95" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Deliver the output gradient · tile 1 · 1–2 ticks</title>
-<rect x="998.91" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="1005.86" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Down projection · input gradient · tile 1 · 2–3 ticks</title>
-<rect x="1012.81" y="828.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1019.77" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Send the output gradient · tile 2 · 1–2 ticks</title>
-<rect x="998.91" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="1005.86" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Deliver the output gradient · tile 2 · 2–3 ticks</title>
-<rect x="1012.81" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="1019.77" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Down projection · input gradient · tile 2 · 3–4 ticks</title>
-<rect x="1026.72" y="828.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1033.67" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Send the output gradient · tile 3 · 2–3 ticks</title>
-<rect x="1012.81" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="1019.77" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Deliver the output gradient · tile 3 · 3–4 ticks</title>
-<rect x="1026.72" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="1033.67" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Down projection · input gradient · tile 3 · 4–5 ticks</title>
-<rect x="1040.62" y="828.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1047.58" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Send the output gradient · tile 4 · 3–4 ticks</title>
-<rect x="1026.72" y="748.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="1033.67" y="765" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Deliver the output gradient · tile 4 · 4–5 ticks</title>
-<rect x="1040.62" y="788.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="1047.58" y="805" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Down projection · input gradient · tile 4 · 5–6 ticks</title>
-<rect x="1054.53" y="828.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1061.48" y="845" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Down projection · weight gradient · tile 1 · 6–7 ticks</title>
-<rect x="1068.44" y="868.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1075.39" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Down projection · weight gradient · tile 2 · 7–8 ticks</title>
-<rect x="1082.34" y="868.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1089.30" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Down projection · weight gradient · tile 3 · 8–9 ticks</title>
-<rect x="1096.25" y="868.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1103.20" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Down projection · weight gradient · tile 4 · 9–10 ticks</title>
-<rect x="1110.16" y="868.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1117.11" y="885" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Gate/up projections · input gradient · tile 1 · 10–11 ticks</title>
-<rect x="1124.06" y="908.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1131.02" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Return the input gradient · tile 1 · 11–12 ticks</title>
-<rect x="1137.97" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="1144.92" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Reduce at the token owner · tile 1 · 12–13 ticks</title>
-<rect x="1151.88" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="1158.83" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Gate/up projections · input gradient · tile 2 · 11–12 ticks</title>
-<rect x="1137.97" y="908.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1144.92" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Return the input gradient · tile 2 · 12–13 ticks</title>
-<rect x="1151.88" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="1158.83" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Reduce at the token owner · tile 2 · 13–14 ticks</title>
-<rect x="1165.78" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="1172.73" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Gate/up projections · input gradient · tile 3 · 12–13 ticks</title>
-<rect x="1151.88" y="908.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1158.83" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Return the input gradient · tile 3 · 13–14 ticks</title>
-<rect x="1165.78" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="1172.73" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Reduce at the token owner · tile 3 · 14–15 ticks</title>
-<rect x="1179.69" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="1186.64" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Gate/up projections · input gradient · tile 4 · 13–14 ticks</title>
-<rect x="1165.78" y="908.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1172.73" y="925" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Return the input gradient · tile 4 · 14–15 ticks</title>
-<rect x="1179.69" y="948.00" width="13.11" height="24.00" fill="#22649a"/>
-<text x="1186.64" y="965" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Reduce at the token owner · tile 4 · 15–16 ticks</title>
-<rect x="1193.59" y="988.00" width="13.11" height="24.00" fill="#794d96"/>
-<text x="1200.55" y="1005" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<g><title>Gate/up projections · weight gradients · tile 1 · 16–17 ticks</title>
-<rect x="1207.50" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1214.45" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
-</g>
-<g><title>Gate/up projections · weight gradients · tile 2 · 17–18 ticks</title>
-<rect x="1221.41" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1228.36" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
-</g>
-<g><title>Gate/up projections · weight gradients · tile 3 · 18–19 ticks</title>
-<rect x="1235.31" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1242.27" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
-</g>
-<g><title>Gate/up projections · weight gradients · tile 4 · 19–20 ticks</title>
-<rect x="1249.22" y="1028.00" width="13.11" height="24.00" fill="#207461"/>
-<text x="1256.17" y="1045" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
-</g>
-<text x="498.00" y="1104" font-size="14" font-weight="700" fill="#74521b" text-anchor="start">First overlap · InfiniBand carries tile 3, NVLink relays tile 2, and compute uses tile 1.</text>
-<text x="44.00" y="1130" font-size="17" font-weight="700" fill="#20333e" text-anchor="start">Read a number down the rows to follow that tile. Vertically aligned bars on different resources can overlap.</text>
-<text x="44.00" y="1158" font-size="15" font-weight="400" fill="#4a5e66" text-anchor="start">Unit ticks show dependencies. Isolated B300 probes available: none. Pending: expert compute, InfiniBand, NVLink.</text>
+<text x="1452.00" y="335" font-size="15" font-weight="400" fill="#20333e" text-anchor="end">4 token chunks  /  2 staging slots</text>
+<rect x="34.00" y="358.00" width="1432.00" height="188.00" fill="#edf2f3" rx="12" stroke="none"/>
+<text x="54.00" y="389" font-size="22" font-weight="700" fill="#20333e" text-anchor="start">A token chunk = a bundle of routed rows (the scheduler&#x27;s “tile”)</text>
+<text x="172.00" y="420" font-size="15" font-weight="700" fill="#22649a" text-anchor="middle">7,168 input channels →</text>
+<rect x="55.00" y="434.00" width="235.00" height="16.00" fill="#6994b3" rx="2" stroke="none"/>
+<rect x="55.00" y="453.00" width="235.00" height="16.00" fill="#6994b3" rx="2" stroke="none"/>
+<rect x="55.00" y="472.00" width="235.00" height="16.00" fill="#6994b3" rx="2" stroke="none"/>
+<rect x="55.00" y="491.00" width="235.00" height="16.00" fill="#6994b3" rx="2" stroke="none"/>
+<text x="302.00" y="477" font-size="14" font-weight="400" fill="#22649a" text-anchor="start">rows</text>
+<text x="55.00" y="529" font-size="14" font-weight="400" fill="#4a5e66" text-anchor="start">One row = one routed token activation</text>
+<text x="358.00" y="427" font-size="17" font-weight="700" fill="#20333e" text-anchor="start">Transfer and schedule this row bundle together.</text>
+<text x="358.00" y="455" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Its ID follows activations, outputs and input gradients.</text>
+<text x="358.00" y="483" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Example size: 128 BF16 rows = 1.75 MiB per activation hop.</text>
+<text x="358.00" y="511" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Chunk count is separate from the full sequence length.</text>
+<rect x="922.00" y="377.00" width="1.00" height="150.00" fill="#bdccd1"/>
+<text x="943.00" y="390" font-size="20" font-weight="700" fill="#20333e" text-anchor="start">GEMM tiling · fwd projection example</text>
+<rect x="945.00" y="428.00" width="21.00" height="17.00" fill="#207461" rx="2" stroke="none"/>
+<rect x="969.00" y="428.00" width="21.00" height="17.00" fill="#207461" rx="2" stroke="none"/>
+<rect x="993.00" y="428.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="1017.00" y="428.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="1041.00" y="428.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="1065.00" y="428.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="945.00" y="448.00" width="21.00" height="17.00" fill="#207461" rx="2" stroke="none"/>
+<rect x="969.00" y="448.00" width="21.00" height="17.00" fill="#207461" rx="2" stroke="none"/>
+<rect x="993.00" y="448.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="1017.00" y="448.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="1041.00" y="448.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="1065.00" y="448.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="945.00" y="468.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="969.00" y="468.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="993.00" y="468.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="1017.00" y="468.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="1041.00" y="468.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="1065.00" y="468.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="945.00" y="488.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="969.00" y="488.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="993.00" y="488.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="1017.00" y="488.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="1041.00" y="488.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<rect x="1065.00" y="488.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
+<text x="945.00" y="529" font-size="14" font-weight="400" fill="#4a5e66" text-anchor="start">Output matrix sketch</text>
+<text x="1110.00" y="426" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">M: token rows · N: output channels</text>
+<text x="1110.00" y="454" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">K: reduction channels</text>
+<text x="1110.00" y="482" font-size="15" font-weight="400" fill="#20333e" text-anchor="start">M / N / K tile sizes are selected</text>
+<text x="1110.00" y="510" font-size="15" font-weight="400" fill="#20333e" text-anchor="start">separately for tensor-core compute.</text>
+<text x="44.00" y="601" font-size="25" font-weight="700" fill="#20333e" text-anchor="start">fwd · routed block 3</text>
+<text x="498.00" y="601" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Bulk exchanges  ·  24 ticks</text>
+<text x="985.00" y="601" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Chunk-ready pipeline  ·  12 ticks</text>
+<rect x="45.00" y="622.00" width="4.00" height="31.00" fill="#794d96"/>
+<text x="60.00" y="635" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Send activation to the expert node</text>
+<text x="60.00" y="652" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Source GPU → remote gateway · token activation</text>
+<rect x="498.00" y="626.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="626.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="662.00" width="4.00" height="31.00" fill="#22649a"/>
+<text x="60.00" y="675" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Deliver the token activation</text>
+<text x="60.00" y="692" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Gateway → expert GPU · activation chunk ready</text>
+<rect x="498.00" y="666.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="666.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="702.00" width="4.00" height="31.00" fill="#207461"/>
+<text x="60.00" y="715" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Gate/up projection · Expert.w13</text>
+<text x="60.00" y="732" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Token activation × gate and up weights</text>
+<rect x="498.00" y="706.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="706.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="742.00" width="4.00" height="31.00" fill="#207461"/>
+<text x="60.00" y="755" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">SwiGLU + down projection · Expert.w2</text>
+<text x="60.00" y="772" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Hidden activation → expert output</text>
+<rect x="498.00" y="746.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="746.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="782.00" width="4.00" height="31.00" fill="#22649a"/>
+<text x="60.00" y="795" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Return the expert output</text>
+<text x="60.00" y="812" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Expert GPU → gateway · expert output chunk</text>
+<rect x="498.00" y="786.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="786.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="822.00" width="4.00" height="31.00" fill="#794d96"/>
+<text x="60.00" y="835" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Return to the token owner</text>
+<text x="60.00" y="852" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Gateway → source node · ready for weighted sum</text>
+<rect x="498.00" y="826.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="826.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="498.00" y="621.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="498.00" y="877" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">0</text>
+<rect x="609.25" y="621.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="609.25" y="877" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">6</text>
+<rect x="720.50" y="621.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="720.50" y="877" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">12</text>
+<rect x="831.75" y="621.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="831.75" y="877" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">18</text>
+<rect x="943.00" y="621.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="943.00" y="877" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">24</text>
+<g><title>Send activation to the expert node · token chunk 1 · 0–1 ticks</title>
+<rect x="498.00" y="626.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="507.27" y="643" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Send activation to the expert node · token chunk 2 · 1–2 ticks</title>
+<rect x="516.54" y="626.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="525.81" y="643" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Send activation to the expert node · token chunk 3 · 2–3 ticks</title>
+<rect x="535.08" y="626.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="544.35" y="643" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Send activation to the expert node · token chunk 4 · 3–4 ticks</title>
+<rect x="553.62" y="626.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="562.90" y="643" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Deliver the token activation · token chunk 1 · 4–5 ticks</title>
+<rect x="572.17" y="666.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="581.44" y="683" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Deliver the token activation · token chunk 2 · 5–6 ticks</title>
+<rect x="590.71" y="666.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="599.98" y="683" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Deliver the token activation · token chunk 3 · 6–7 ticks</title>
+<rect x="609.25" y="666.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="618.52" y="683" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Deliver the token activation · token chunk 4 · 7–8 ticks</title>
+<rect x="627.79" y="666.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="637.06" y="683" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Gate/up projection · Expert.w13 · token chunk 1 · 8–9 ticks</title>
+<rect x="646.33" y="706.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="655.60" y="723" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Gate/up projection · Expert.w13 · token chunk 2 · 9–10 ticks</title>
+<rect x="664.88" y="706.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="674.15" y="723" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Gate/up projection · Expert.w13 · token chunk 3 · 10–11 ticks</title>
+<rect x="683.42" y="706.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="692.69" y="723" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Gate/up projection · Expert.w13 · token chunk 4 · 11–12 ticks</title>
+<rect x="701.96" y="706.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="711.23" y="723" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>SwiGLU + down projection · Expert.w2 · token chunk 1 · 12–13 ticks</title>
+<rect x="720.50" y="746.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="729.77" y="763" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>SwiGLU + down projection · Expert.w2 · token chunk 2 · 13–14 ticks</title>
+<rect x="739.04" y="746.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="748.31" y="763" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>SwiGLU + down projection · Expert.w2 · token chunk 3 · 14–15 ticks</title>
+<rect x="757.58" y="746.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="766.85" y="763" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>SwiGLU + down projection · Expert.w2 · token chunk 4 · 15–16 ticks</title>
+<rect x="776.12" y="746.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="785.40" y="763" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Return the expert output · token chunk 1 · 16–17 ticks</title>
+<rect x="794.67" y="786.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="803.94" y="803" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Return the expert output · token chunk 2 · 17–18 ticks</title>
+<rect x="813.21" y="786.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="822.48" y="803" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Return the expert output · token chunk 3 · 18–19 ticks</title>
+<rect x="831.75" y="786.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="841.02" y="803" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Return the expert output · token chunk 4 · 19–20 ticks</title>
+<rect x="850.29" y="786.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="859.56" y="803" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Return to the token owner · token chunk 1 · 20–21 ticks</title>
+<rect x="868.83" y="826.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="878.10" y="843" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Return to the token owner · token chunk 2 · 21–22 ticks</title>
+<rect x="887.38" y="826.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="896.65" y="843" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Return to the token owner · token chunk 3 · 22–23 ticks</title>
+<rect x="905.92" y="826.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="915.19" y="843" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Return to the token owner · token chunk 4 · 23–24 ticks</title>
+<rect x="924.46" y="826.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="933.73" y="843" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<rect x="1022.08" y="619.00" width="37.08" height="5.00" fill="#cc9222"/>
+<rect x="1133.33" y="619.00" width="37.08" height="5.00" fill="#cc9222"/>
+<rect x="985.00" y="621.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="985.00" y="877" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">0</text>
+<rect x="1096.25" y="621.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="1096.25" y="877" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">6</text>
+<rect x="1207.50" y="621.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="1207.50" y="877" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">12</text>
+<rect x="1318.75" y="621.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="1318.75" y="877" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">18</text>
+<rect x="1430.00" y="621.00" width="0.80" height="240.00" fill="#cbd2cc"/>
+<text x="1430.00" y="877" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">24</text>
+<g><title>Send activation to the expert node · token chunk 1 · 0–1 ticks</title>
+<rect x="985.00" y="626.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="994.27" y="643" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Deliver the token activation · token chunk 1 · 1–2 ticks</title>
+<rect x="1003.54" y="666.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1012.81" y="683" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Gate/up projection · Expert.w13 · token chunk 1 · 2–3 ticks</title>
+<rect x="1022.08" y="706.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1031.35" y="723" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Send activation to the expert node · token chunk 2 · 1–2 ticks</title>
+<rect x="1003.54" y="626.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="1012.81" y="643" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Deliver the token activation · token chunk 2 · 2–3 ticks</title>
+<rect x="1022.08" y="666.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1031.35" y="683" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Gate/up projection · Expert.w13 · token chunk 2 · 3–4 ticks</title>
+<rect x="1040.62" y="706.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1049.90" y="723" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Send activation to the expert node · token chunk 3 · 2–3 ticks</title>
+<rect x="1022.08" y="626.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="1031.35" y="643" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Deliver the token activation · token chunk 3 · 3–4 ticks</title>
+<rect x="1040.62" y="666.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1049.90" y="683" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Gate/up projection · Expert.w13 · token chunk 3 · 4–5 ticks</title>
+<rect x="1059.17" y="706.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1068.44" y="723" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Send activation to the expert node · token chunk 4 · 3–4 ticks</title>
+<rect x="1040.62" y="626.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="1049.90" y="643" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Deliver the token activation · token chunk 4 · 4–5 ticks</title>
+<rect x="1059.17" y="666.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1068.44" y="683" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Gate/up projection · Expert.w13 · token chunk 4 · 5–6 ticks</title>
+<rect x="1077.71" y="706.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1086.98" y="723" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>SwiGLU + down projection · Expert.w2 · token chunk 1 · 6–7 ticks</title>
+<rect x="1096.25" y="746.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1105.52" y="763" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Return the expert output · token chunk 1 · 7–8 ticks</title>
+<rect x="1114.79" y="786.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1124.06" y="803" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Return to the token owner · token chunk 1 · 8–9 ticks</title>
+<rect x="1133.33" y="826.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="1142.60" y="843" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>SwiGLU + down projection · Expert.w2 · token chunk 2 · 7–8 ticks</title>
+<rect x="1114.79" y="746.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1124.06" y="763" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Return the expert output · token chunk 2 · 8–9 ticks</title>
+<rect x="1133.33" y="786.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1142.60" y="803" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Return to the token owner · token chunk 2 · 9–10 ticks</title>
+<rect x="1151.88" y="826.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="1161.15" y="843" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>SwiGLU + down projection · Expert.w2 · token chunk 3 · 8–9 ticks</title>
+<rect x="1133.33" y="746.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1142.60" y="763" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Return the expert output · token chunk 3 · 9–10 ticks</title>
+<rect x="1151.88" y="786.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1161.15" y="803" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Return to the token owner · token chunk 3 · 10–11 ticks</title>
+<rect x="1170.42" y="826.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="1179.69" y="843" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>SwiGLU + down projection · Expert.w2 · token chunk 4 · 9–10 ticks</title>
+<rect x="1151.88" y="746.00" width="17.74" height="24.00" fill="#207461"/>
+<text x="1161.15" y="763" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Return the expert output · token chunk 4 · 10–11 ticks</title>
+<rect x="1170.42" y="786.00" width="17.74" height="24.00" fill="#22649a"/>
+<text x="1179.69" y="803" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Return to the token owner · token chunk 4 · 11–12 ticks</title>
+<rect x="1188.96" y="826.00" width="17.74" height="24.00" fill="#794d96"/>
+<text x="1198.23" y="843" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<text x="498.00" y="902" font-size="14" font-weight="700" fill="#74521b" text-anchor="start">First overlap · InfiniBand carries chunk 3, NVLink relays chunk 2, and compute uses chunk 1.</text>
+<text x="44.00" y="933" font-size="25" font-weight="700" fill="#20333e" text-anchor="start">bwd · routed block 3</text>
+<text x="498.00" y="933" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Bulk exchanges  ·  32 ticks</text>
+<text x="985.00" y="933" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Chunk-ready pipeline  ·  20 ticks</text>
+<rect x="45.00" y="954.00" width="4.00" height="31.00" fill="#794d96"/>
+<text x="60.00" y="967" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Send the output gradient</text>
+<text x="60.00" y="984" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Source GPU → gateway · weighted output gradient</text>
+<rect x="498.00" y="958.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="958.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="994.00" width="4.00" height="31.00" fill="#22649a"/>
+<text x="60.00" y="1007" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Deliver the output gradient</text>
+<text x="60.00" y="1024" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Gateway → expert GPU · saved forward route</text>
+<rect x="498.00" y="998.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="998.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="1034.00" width="4.00" height="31.00" fill="#207461"/>
+<text x="60.00" y="1047" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Down projection · input gradient</text>
+<text x="60.00" y="1064" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Output gradient → hidden-activation gradient</text>
+<rect x="498.00" y="1038.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="1038.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="1074.00" width="4.00" height="31.00" fill="#207461"/>
+<text x="60.00" y="1087" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Down projection · weight gradient</text>
+<text x="60.00" y="1104" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Saved hidden activation × output gradient</text>
+<rect x="498.00" y="1078.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="1078.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="1114.00" width="4.00" height="31.00" fill="#207461"/>
+<text x="60.00" y="1127" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Gate/up projections · input gradient</text>
+<text x="60.00" y="1144" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">SwiGLU derivative → token input gradient</text>
+<rect x="498.00" y="1118.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="1118.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="1154.00" width="4.00" height="31.00" fill="#22649a"/>
+<text x="60.00" y="1167" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Return the input gradient</text>
+<text x="60.00" y="1184" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Expert GPU → gateway · token input gradient</text>
+<rect x="498.00" y="1158.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="1158.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="1194.00" width="4.00" height="31.00" fill="#794d96"/>
+<text x="60.00" y="1207" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Reduce at the token owner</text>
+<text x="60.00" y="1224" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Gateway → source node · sum by original token</text>
+<rect x="498.00" y="1198.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="1198.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="45.00" y="1234.00" width="4.00" height="31.00" fill="#207461"/>
+<text x="60.00" y="1247" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Gate/up projections · weight gradients</text>
+<text x="60.00" y="1264" font-size="13" font-weight="400" fill="#4a5e66" text-anchor="start">Saved inputs × activation gradients</text>
+<rect x="498.00" y="1238.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="985.00" y="1238.00" width="445.00" height="24.00" fill="#e6e9e3"/>
+<rect x="498.00" y="953.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="498.00" y="1289" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">0</text>
+<rect x="609.25" y="953.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="609.25" y="1289" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">8</text>
+<rect x="720.50" y="953.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="720.50" y="1289" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">16</text>
+<rect x="831.75" y="953.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="831.75" y="1289" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">24</text>
+<rect x="943.00" y="953.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="943.00" y="1289" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">32</text>
+<g><title>Send the output gradient · token chunk 1 · 0–1 ticks</title>
+<rect x="498.00" y="958.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="504.95" y="975" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Send the output gradient · token chunk 2 · 1–2 ticks</title>
+<rect x="511.91" y="958.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="518.86" y="975" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Send the output gradient · token chunk 3 · 2–3 ticks</title>
+<rect x="525.81" y="958.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="532.77" y="975" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Send the output gradient · token chunk 4 · 3–4 ticks</title>
+<rect x="539.72" y="958.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="546.67" y="975" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Deliver the output gradient · token chunk 1 · 4–5 ticks</title>
+<rect x="553.62" y="998.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="560.58" y="1015" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Deliver the output gradient · token chunk 2 · 5–6 ticks</title>
+<rect x="567.53" y="998.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="574.48" y="1015" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Deliver the output gradient · token chunk 3 · 6–7 ticks</title>
+<rect x="581.44" y="998.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="588.39" y="1015" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Deliver the output gradient · token chunk 4 · 7–8 ticks</title>
+<rect x="595.34" y="998.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="602.30" y="1015" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Down projection · input gradient · token chunk 1 · 8–9 ticks</title>
+<rect x="609.25" y="1038.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="616.20" y="1055" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Down projection · input gradient · token chunk 2 · 9–10 ticks</title>
+<rect x="623.16" y="1038.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="630.11" y="1055" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Down projection · input gradient · token chunk 3 · 10–11 ticks</title>
+<rect x="637.06" y="1038.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="644.02" y="1055" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Down projection · input gradient · token chunk 4 · 11–12 ticks</title>
+<rect x="650.97" y="1038.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="657.92" y="1055" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Down projection · weight gradient · token chunk 1 · 12–13 ticks</title>
+<rect x="664.88" y="1078.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="671.83" y="1095" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Down projection · weight gradient · token chunk 2 · 13–14 ticks</title>
+<rect x="678.78" y="1078.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="685.73" y="1095" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Down projection · weight gradient · token chunk 3 · 14–15 ticks</title>
+<rect x="692.69" y="1078.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="699.64" y="1095" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Down projection · weight gradient · token chunk 4 · 15–16 ticks</title>
+<rect x="706.59" y="1078.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="713.55" y="1095" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Gate/up projections · input gradient · token chunk 1 · 16–17 ticks</title>
+<rect x="720.50" y="1118.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="727.45" y="1135" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Gate/up projections · input gradient · token chunk 2 · 17–18 ticks</title>
+<rect x="734.41" y="1118.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="741.36" y="1135" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Gate/up projections · input gradient · token chunk 3 · 18–19 ticks</title>
+<rect x="748.31" y="1118.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="755.27" y="1135" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Gate/up projections · input gradient · token chunk 4 · 19–20 ticks</title>
+<rect x="762.22" y="1118.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="769.17" y="1135" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Return the input gradient · token chunk 1 · 20–21 ticks</title>
+<rect x="776.12" y="1158.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="783.08" y="1175" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Return the input gradient · token chunk 2 · 21–22 ticks</title>
+<rect x="790.03" y="1158.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="796.98" y="1175" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Return the input gradient · token chunk 3 · 22–23 ticks</title>
+<rect x="803.94" y="1158.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="810.89" y="1175" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Return the input gradient · token chunk 4 · 23–24 ticks</title>
+<rect x="817.84" y="1158.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="824.80" y="1175" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Reduce at the token owner · token chunk 1 · 24–25 ticks</title>
+<rect x="831.75" y="1198.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="838.70" y="1215" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Reduce at the token owner · token chunk 2 · 25–26 ticks</title>
+<rect x="845.66" y="1198.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="852.61" y="1215" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Reduce at the token owner · token chunk 3 · 26–27 ticks</title>
+<rect x="859.56" y="1198.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="866.52" y="1215" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Reduce at the token owner · token chunk 4 · 27–28 ticks</title>
+<rect x="873.47" y="1198.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="880.42" y="1215" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Gate/up projections · weight gradients · token chunk 1 · 28–29 ticks</title>
+<rect x="887.38" y="1238.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="894.33" y="1255" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Gate/up projections · weight gradients · token chunk 2 · 29–30 ticks</title>
+<rect x="901.28" y="1238.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="908.23" y="1255" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Gate/up projections · weight gradients · token chunk 3 · 30–31 ticks</title>
+<rect x="915.19" y="1238.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="922.14" y="1255" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Gate/up projections · weight gradients · token chunk 4 · 31–32 ticks</title>
+<rect x="929.09" y="1238.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="936.05" y="1255" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<rect x="1012.81" y="951.00" width="27.81" height="5.00" fill="#cc9222"/>
+<rect x="1151.88" y="951.00" width="27.81" height="5.00" fill="#cc9222"/>
+<rect x="985.00" y="953.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="985.00" y="1289" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">0</text>
+<rect x="1096.25" y="953.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="1096.25" y="1289" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">8</text>
+<rect x="1207.50" y="953.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="1207.50" y="1289" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">16</text>
+<rect x="1318.75" y="953.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="1318.75" y="1289" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">24</text>
+<rect x="1430.00" y="953.00" width="0.80" height="320.00" fill="#cbd2cc"/>
+<text x="1430.00" y="1289" font-size="12" font-weight="400" fill="#20333e" text-anchor="middle">32</text>
+<g><title>Send the output gradient · token chunk 1 · 0–1 ticks</title>
+<rect x="985.00" y="958.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="991.95" y="975" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Deliver the output gradient · token chunk 1 · 1–2 ticks</title>
+<rect x="998.91" y="998.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1005.86" y="1015" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Down projection · input gradient · token chunk 1 · 2–3 ticks</title>
+<rect x="1012.81" y="1038.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1019.77" y="1055" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Send the output gradient · token chunk 2 · 1–2 ticks</title>
+<rect x="998.91" y="958.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="1005.86" y="975" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Deliver the output gradient · token chunk 2 · 2–3 ticks</title>
+<rect x="1012.81" y="998.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1019.77" y="1015" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Down projection · input gradient · token chunk 2 · 3–4 ticks</title>
+<rect x="1026.72" y="1038.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1033.67" y="1055" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Send the output gradient · token chunk 3 · 2–3 ticks</title>
+<rect x="1012.81" y="958.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="1019.77" y="975" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Deliver the output gradient · token chunk 3 · 3–4 ticks</title>
+<rect x="1026.72" y="998.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1033.67" y="1015" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Down projection · input gradient · token chunk 3 · 4–5 ticks</title>
+<rect x="1040.62" y="1038.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1047.58" y="1055" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Send the output gradient · token chunk 4 · 3–4 ticks</title>
+<rect x="1026.72" y="958.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="1033.67" y="975" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Deliver the output gradient · token chunk 4 · 4–5 ticks</title>
+<rect x="1040.62" y="998.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1047.58" y="1015" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Down projection · input gradient · token chunk 4 · 5–6 ticks</title>
+<rect x="1054.53" y="1038.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1061.48" y="1055" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Down projection · weight gradient · token chunk 1 · 6–7 ticks</title>
+<rect x="1068.44" y="1078.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1075.39" y="1095" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Down projection · weight gradient · token chunk 2 · 7–8 ticks</title>
+<rect x="1082.34" y="1078.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1089.30" y="1095" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Down projection · weight gradient · token chunk 3 · 8–9 ticks</title>
+<rect x="1096.25" y="1078.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1103.20" y="1095" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Down projection · weight gradient · token chunk 4 · 9–10 ticks</title>
+<rect x="1110.16" y="1078.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1117.11" y="1095" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Gate/up projections · input gradient · token chunk 1 · 10–11 ticks</title>
+<rect x="1124.06" y="1118.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1131.02" y="1135" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Return the input gradient · token chunk 1 · 11–12 ticks</title>
+<rect x="1137.97" y="1158.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1144.92" y="1175" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Reduce at the token owner · token chunk 1 · 12–13 ticks</title>
+<rect x="1151.88" y="1198.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="1158.83" y="1215" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Gate/up projections · input gradient · token chunk 2 · 11–12 ticks</title>
+<rect x="1137.97" y="1118.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1144.92" y="1135" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Return the input gradient · token chunk 2 · 12–13 ticks</title>
+<rect x="1151.88" y="1158.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1158.83" y="1175" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Reduce at the token owner · token chunk 2 · 13–14 ticks</title>
+<rect x="1165.78" y="1198.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="1172.73" y="1215" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Gate/up projections · input gradient · token chunk 3 · 12–13 ticks</title>
+<rect x="1151.88" y="1118.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1158.83" y="1135" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Return the input gradient · token chunk 3 · 13–14 ticks</title>
+<rect x="1165.78" y="1158.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1172.73" y="1175" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Reduce at the token owner · token chunk 3 · 14–15 ticks</title>
+<rect x="1179.69" y="1198.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="1186.64" y="1215" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Gate/up projections · input gradient · token chunk 4 · 13–14 ticks</title>
+<rect x="1165.78" y="1118.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1172.73" y="1135" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Return the input gradient · token chunk 4 · 14–15 ticks</title>
+<rect x="1179.69" y="1158.00" width="13.11" height="24.00" fill="#22649a"/>
+<text x="1186.64" y="1175" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Reduce at the token owner · token chunk 4 · 15–16 ticks</title>
+<rect x="1193.59" y="1198.00" width="13.11" height="24.00" fill="#794d96"/>
+<text x="1200.55" y="1215" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<g><title>Gate/up projections · weight gradients · token chunk 1 · 16–17 ticks</title>
+<rect x="1207.50" y="1238.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1214.45" y="1255" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+</g>
+<g><title>Gate/up projections · weight gradients · token chunk 2 · 17–18 ticks</title>
+<rect x="1221.41" y="1238.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1228.36" y="1255" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+</g>
+<g><title>Gate/up projections · weight gradients · token chunk 3 · 18–19 ticks</title>
+<rect x="1235.31" y="1238.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1242.27" y="1255" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+</g>
+<g><title>Gate/up projections · weight gradients · token chunk 4 · 19–20 ticks</title>
+<rect x="1249.22" y="1238.00" width="13.11" height="24.00" fill="#207461"/>
+<text x="1256.17" y="1255" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+</g>
+<text x="498.00" y="1314" font-size="14" font-weight="700" fill="#74521b" text-anchor="start">First overlap · InfiniBand carries chunk 3, NVLink relays chunk 2, and compute uses chunk 1.</text>
+<text x="44.00" y="1340" font-size="17" font-weight="700" fill="#20333e" text-anchor="start">Bar numbers identify token chunks. Follow the same number down the rows as its activations, outputs and gradients move.</text>
+<text x="44.00" y="1368" font-size="15" font-weight="400" fill="#4a5e66" text-anchor="start">Unit ticks show dependencies. Isolated B300 probes available: none. Pending: expert compute, InfiniBand, NVLink.</text>
 </g></svg>

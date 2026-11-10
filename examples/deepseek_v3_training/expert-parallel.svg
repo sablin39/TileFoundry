@@ -1,127 +1,197 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1084" viewBox="0 0 1500 1084" role="img" aria-labelledby="title desc">
-<title id="title">Follow one token through expert dispatch and combine</title><desc id="desc">Eight selected experts on two destination GPUs. Rows represent token activations and expert outputs, with explicit forward and backward reductions.</desc>
-<rect width="1500" height="1084" fill="#fbfaf6"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1455" viewBox="0 0 1500 1455" role="img" aria-labelledby="title desc">
+<title id="title">One token, eight experts, one combined output</title><desc id="desc">Three expert-parallel plans follow the same token. Arrows show tensor movement, colors identify expert owners, and the source and local reductions are explicit.</desc>
+<rect width="1500" height="1455" fill="#fbfaf6"/>
 <g font-family="Arial, Helvetica, sans-serif">
-<text x="40.00" y="51" font-size="33" font-weight="700" fill="#20333e" text-anchor="start">Follow one token through expert dispatch and combine</text>
-<text x="42.00" y="82" font-size="18" font-weight="400" fill="#465e69" text-anchor="start">Top 8 selected experts · 7,168 channels · one BF16 token activation row = 14 KiB</text>
-<rect x="34.00" y="111.00" width="300.00" height="195.00" fill="#dcebf0" rx="12" stroke="none"/>
-<text x="54.00" y="146" font-size="24" font-weight="700" fill="#246984" text-anchor="start">Source GPU 0</text>
-<text x="54.00" y="175" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Node 0 · owns the input token</text>
-<text x="54.00" y="213" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">token activation</text>
-<rect x="55.00" y="230.00" width="25.00" height="30.00" fill="#246984" rx="3" stroke="none"/>
-<rect x="84.00" y="230.00" width="25.00" height="30.00" fill="#246984" rx="3" stroke="none"/>
-<rect x="113.00" y="230.00" width="25.00" height="30.00" fill="#246984" rx="3" stroke="none"/>
-<rect x="142.00" y="230.00" width="25.00" height="30.00" fill="#246984" rx="3" stroke="none"/>
-<rect x="171.00" y="230.00" width="25.00" height="30.00" fill="#246984" rx="3" stroke="none"/>
-<rect x="200.00" y="230.00" width="25.00" height="30.00" fill="#246984" rx="3" stroke="none"/>
-<rect x="229.00" y="230.00" width="25.00" height="30.00" fill="#246984" rx="3" stroke="none"/>
-<rect x="258.00" y="230.00" width="25.00" height="30.00" fill="#246984" rx="3" stroke="none"/>
-<text x="54.00" y="284" font-size="15" font-weight="400" fill="#465e69" text-anchor="start">One row before expert dispatch</text>
-<rect x="405.00" y="111.00" width="516.00" height="195.00" fill="#f4e5dc" rx="12" stroke="none"/>
-<text x="425.00" y="146" font-size="24" font-weight="700" fill="#99542f" text-anchor="start">Expert GPU 1</text>
-<text x="425.00" y="175" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Node 0 · same-node experts</text>
-<rect x="425.00" y="201.00" width="111.00" height="52.00" fill="#99542f" rx="5" stroke="none"/>
-<text x="480.00" y="233" font-size="16" font-weight="700" fill="white" text-anchor="middle">Expert 8</text>
-<rect x="546.00" y="201.00" width="111.00" height="52.00" fill="#99542f" rx="5" stroke="none"/>
-<text x="601.00" y="233" font-size="16" font-weight="700" fill="white" text-anchor="middle">Expert 9</text>
-<rect x="667.00" y="201.00" width="111.00" height="52.00" fill="#99542f" rx="5" stroke="none"/>
-<text x="722.00" y="233" font-size="16" font-weight="700" fill="white" text-anchor="middle">Expert 10</text>
-<rect x="788.00" y="201.00" width="111.00" height="52.00" fill="#99542f" rx="5" stroke="none"/>
-<text x="843.00" y="233" font-size="16" font-weight="700" fill="white" text-anchor="middle">Expert 11</text>
-<text x="425.00" y="284" font-size="16" font-weight="400" fill="#465e69" text-anchor="start">Four gate/up → SwiGLU → down computations</text>
-<rect x="950.00" y="111.00" width="516.00" height="195.00" fill="#dcece2" rx="12" stroke="none"/>
-<text x="970.00" y="146" font-size="24" font-weight="700" fill="#3a755b" text-anchor="start">Expert GPU 2</text>
-<text x="970.00" y="175" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Node 1 · remote experts</text>
-<rect x="970.00" y="201.00" width="111.00" height="52.00" fill="#3a755b" rx="5" stroke="none"/>
-<text x="1025.00" y="233" font-size="16" font-weight="700" fill="white" text-anchor="middle">Expert 20</text>
-<rect x="1091.00" y="201.00" width="111.00" height="52.00" fill="#3a755b" rx="5" stroke="none"/>
-<text x="1146.00" y="233" font-size="16" font-weight="700" fill="white" text-anchor="middle">Expert 21</text>
-<rect x="1212.00" y="201.00" width="111.00" height="52.00" fill="#3a755b" rx="5" stroke="none"/>
-<text x="1267.00" y="233" font-size="16" font-weight="700" fill="white" text-anchor="middle">Expert 22</text>
-<rect x="1333.00" y="201.00" width="111.00" height="52.00" fill="#3a755b" rx="5" stroke="none"/>
-<text x="1388.00" y="233" font-size="16" font-weight="700" fill="white" text-anchor="middle">Expert 23</text>
-<text x="970.00" y="284" font-size="16" font-weight="400" fill="#465e69" text-anchor="start">Four gate/up → SwiGLU → down computations</text>
-<path d="M 339.00,210.00 L 395.00,210.00" fill="none" stroke="#99542f" stroke-width="2" stroke-linejoin="round"/>
-<polygon points="395.00,210.00 386.00,214.35 386.00,205.65" fill="#99542f"/>
-<path d="M 362.00,210.00 L 362.00,100.00 L 932.00,100.00 L 932.00,210.00 L 946.00,210.00" fill="none" stroke="#3a755b" stroke-width="2" stroke-linejoin="round"/>
-<polygon points="946.00,210.00 937.00,214.35 937.00,205.65" fill="#3a755b"/>
-<text x="42.00" y="342" font-size="18" font-weight="400" fill="#465e69" text-anchor="start">Each box below is one activation or output row. Its label identifies the destination or contributing GPU.</text>
-<text x="43.00" y="385" font-size="17" font-weight="700" fill="#20333e" text-anchor="start">Protocol</text>
-<text x="262.00" y="385" font-size="17" font-weight="700" fill="#20333e" text-anchor="start">fwd · token activation dispatch</text>
-<text x="750.00" y="385" font-size="17" font-weight="700" fill="#20333e" text-anchor="start">fwd · expert output combine</text>
-<text x="1240.00" y="385" font-size="17" font-weight="700" fill="#20333e" text-anchor="start">Payload / direction</text>
-<rect x="40.00" y="405.00" width="1420.00" height="1.00" fill="#ced8d5"/>
-<text x="44.00" y="445" font-size="21" font-weight="700" fill="#20333e" text-anchor="start">Naive EP</text>
-<text x="44.00" y="472" font-size="14" font-weight="400" fill="#465e69" text-anchor="start">Per-assignment exchange</text>
-<rect x="40.00" y="533.00" width="1420.00" height="1.00" fill="#ced8d5"/>
-<text x="44.00" y="573" font-size="21" font-weight="700" fill="#20333e" text-anchor="start">Compact DeepEP</text>
-<text x="44.00" y="600" font-size="14" font-weight="400" fill="#465e69" text-anchor="start">Per-destination exchange</text>
-<rect x="40.00" y="661.00" width="1420.00" height="1.00" fill="#ced8d5"/>
-<text x="44.00" y="701" font-size="21" font-weight="700" fill="#20333e" text-anchor="start">Dist-MoE style</text>
-<text x="44.00" y="728" font-size="14" font-weight="400" fill="#465e69" text-anchor="start">Peer-addressed expert tiles</text>
-<rect x="262.00" y="421.00" width="49.00" height="35.00" fill="#99542f" rx="4" stroke="none"/>
-<text x="286.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 1</text>
-<rect x="316.00" y="421.00" width="49.00" height="35.00" fill="#99542f" rx="4" stroke="none"/>
-<text x="340.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 1</text>
-<rect x="370.00" y="421.00" width="49.00" height="35.00" fill="#99542f" rx="4" stroke="none"/>
-<text x="394.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 1</text>
-<rect x="424.00" y="421.00" width="49.00" height="35.00" fill="#99542f" rx="4" stroke="none"/>
-<text x="448.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 1</text>
-<rect x="478.00" y="421.00" width="49.00" height="35.00" fill="#3a755b" rx="4" stroke="none"/>
-<text x="502.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 2</text>
-<rect x="532.00" y="421.00" width="49.00" height="35.00" fill="#3a755b" rx="4" stroke="none"/>
-<text x="556.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 2</text>
-<rect x="586.00" y="421.00" width="49.00" height="35.00" fill="#3a755b" rx="4" stroke="none"/>
-<text x="610.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 2</text>
-<rect x="640.00" y="421.00" width="49.00" height="35.00" fill="#3a755b" rx="4" stroke="none"/>
-<text x="664.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 2</text>
-<rect x="750.00" y="421.00" width="49.00" height="35.00" fill="#99542f" rx="4" stroke="none"/>
-<text x="774.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 1</text>
-<rect x="804.00" y="421.00" width="49.00" height="35.00" fill="#99542f" rx="4" stroke="none"/>
-<text x="828.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 1</text>
-<rect x="858.00" y="421.00" width="49.00" height="35.00" fill="#99542f" rx="4" stroke="none"/>
-<text x="882.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 1</text>
-<rect x="912.00" y="421.00" width="49.00" height="35.00" fill="#99542f" rx="4" stroke="none"/>
-<text x="936.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 1</text>
-<rect x="966.00" y="421.00" width="49.00" height="35.00" fill="#3a755b" rx="4" stroke="none"/>
-<text x="990.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 2</text>
-<rect x="1020.00" y="421.00" width="49.00" height="35.00" fill="#3a755b" rx="4" stroke="none"/>
-<text x="1044.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 2</text>
-<rect x="1074.00" y="421.00" width="49.00" height="35.00" fill="#3a755b" rx="4" stroke="none"/>
-<text x="1098.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 2</text>
-<rect x="1128.00" y="421.00" width="49.00" height="35.00" fill="#3a755b" rx="4" stroke="none"/>
-<text x="1152.50" y="444" font-size="12" font-weight="700" fill="white" text-anchor="middle">GPU 2</text>
-<text x="262.00" y="479" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">One activation row for each selected expert.</text>
-<text x="750.00" y="479" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Source GPU 0 weights and sums eight outputs.</text>
-<text x="1240.00" y="447" font-size="23" font-weight="700" fill="#20333e" text-anchor="start">112 KiB</text>
-<text x="1240.00" y="478" font-size="16" font-weight="400" fill="#465e69" text-anchor="start">8 activation rows</text>
-<rect x="262.00" y="549.00" width="82.00" height="35.00" fill="#99542f" rx="4" stroke="none"/>
-<text x="303.00" y="572" font-size="15" font-weight="700" fill="white" text-anchor="middle">GPU 1</text>
-<rect x="349.00" y="549.00" width="82.00" height="35.00" fill="#3a755b" rx="4" stroke="none"/>
-<text x="390.00" y="572" font-size="15" font-weight="700" fill="white" text-anchor="middle">GPU 2</text>
-<rect x="750.00" y="549.00" width="82.00" height="35.00" fill="#99542f" rx="4" stroke="none"/>
-<text x="791.00" y="572" font-size="15" font-weight="700" fill="white" text-anchor="middle">GPU 1</text>
-<rect x="837.00" y="549.00" width="82.00" height="35.00" fill="#3a755b" rx="4" stroke="none"/>
-<text x="878.00" y="572" font-size="15" font-weight="700" fill="white" text-anchor="middle">GPU 2</text>
-<text x="262.00" y="607" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Two rows fan out locally to eight expert computations.</text>
-<text x="750.00" y="607" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Each expert GPU weights and combines its outputs.</text>
-<text x="1240.00" y="575" font-size="23" font-weight="700" fill="#20333e" text-anchor="start">28 KiB</text>
-<text x="1240.00" y="606" font-size="16" font-weight="400" fill="#465e69" text-anchor="start">2 activation rows</text>
-<rect x="262.00" y="676.00" width="250.00" height="38.00" fill="#dcebf0" rx="5" stroke="none"/>
-<text x="387.00" y="701" font-size="15" font-weight="700" fill="#246984" text-anchor="middle">Source GPU 0 publishes the row</text>
-<text x="262.00" y="735" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Gate/up projection gathers each tile by source address.</text>
-<text x="750.00" y="700" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Down projection writes to each original token slot.</text>
-<text x="750.00" y="735" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Source GPU 0 weights and sums the completed outputs.</text>
-<text x="1240.00" y="700" font-size="18" font-weight="700" fill="#20333e" text-anchor="start">8 addressed reads</text>
-<text x="1240.00" y="733" font-size="17" font-weight="400" fill="#465e69" text-anchor="start">8 output writes</text>
-<rect x="34.00" y="779.00" width="1432.00" height="222.00" fill="#eff3ef" rx="12" stroke="none"/>
-<text x="54.00" y="816" font-size="24" font-weight="700" fill="#20333e" text-anchor="start">bwd · output gradients travel out and input gradients return</text>
-<text x="54.00" y="854" font-size="18" font-weight="700" fill="#20333e" text-anchor="start">Naive / peer</text>
-<text x="233.00" y="854" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">Source GPU 0 weights an output gradient per expert slot, then sums the returning input gradients.</text>
-<text x="54.00" y="892" font-size="18" font-weight="700" fill="#20333e" text-anchor="start">Compact</text>
-<text x="233.00" y="892" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">Each destination receives one output gradient, weights its expert slots and sums their input gradients locally.</text>
-<text x="233.00" y="924" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">Selected-score gradients also return to the source GPU.</text>
-<text x="54.00" y="970" font-size="18" font-weight="700" fill="#465e69" text-anchor="start">Expert owners accumulate the gate/up and down weight gradients in every plan.</text>
-<text x="40.00" y="1040" font-size="16" font-weight="400" fill="#465e69" text-anchor="start">Payloads count activation data in one direction. Scores, indices and protocol overhead need separate accounting.</text>
-<text x="40.00" y="1064" font-size="16" font-weight="400" fill="#465e69" text-anchor="start">Peer reads and writes count logical accesses. Their physical traffic depends on the implementation and fabric.</text>
+<text x="40.00" y="51" font-size="34" font-weight="700" fill="#20333e" text-anchor="start">One token → eight experts → one combined output</text>
+<text x="42.00" y="83" font-size="18" font-weight="400" fill="#465e69" text-anchor="start">One BF16 row = 7,168 channels = 14 KiB. All three plans execute the same eight expert MLPs.</text>
+<rect x="34.00" y="110.00" width="310.00" height="142.00" fill="#dcebf0" rx="10" stroke="none"/>
+<text x="54.00" y="143" font-size="22" font-weight="700" fill="#246984" text-anchor="start">Source GPU 0 · node 0</text>
+<text x="54.00" y="174" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">Owns this token before dispatch</text>
+<text x="54.00" y="201" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">and after the outputs combine.</text>
+<text x="54.00" y="231" font-size="15" font-weight="400" fill="#465e69" text-anchor="start">Each small bar below = one full row.</text>
+<rect x="367.00" y="110.00" width="538.00" height="142.00" fill="#f4e5dc" rx="10" stroke="none"/>
+<text x="387.00" y="143" font-size="22" font-weight="700" fill="#99542f" text-anchor="start">Expert GPU 1 · node 0</text>
+<rect x="387.00" y="161.00" width="117.00" height="39.00" fill="#99542f" rx="5" stroke="none"/>
+<text x="445.00" y="187" font-size="17" font-weight="700" fill="white" text-anchor="middle">Expert 8</text>
+<rect x="513.00" y="161.00" width="117.00" height="39.00" fill="#99542f" rx="5" stroke="none"/>
+<text x="571.00" y="187" font-size="17" font-weight="700" fill="white" text-anchor="middle">Expert 9</text>
+<rect x="639.00" y="161.00" width="117.00" height="39.00" fill="#99542f" rx="5" stroke="none"/>
+<text x="697.00" y="187" font-size="17" font-weight="700" fill="white" text-anchor="middle">Expert 10</text>
+<rect x="765.00" y="161.00" width="117.00" height="39.00" fill="#99542f" rx="5" stroke="none"/>
+<text x="823.00" y="187" font-size="17" font-weight="700" fill="white" text-anchor="middle">Expert 11</text>
+<text x="387.00" y="231" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Each MLP: gate/up projection → SwiGLU → down projection</text>
+<rect x="928.00" y="110.00" width="538.00" height="142.00" fill="#dcece2" rx="10" stroke="none"/>
+<text x="948.00" y="143" font-size="22" font-weight="700" fill="#3a755b" text-anchor="start">Expert GPU 2 · node 1</text>
+<rect x="948.00" y="161.00" width="117.00" height="39.00" fill="#3a755b" rx="5" stroke="none"/>
+<text x="1006.00" y="187" font-size="17" font-weight="700" fill="white" text-anchor="middle">Expert 20</text>
+<rect x="1074.00" y="161.00" width="117.00" height="39.00" fill="#3a755b" rx="5" stroke="none"/>
+<text x="1132.00" y="187" font-size="17" font-weight="700" fill="white" text-anchor="middle">Expert 21</text>
+<rect x="1200.00" y="161.00" width="117.00" height="39.00" fill="#3a755b" rx="5" stroke="none"/>
+<text x="1258.00" y="187" font-size="17" font-weight="700" fill="white" text-anchor="middle">Expert 22</text>
+<rect x="1326.00" y="161.00" width="117.00" height="39.00" fill="#3a755b" rx="5" stroke="none"/>
+<text x="1384.00" y="187" font-size="17" font-weight="700" fill="white" text-anchor="middle">Expert 23</text>
+<text x="948.00" y="231" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Each MLP: gate/up projection → SwiGLU → down projection</text>
+<text x="42.00" y="284" font-size="17" font-weight="400" fill="#465e69" text-anchor="start">Read each fwd path left → right. The left and right blue boxes are the same source GPU. Colors identify the two expert owners.</text>
+<rect x="34.00" y="304.00" width="1432.00" height="335.00" fill="#eff3ef" rx="12" stroke="none"/>
+<text x="54.00" y="338" font-size="24" font-weight="700" fill="#20333e" text-anchor="start">Naive EP · one transfer row per expert</text>
+<text x="1446.00" y="338" font-size="17" font-weight="700" fill="#465e69" text-anchor="end">Dispatch 112 KiB + return 112 KiB</text>
+<text x="385.00" y="374" font-size="17" font-weight="700" fill="#465e69" text-anchor="middle">fwd · dispatch</text>
+<text x="738.00" y="374" font-size="17" font-weight="700" fill="#465e69" text-anchor="middle">expert compute</text>
+<text x="1100.00" y="374" font-size="17" font-weight="700" fill="#465e69" text-anchor="middle">fwd · return</text>
+<rect x="54.00" y="401.00" width="191.00" height="154.00" fill="#dcebf0" rx="9" stroke="#a8c4ce"/>
+<text x="149.00" y="429" font-size="19" font-weight="700" fill="#246984" text-anchor="middle">Source GPU 0</text>
+<rect x="1255.00" y="401.00" width="191.00" height="154.00" fill="#dcebf0" rx="9" stroke="#a8c4ce"/>
+<text x="1350.00" y="429" font-size="19" font-weight="700" fill="#246984" text-anchor="middle">Source GPU 0</text>
+<text x="149.00" y="465" font-size="18" font-weight="700" fill="#20333e" text-anchor="middle">Token activation</text>
+<text x="149.00" y="492" font-size="18" font-weight="400" fill="#20333e" text-anchor="middle">1 full row</text>
+<rect x="130.50" y="510.00" width="37.00" height="9.00" fill="#246984" rx="3" stroke="none"/>
+<text x="1350.00" y="463" font-size="18" font-weight="700" fill="#20333e" text-anchor="middle">Weight + sum</text>
+<text x="1350.00" y="491" font-size="18" font-weight="400" fill="#20333e" text-anchor="middle">8 rows → 1 row</text>
+<text x="1350.00" y="530" font-size="16" font-weight="700" fill="#246984" text-anchor="middle">Combined output</text>
+<path d="M 249.00,477.00 L 267.00,477.00 L 267.00,435.00 L 508.00,435.00" fill="none" stroke="#99542f" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="508.00,435.00 499.00,439.35 499.00,430.65" fill="#99542f"/>
+<text x="387.00" y="423" font-size="17" font-weight="700" fill="#99542f" text-anchor="middle">4 activation copies</text>
+<rect x="304.00" y="447.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<rect x="347.00" y="447.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<rect x="390.00" y="447.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<rect x="433.00" y="447.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<rect x="520.00" y="403.00" width="435.00" height="64.00" fill="#f4e5dc" rx="7" stroke="none"/>
+<text x="537.00" y="430" font-size="19" font-weight="700" fill="#99542f" text-anchor="start">GPU 1 · experts 8–11</text>
+<text x="537.00" y="456" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">4 MLPs → 4 separate expert outputs</text>
+<path d="M 966.00,435.00 L 1236.00,435.00" fill="none" stroke="#99542f" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="1236.00,435.00 1227.00,439.35 1227.00,430.65" fill="#99542f"/>
+<text x="1100.00" y="423" font-size="17" font-weight="700" fill="#99542f" text-anchor="middle">4 expert outputs</text>
+<rect x="1017.00" y="447.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<rect x="1060.00" y="447.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<rect x="1103.00" y="447.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<rect x="1146.00" y="447.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<path d="M 1237.00,435.00 L 1246.00,435.00 L 1246.00,477.00 L 1253.00,477.00" fill="none" stroke="#99542f" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="1253.00,477.00 1244.00,481.35 1244.00,472.65" fill="#99542f"/>
+<path d="M 249.00,477.00 L 267.00,477.00 L 267.00,519.00 L 508.00,519.00" fill="none" stroke="#3a755b" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="508.00,519.00 499.00,523.35 499.00,514.65" fill="#3a755b"/>
+<text x="387.00" y="507" font-size="17" font-weight="700" fill="#3a755b" text-anchor="middle">4 activation copies</text>
+<rect x="304.00" y="531.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<rect x="347.00" y="531.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<rect x="390.00" y="531.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<rect x="433.00" y="531.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<rect x="520.00" y="487.00" width="435.00" height="64.00" fill="#dcece2" rx="7" stroke="none"/>
+<text x="537.00" y="514" font-size="19" font-weight="700" fill="#3a755b" text-anchor="start">GPU 2 · experts 20–23</text>
+<text x="537.00" y="540" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">4 MLPs → 4 separate expert outputs</text>
+<path d="M 966.00,519.00 L 1236.00,519.00" fill="none" stroke="#3a755b" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="1236.00,519.00 1227.00,523.35 1227.00,514.65" fill="#3a755b"/>
+<text x="1100.00" y="507" font-size="17" font-weight="700" fill="#3a755b" text-anchor="middle">4 expert outputs</text>
+<rect x="1017.00" y="531.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<rect x="1060.00" y="531.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<rect x="1103.00" y="531.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<rect x="1146.00" y="531.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<path d="M 1237.00,519.00 L 1246.00,519.00 L 1246.00,477.00 L 1253.00,477.00" fill="none" stroke="#3a755b" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="1253.00,477.00 1244.00,481.35 1244.00,472.65" fill="#3a755b"/>
+<text x="54.00" y="588" font-size="18" font-weight="700" fill="#20333e" text-anchor="start">bwd</text>
+<text x="110.00" y="588" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Source sends 8 weighted output-gradient rows. Experts return 8 input-gradient contributions; source sums them.</text>
+<text x="110.00" y="616" font-size="15" font-weight="400" fill="#465e69" text-anchor="start">The source computes each selected-score gradient from its saved expert output.</text>
+<rect x="34.00" y="655.00" width="1432.00" height="335.00" fill="#eff3ef" rx="12" stroke="none"/>
+<text x="54.00" y="689" font-size="24" font-weight="700" fill="#20333e" text-anchor="start">Compact DeepEP · one transfer row per destination GPU</text>
+<text x="1446.00" y="689" font-size="17" font-weight="700" fill="#465e69" text-anchor="end">Dispatch 28 KiB + return 28 KiB</text>
+<text x="385.00" y="725" font-size="17" font-weight="700" fill="#465e69" text-anchor="middle">fwd · dispatch</text>
+<text x="738.00" y="725" font-size="17" font-weight="700" fill="#465e69" text-anchor="middle">expert compute</text>
+<text x="1100.00" y="725" font-size="17" font-weight="700" fill="#465e69" text-anchor="middle">fwd · return</text>
+<rect x="54.00" y="752.00" width="191.00" height="154.00" fill="#dcebf0" rx="9" stroke="#a8c4ce"/>
+<text x="149.00" y="780" font-size="19" font-weight="700" fill="#246984" text-anchor="middle">Source GPU 0</text>
+<rect x="1255.00" y="752.00" width="191.00" height="154.00" fill="#dcebf0" rx="9" stroke="#a8c4ce"/>
+<text x="1350.00" y="780" font-size="19" font-weight="700" fill="#246984" text-anchor="middle">Source GPU 0</text>
+<text x="149.00" y="816" font-size="18" font-weight="700" fill="#20333e" text-anchor="middle">Token activation</text>
+<text x="149.00" y="843" font-size="18" font-weight="400" fill="#20333e" text-anchor="middle">1 full row</text>
+<rect x="130.50" y="861.00" width="37.00" height="9.00" fill="#246984" rx="3" stroke="none"/>
+<text x="1350.00" y="814" font-size="18" font-weight="700" fill="#20333e" text-anchor="middle">Sum owner partials</text>
+<text x="1350.00" y="842" font-size="18" font-weight="400" fill="#20333e" text-anchor="middle">2 rows → 1 row</text>
+<text x="1350.00" y="881" font-size="16" font-weight="700" fill="#246984" text-anchor="middle">Combined output</text>
+<path d="M 249.00,828.00 L 267.00,828.00 L 267.00,786.00 L 508.00,786.00" fill="none" stroke="#99542f" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="508.00,786.00 499.00,790.35 499.00,781.65" fill="#99542f"/>
+<text x="387.00" y="774" font-size="17" font-weight="700" fill="#99542f" text-anchor="middle">1 activation row</text>
+<rect x="368.50" y="798.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<rect x="520.00" y="754.00" width="435.00" height="64.00" fill="#f4e5dc" rx="7" stroke="none"/>
+<text x="537.00" y="781" font-size="19" font-weight="700" fill="#99542f" text-anchor="start">GPU 1 · experts 8–11</text>
+<text x="537.00" y="807" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">Fan out → 4 MLPs → weight + sum locally</text>
+<path d="M 966.00,786.00 L 1236.00,786.00" fill="none" stroke="#99542f" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="1236.00,786.00 1227.00,790.35 1227.00,781.65" fill="#99542f"/>
+<text x="1100.00" y="774" font-size="17" font-weight="700" fill="#99542f" text-anchor="middle">1 weighted partial sum</text>
+<rect x="1081.50" y="798.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<path d="M 1237.00,786.00 L 1246.00,786.00 L 1246.00,828.00 L 1253.00,828.00" fill="none" stroke="#99542f" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="1253.00,828.00 1244.00,832.35 1244.00,823.65" fill="#99542f"/>
+<path d="M 249.00,828.00 L 267.00,828.00 L 267.00,870.00 L 508.00,870.00" fill="none" stroke="#3a755b" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="508.00,870.00 499.00,874.35 499.00,865.65" fill="#3a755b"/>
+<text x="387.00" y="858" font-size="17" font-weight="700" fill="#3a755b" text-anchor="middle">1 activation row</text>
+<rect x="368.50" y="882.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<rect x="520.00" y="838.00" width="435.00" height="64.00" fill="#dcece2" rx="7" stroke="none"/>
+<text x="537.00" y="865" font-size="19" font-weight="700" fill="#3a755b" text-anchor="start">GPU 2 · experts 20–23</text>
+<text x="537.00" y="891" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">Fan out → 4 MLPs → weight + sum locally</text>
+<path d="M 966.00,870.00 L 1236.00,870.00" fill="none" stroke="#3a755b" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="1236.00,870.00 1227.00,874.35 1227.00,865.65" fill="#3a755b"/>
+<text x="1100.00" y="858" font-size="17" font-weight="700" fill="#3a755b" text-anchor="middle">1 weighted partial sum</text>
+<rect x="1081.50" y="882.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<path d="M 1237.00,870.00 L 1246.00,870.00 L 1246.00,828.00 L 1253.00,828.00" fill="none" stroke="#3a755b" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="1253.00,828.00 1244.00,832.35 1244.00,823.65" fill="#3a755b"/>
+<text x="54.00" y="939" font-size="18" font-weight="700" fill="#20333e" text-anchor="start">bwd</text>
+<text x="110.00" y="939" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Source sends 2 output-gradient rows. Each owner weights its 4 expert gradients and sums their input gradients.</text>
+<text x="110.00" y="967" font-size="15" font-weight="400" fill="#465e69" text-anchor="start">Owners return 2 input-gradient rows for the source to sum, plus the individual selected-score gradients.</text>
+<rect x="34.00" y="1006.00" width="1432.00" height="335.00" fill="#eff3ef" rx="12" stroke="none"/>
+<text x="54.00" y="1040" font-size="24" font-weight="700" fill="#20333e" text-anchor="start">Dist-MoE-style peer access · address rows at their source</text>
+<text x="1446.00" y="1040" font-size="17" font-weight="700" fill="#465e69" text-anchor="end">8 input-row reads + 8 output-slot writes</text>
+<text x="385.00" y="1076" font-size="17" font-weight="700" fill="#465e69" text-anchor="middle">fwd · read during compute</text>
+<text x="738.00" y="1076" font-size="17" font-weight="700" fill="#465e69" text-anchor="middle">expert compute</text>
+<text x="1100.00" y="1076" font-size="17" font-weight="700" fill="#465e69" text-anchor="middle">fwd · write during compute</text>
+<rect x="54.00" y="1103.00" width="191.00" height="154.00" fill="#dcebf0" rx="9" stroke="#a8c4ce"/>
+<text x="149.00" y="1131" font-size="19" font-weight="700" fill="#246984" text-anchor="middle">Source GPU 0</text>
+<rect x="1255.00" y="1103.00" width="191.00" height="154.00" fill="#dcebf0" rx="9" stroke="#a8c4ce"/>
+<text x="1350.00" y="1131" font-size="19" font-weight="700" fill="#246984" text-anchor="middle">Source GPU 0</text>
+<text x="149.00" y="1167" font-size="18" font-weight="700" fill="#20333e" text-anchor="middle">Published input</text>
+<text x="149.00" y="1194" font-size="18" font-weight="400" fill="#20333e" text-anchor="middle">1 full row</text>
+<rect x="130.50" y="1212.00" width="37.00" height="9.00" fill="#246984" rx="3" stroke="none"/>
+<text x="1350.00" y="1165" font-size="18" font-weight="700" fill="#20333e" text-anchor="middle">Weight + sum</text>
+<text x="1350.00" y="1193" font-size="18" font-weight="400" fill="#20333e" text-anchor="middle">8 rows → 1 row</text>
+<text x="1350.00" y="1232" font-size="16" font-weight="700" fill="#246984" text-anchor="middle">Combined output</text>
+<path d="M 249.00,1179.00 L 267.00,1179.00 L 267.00,1137.00 L 508.00,1137.00" fill="none" stroke="#99542f" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="508.00,1137.00 499.00,1141.35 499.00,1132.65" fill="#99542f"/>
+<text x="387.00" y="1125" font-size="17" font-weight="700" fill="#99542f" text-anchor="middle">4 addressed reads</text>
+<rect x="304.00" y="1149.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<rect x="347.00" y="1149.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<rect x="390.00" y="1149.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<rect x="433.00" y="1149.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<rect x="520.00" y="1105.00" width="435.00" height="64.00" fill="#f4e5dc" rx="7" stroke="none"/>
+<text x="537.00" y="1132" font-size="19" font-weight="700" fill="#99542f" text-anchor="start">GPU 1 · experts 8–11</text>
+<text x="537.00" y="1158" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">4 MLPs · read/write source addresses</text>
+<path d="M 966.00,1137.00 L 1236.00,1137.00" fill="none" stroke="#99542f" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="1236.00,1137.00 1227.00,1141.35 1227.00,1132.65" fill="#99542f"/>
+<text x="1100.00" y="1125" font-size="17" font-weight="700" fill="#99542f" text-anchor="middle">4 output-slot writes</text>
+<rect x="1017.00" y="1149.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<rect x="1060.00" y="1149.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<rect x="1103.00" y="1149.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<rect x="1146.00" y="1149.00" width="37.00" height="9.00" fill="#99542f" rx="3" stroke="none"/>
+<path d="M 1237.00,1137.00 L 1246.00,1137.00 L 1246.00,1179.00 L 1253.00,1179.00" fill="none" stroke="#99542f" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="1253.00,1179.00 1244.00,1183.35 1244.00,1174.65" fill="#99542f"/>
+<path d="M 249.00,1179.00 L 267.00,1179.00 L 267.00,1221.00 L 508.00,1221.00" fill="none" stroke="#3a755b" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="508.00,1221.00 499.00,1225.35 499.00,1216.65" fill="#3a755b"/>
+<text x="387.00" y="1209" font-size="17" font-weight="700" fill="#3a755b" text-anchor="middle">4 addressed reads</text>
+<rect x="304.00" y="1233.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<rect x="347.00" y="1233.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<rect x="390.00" y="1233.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<rect x="433.00" y="1233.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<rect x="520.00" y="1189.00" width="435.00" height="64.00" fill="#dcece2" rx="7" stroke="none"/>
+<text x="537.00" y="1216" font-size="19" font-weight="700" fill="#3a755b" text-anchor="start">GPU 2 · experts 20–23</text>
+<text x="537.00" y="1242" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">4 MLPs · read/write source addresses</text>
+<path d="M 966.00,1221.00 L 1236.00,1221.00" fill="none" stroke="#3a755b" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="1236.00,1221.00 1227.00,1225.35 1227.00,1216.65" fill="#3a755b"/>
+<text x="1100.00" y="1209" font-size="17" font-weight="700" fill="#3a755b" text-anchor="middle">4 output-slot writes</text>
+<rect x="1017.00" y="1233.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<rect x="1060.00" y="1233.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<rect x="1103.00" y="1233.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<rect x="1146.00" y="1233.00" width="37.00" height="9.00" fill="#3a755b" rx="3" stroke="none"/>
+<path d="M 1237.00,1221.00 L 1246.00,1221.00 L 1246.00,1179.00 L 1253.00,1179.00" fill="none" stroke="#3a755b" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="1253.00,1179.00 1244.00,1183.35 1244.00,1174.65" fill="#3a755b"/>
+<text x="54.00" y="1290" font-size="18" font-weight="700" fill="#20333e" text-anchor="start">bwd</text>
+<text x="110.00" y="1290" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Experts read 8 weighted output-gradient rows by address and write 8 input-gradient slots for the source to sum.</text>
+<text x="110.00" y="1318" font-size="15" font-weight="400" fill="#465e69" text-anchor="start">The source computes selected-score gradients. Reads and writes are logical accesses; physical traffic depends on the implementation.</text>
+<text x="40.00" y="1381" font-size="18" font-weight="700" fill="#20333e" text-anchor="start">Expert owners accumulate the gate/up and down weight gradients in every plan.</text>
+<text x="40.00" y="1410" font-size="16" font-weight="400" fill="#465e69" text-anchor="start">Payloads sum both destination GPUs for this token. Counts cover activation / output data; scores, indices and protocol overhead are additional.</text>
+<text x="40.00" y="1437" font-size="16" font-weight="400" fill="#465e69" text-anchor="start">The pipeline figures group many routed rows into token chunks; this comparison follows just one token.</text>
 </g></svg>
