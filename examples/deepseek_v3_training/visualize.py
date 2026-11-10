@@ -12,6 +12,7 @@ from workload import BLOCKS, CONTEXT, EXPERT, HIDDEN, PASSES, TOP_K, trace
 
 INK, PAPER = "#20333e", "#fbfaf6"
 COLOR = {"IB": "#794d96", "NVLink": "#22649a", "Compute": "#207461"}
+PROBE_LABELS = {"ib": "InfiniBand", "nvlink": "NVLink", "compute": "expert compute"}
 PROBES = {
     "compute": {"gate_up", "down", "down_input", "down_weight", "up_input", "up_weight"},
     "ib": {"ib_out", "ib_back"},
@@ -162,10 +163,27 @@ class SVG:
             f'fill="{color}" text-anchor="{anchor}">{escape(str(value))}</text>'
         )
 
-    def box(self, x, y, w, h, color):
+    def box(self, x, y, w, h, color, radius=0, stroke="none"):
+        style = f' rx="{radius}" stroke="{stroke}"' if radius or stroke != "none" else ""
         self.items.append(
-            f'<rect x="{x:.2f}" y="{y:.2f}" width="{w:.2f}" height="{h:.2f}" fill="{color}"/>'
+            f'<rect x="{x:.2f}" y="{y:.2f}" width="{w:.2f}" height="{h:.2f}" fill="{color}"{style}/>'
         )
+
+    def arrow(self, points, color, width=2, dashed=False):
+        path = "M " + " L ".join(f"{x:.2f},{y:.2f}" for x, y in points)
+        dash = ' stroke-dasharray="5 5"' if dashed else ""
+        self.items.append(
+            f'<path d="{path}" fill="none" stroke="{color}" stroke-width="{width}" '
+            f'stroke-linejoin="round"{dash}/>'
+        )
+        (prev_x, prev_y), (x, y) = points[-2:]
+        angle = math.atan2(y - prev_y, x - prev_x)
+        wings = [
+            (x - 10 * math.cos(angle + turn), y - 10 * math.sin(angle + turn))
+            for turn in (-0.45, 0.45)
+        ]
+        vertices = " ".join(f"{a:.2f},{b:.2f}" for a, b in [(x, y), *wings])
+        self.items.append(f'<polygon points="{vertices}" fill="{color}"/>')
 
     def save(self, path):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -188,14 +206,14 @@ def backbone(svg, layer):
             svg.box(x - 1, 166, step, 4, "#a04c2e")
         svg.items.append("</g>")
     svg.text(1027, 162, "→  Final norm  →  LM head  →  Cross-entropy", 17, 700)
-    svg.text(58, 193, "Forward", 15, 700)
+    svg.text(58, 193, "fwd", 15, 700)
     svg.text(
         155,
         193,
         "0–2: MLA + dense FFN     ·     3–60: MLA + one shared expert and 8 of 256 routed experts",
         16,
     )
-    svg.text(58, 218, "Backward", 15, 700)
+    svg.text(58, 218, "bwd", 15, 700)
     svg.text(
         155,
         218,
@@ -217,7 +235,8 @@ def panel(svg, phase, y, layer, tiles, slots, samples, complete, captures, toler
     )
     ends = [max(s.end for s in spans) for spans in plans]
     unit = "µs" if complete or captures else "ticks"
-    svg.text(44, y, f"{phase} · routed block {layer}", 25, 700)
+    direction = "fwd" if phase == "Forward" else "bwd"
+    svg.text(44, y, f"{direction} · routed block {layer}", 25, 700)
     xcols, width, row = (498, 985), 445, 40
     for x, name, end in zip(xcols, ("Bulk exchanges", "Tile-ready pipeline"), ends):
         svg.text(x, y, f"{name}  ·  {end:,.3g} {unit}", 19, 700)
@@ -247,7 +266,7 @@ def panel(svg, phase, y, layer, tiles, slots, samples, complete, captures, toler
             xx, bar = x + s.start * scale, (s.end - s.start) * scale
             yy = y0 + by_key[s.stage.name] * row + 7
             svg.items.append(
-                f"<g><title>{s.stage.name} · tile {s.tile + 1} · {s.start:g}–{s.end:g} {unit}</title>"
+                f"<g><title>{actions[by_key[s.stage.name]].title} · tile {s.tile + 1} · {s.start:g}–{s.end:g} {unit}</title>"
             )
             svg.box(xx, yy, max(0.35, bar - 0.8), 24, COLOR[s.stage.resource])
             if bar > 12:
@@ -263,16 +282,16 @@ def panel(svg, phase, y, layer, tiles, slots, samples, complete, captures, toler
         svg.text(
             498,
             y0 + len(actions) * row + 43,
-            f"During the first gold interval: IB carries tile {roles['IB']}, NVLink relays tile {roles['NVLink']}, and compute uses tile {roles['Compute']}.",
+            f"First overlap · InfiniBand carries tile {roles['IB']}, NVLink relays tile {roles['NVLink']}, and compute uses tile {roles['Compute']}.",
             14,
             700,
             color="#74521b",
         )
 
 
-def main():
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--out", type=Path, default=Path("pipeline.svg"))
+def arguments(description=__doc__, default_out="pipeline.svg"):
+    p = argparse.ArgumentParser(description=description)
+    p.add_argument("--out", type=Path, default=Path(default_out))
     p.add_argument("--layer", type=int, choices=range(3, len(BLOCKS)), default=3, metavar="3..60")
     p.add_argument("--tiles", type=int, default=4, choices=range(1, 65), metavar="1..64")
     p.add_argument("--slots", type=int, default=2)
@@ -284,6 +303,11 @@ def main():
     args = p.parse_args()
     if min(args.slots, args.nodes) < 1 or (args.sequences is not None and args.sequences < 1):
         p.error("slots, nodes and sequences must be positive")
+    return args
+
+
+def main():
+    args = arguments()
     samples, probes, rows = read_samples(args.samples)
     captures, tolerance = observed(args.trace, args.tiles, args.slots)
     complete = probes == PROBES.keys()
@@ -301,7 +325,7 @@ def main():
     svg.text(
         44,
         300,
-        "InfiniBand connects the nodes. A gateway GPU relays the tile over NVLink to the expert GPU; the result follows the reverse path.",
+        "InfiniBand connects the nodes. The remote gateway relays the activation over NVLink, and the expert output returns along the same route.",
         17,
     )
     for x, name, role in [
@@ -348,11 +372,11 @@ def main():
     elif complete:
         foot = "Modeled µs from isolated BF16 compute and one-hop NCCL medians. Co-running workload contention needs a device trace."
     elif samples:
-        missing = ", ".join(sorted(PROBES.keys() - probes))
+        missing = ", ".join(PROBE_LABELS[name] for name in sorted(PROBES.keys() - probes))
         foot = f"Left: isolated medians for {rows} BF16 rows. Bars: dependency ticks. Pending fabric measurements: {missing}."
     else:
-        have = ", ".join(sorted(probes)) or "none"
-        missing = ", ".join(sorted(PROBES.keys() - probes))
+        have = ", ".join(PROBE_LABELS[name] for name in sorted(probes)) or "none"
+        missing = ", ".join(PROBE_LABELS[name] for name in sorted(PROBES.keys() - probes))
         foot = f"Unit ticks show dependencies. Isolated B300 probes available: {have}. Pending: {missing}."
     svg.text(44, 1158, foot, 15, color="#4a5e66")
     svg.save(args.out)

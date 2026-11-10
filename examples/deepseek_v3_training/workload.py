@@ -21,21 +21,21 @@ FORWARD = (
             "x_ib",
             "IB",
             "Send activation to the expert node",
-            "Source GPU → remote gateway · token row x",
+            "Source GPU → remote gateway · token activation",
             "ib_out",
         ),
         Action(
             "x_nvl",
             "NVLink",
-            "Relay x to the expert owner",
+            "Deliver the token activation",
             "Gateway → expert GPU · input tile becomes ready",
             "nvlink_out",
         ),
         Action(
             "gate_up",
             "Compute",
-            "Project gate and up",
-            "Expert GPU · x × Wgate and x × Wup",
+            "Gate/up projection · Expert.w13",
+            "Token activation × gate and up weights",
             "gate_up",
         ),
     ),
@@ -43,15 +43,15 @@ FORWARD = (
         Action(
             "down",
             "Compute",
-            "Activate and project down",
-            "Expert GPU · SwiGLU followed by Wdown",
+            "SwiGLU + down projection · Expert.w2",
+            "Hidden activation → expert output",
             "down",
         ),
         Action(
             "y_nvl",
             "NVLink",
-            "Return the expert contribution",
-            "Expert GPU → gateway · output tile",
+            "Return the expert output",
+            "Expert GPU → gateway · expert output tile",
             "nvlink_back",
         ),
         Action(
@@ -69,21 +69,21 @@ BACKWARD = (
             "dy_ib",
             "IB",
             "Send the output gradient",
-            "Source GPU → remote gateway · weighted dY",
+            "Source GPU → gateway · weighted output gradient",
             "ib_out",
         ),
         Action(
             "dy_nvl",
             "NVLink",
-            "Deliver dY to the expert",
+            "Deliver the output gradient",
             "Gateway → expert GPU · saved forward route",
             "nvlink_out",
         ),
         Action(
             "down_input",
             "Compute",
-            "Backpropagate through Wdown",
-            "Expert GPU · produce the hidden-state gradient",
+            "Down projection · input gradient",
+            "Output gradient → hidden-activation gradient",
             "down_input",
         ),
     ),
@@ -91,8 +91,8 @@ BACKWARD = (
         Action(
             "down_weight",
             "Compute",
-            "Accumulate the Wdown gradient",
-            "Saved hidden rows and incoming dY → dWdown",
+            "Down projection · weight gradient",
+            "Saved hidden activation × output gradient",
             "down_weight",
         ),
     ),
@@ -100,21 +100,21 @@ BACKWARD = (
         Action(
             "up_input",
             "Compute",
-            "Backpropagate to the input",
-            "SwiGLU derivative and gate/up weights → dX",
+            "Gate/up projections · input gradient",
+            "SwiGLU derivative → token input gradient",
             "up_input",
         ),
         Action(
             "dx_nvl",
             "NVLink",
             "Return the input gradient",
-            "Expert GPU → gateway · one contribution to dX",
+            "Expert GPU → gateway · token input gradient",
             "nvlink_back",
         ),
         Action(
             "dx_ib",
             "IB",
-            "Send dX back to its origin",
+            "Reduce at the token owner",
             "Gateway → source node · sum by original token",
             "ib_back",
         ),
@@ -123,8 +123,8 @@ BACKWARD = (
         Action(
             "up_weight",
             "Compute",
-            "Accumulate gate and up gradients",
-            "Saved inputs and activation derivatives → dWgate, dWup",
+            "Gate/up projections · weight gradients",
+            "Saved inputs × activation gradients",
             "up_weight",
         ),
     ),
@@ -144,15 +144,21 @@ def trace(phases, tiles, slots, policy, samples):
 
 def cp_payload(ranks):
     """Logical BF16 bytes sent per rank per MLA layer, with one sequence per CP group."""
-    heads, q, k, v, shared, latent = 128, 192, 128, 128, 64, 512
+    heads, query_channels, key_channels, value_channels = 128, 192, 128, 128
+    positional_channels, latent_channels = 64, 512
     if ranks <= 0 or CONTEXT % ranks or heads % ranks:
         raise ValueError("CP degree must divide both the sequence length and 128 heads")
     block_bytes = 2 * (CONTEXT // ranks)
     # A transpose sends (P-1)/P of each rank's tensor to other ranks.
-    inputs = block_bytes * (heads // ranks) * (ranks - 1) * (q + k + v)
-    output = block_bytes * (heads // ranks) * (ranks - 1) * v
-    shared_key = block_bytes * (ranks - 1) * shared
-    compact = block_bytes * (latent + shared)
+    inputs = (
+        block_bytes
+        * (heads // ranks)
+        * (ranks - 1)
+        * (query_channels + key_channels + value_channels)
+    )
+    output = block_bytes * (heads // ranks) * (ranks - 1) * value_channels
+    shared_key = block_bytes * (ranks - 1) * positional_channels
+    compact = block_bytes * (latent_channels + positional_channels)
     return {
         "Ulysses": (inputs, shared_key, output),
         "Ring": ((ranks - 1) * compact, ranks * compact if ranks > 1 else 0),

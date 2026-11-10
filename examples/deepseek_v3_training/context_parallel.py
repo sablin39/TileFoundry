@@ -332,7 +332,16 @@ def check():
                 f"{method.__name__:8s}  max |error|  "
                 + "  ".join(
                     f"{k}={e:.2g}"
-                    for k, e in zip(("Y", "dQ", "dLatent", "dSharedKey", "dWkv"), errors)
+                    for k, e in zip(
+                        (
+                            "attention output",
+                            "query gradient",
+                            "latent gradient",
+                            "positional-key gradient",
+                            "KV weight gradient",
+                        ),
+                        errors,
+                    )
                 )
             )
 

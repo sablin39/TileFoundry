@@ -72,7 +72,7 @@ def check():
             for value, ref in zip(local_dw, global_dw.chunk(cp.P, dim=1), strict=True):
                 compare(value.reshape_as(ref), ref)
             print(
-                f"{method.__name__:8s} × {route:8s}  output, input/score gradients, FSDP dWkv shards  max |error| {max(errors):.2g}"
+                f"{method.__name__:8s} × {route:8s}  output, input/score gradients, FSDP KV weight-gradient shards  max |error| {max(errors):.2g}"
             )
 
 
