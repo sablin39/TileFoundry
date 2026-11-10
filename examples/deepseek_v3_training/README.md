@@ -56,7 +56,7 @@ python visualize_baselines.py --out-dir .
 
 ![Detailed fwd and bwd graph operations on each routed token chunk](pipeline.svg)
 
-A **token chunk** is the pipeline scheduler's `tile`: a bundle of routed rows transferred and scheduled together. Routing can place nonadjacent tokens together and assign the same token to multiple experts. A chunk is distinct from a GEMM kernel's internal **M × N × K tile**, which partitions the output matrix and reduction dimension for tensor-core execution. Token rows lie along M in a fwd projection and along K in its weight-gradient GEMM. For example, 128 BF16 activation rows at width 7,168 carry 1.75 MiB on each illustrated hop. A chunk's hidden activations have width 2,048; its expert outputs and input gradients return to width 7,168. The chunk ID tracks the routed row group, while the tensor values and shapes change through the computation.
+A **tile**, labeled **token chunk** in the plots, is a bundle of routed rows transferred and scheduled together. Routing can place nonadjacent tokens together and assign the same token to multiple experts. For example, 128 BF16 activation rows at width 7,168 carry 1.75 MiB on each illustrated hop. A tile's hidden activations have width 2,048; its expert outputs and input gradients return to width 7,168. The tile ID tracks the routed row group as its tensor values and shapes change through the computation.
 
 From this directory in an installed TileFoundry environment:
 
@@ -67,7 +67,7 @@ python visualize.py --layer 60 --tiles 8 --slots 3 --nodes 128 --sequences 8 --o
 python reference.py
 ```
 
-`--tiles` sets the number of token chunks shown along the route; it does not partition the full sequence into that many pieces. Benchmark `--rows` sets the rows per measured chunk, and the renderer reads that size from the samples. With neither samples nor a capture, the guide's size is illustrative and the timeline uses dependency ticks. GEMM tile sizes remain a kernel implementation choice.
+`--tiles` sets the number of token chunks shown along the route; it does not partition the full sequence into that many pieces. Benchmark `--rows` sets the rows per measured chunk, and the renderer reads that size from the samples. With neither samples nor a capture, the guide's size is illustrative and the timeline uses dependency ticks.
 
 In `topology.svg`, each token chunk keeps its color across InfiniBand, NVLink and compute. Dashed arrows follow chunk 1 through successive resources. The three cards below each timeline identify the operations active together at the midpoint of the first gold interval. Both the timelines and these snapshots come from the same TileFoundry intervals. The headers also report the bulk schedule with the same stage durations. The two nodes illustrate one remote route within the selected larger cluster.
 

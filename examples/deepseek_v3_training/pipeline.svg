@@ -207,7 +207,7 @@
 <text x="759.00" y="335" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">Compute · expert GPU</text>
 <text x="1452.00" y="335" font-size="15" font-weight="400" fill="#20333e" text-anchor="end">4 token chunks  /  2 staging slots</text>
 <rect x="34.00" y="358.00" width="1432.00" height="188.00" fill="#edf2f3" rx="12" stroke="none"/>
-<text x="54.00" y="389" font-size="22" font-weight="700" fill="#20333e" text-anchor="start">A token chunk = a bundle of routed rows (the scheduler&#x27;s “tile”)</text>
+<text x="54.00" y="389" font-size="22" font-weight="700" fill="#20333e" text-anchor="start">Tile = one chunk of routed token rows</text>
 <text x="172.00" y="420" font-size="15" font-weight="700" fill="#22649a" text-anchor="middle">7,168 input channels →</text>
 <rect x="55.00" y="434.00" width="235.00" height="16.00" fill="#6994b3" rx="2" stroke="none"/>
 <rect x="55.00" y="453.00" width="235.00" height="16.00" fill="#6994b3" rx="2" stroke="none"/>
@@ -215,41 +215,10 @@
 <rect x="55.00" y="491.00" width="235.00" height="16.00" fill="#6994b3" rx="2" stroke="none"/>
 <text x="302.00" y="477" font-size="14" font-weight="400" fill="#22649a" text-anchor="start">rows</text>
 <text x="55.00" y="529" font-size="14" font-weight="400" fill="#4a5e66" text-anchor="start">One row = one routed token activation</text>
-<text x="358.00" y="427" font-size="17" font-weight="700" fill="#20333e" text-anchor="start">Transfer and schedule this row bundle together.</text>
-<text x="358.00" y="455" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Its ID follows activations, outputs and input gradients.</text>
-<text x="358.00" y="483" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Example size: 128 BF16 rows = 1.75 MiB per activation hop.</text>
-<text x="358.00" y="511" font-size="16" font-weight="400" fill="#20333e" text-anchor="start">Chunk count is separate from the full sequence length.</text>
-<rect x="922.00" y="377.00" width="1.00" height="150.00" fill="#bdccd1"/>
-<text x="943.00" y="390" font-size="20" font-weight="700" fill="#20333e" text-anchor="start">GEMM tiling · fwd projection example</text>
-<rect x="945.00" y="428.00" width="21.00" height="17.00" fill="#207461" rx="2" stroke="none"/>
-<rect x="969.00" y="428.00" width="21.00" height="17.00" fill="#207461" rx="2" stroke="none"/>
-<rect x="993.00" y="428.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="1017.00" y="428.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="1041.00" y="428.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="1065.00" y="428.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="945.00" y="448.00" width="21.00" height="17.00" fill="#207461" rx="2" stroke="none"/>
-<rect x="969.00" y="448.00" width="21.00" height="17.00" fill="#207461" rx="2" stroke="none"/>
-<rect x="993.00" y="448.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="1017.00" y="448.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="1041.00" y="448.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="1065.00" y="448.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="945.00" y="468.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="969.00" y="468.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="993.00" y="468.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="1017.00" y="468.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="1041.00" y="468.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="1065.00" y="468.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="945.00" y="488.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="969.00" y="488.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="993.00" y="488.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="1017.00" y="488.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="1041.00" y="488.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<rect x="1065.00" y="488.00" width="21.00" height="17.00" fill="#cedcd7" rx="2" stroke="none"/>
-<text x="945.00" y="529" font-size="14" font-weight="400" fill="#4a5e66" text-anchor="start">Output matrix sketch</text>
-<text x="1110.00" y="426" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">M: token rows · N: output channels</text>
-<text x="1110.00" y="454" font-size="16" font-weight="700" fill="#20333e" text-anchor="start">K: reduction channels</text>
-<text x="1110.00" y="482" font-size="15" font-weight="400" fill="#20333e" text-anchor="start">M / N / K tile sizes are selected</text>
-<text x="1110.00" y="510" font-size="15" font-weight="400" fill="#20333e" text-anchor="start">separately for tensor-core compute.</text>
+<text x="400.00" y="427" font-size="18" font-weight="700" fill="#20333e" text-anchor="start">Group routed rows into one unit of transfer and expert computation.</text>
+<text x="400.00" y="455" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">The same tile ID follows their activations, expert outputs and input-gradient contributions.</text>
+<text x="400.00" y="483" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">Example size: 128 BF16 rows = 1.75 MiB per activation hop.</text>
+<text x="400.00" y="511" font-size="17" font-weight="400" fill="#20333e" text-anchor="start">Tile count sets the work shown along one route; sequence length and batch size are separate inputs.</text>
 <text x="44.00" y="601" font-size="25" font-weight="700" fill="#20333e" text-anchor="start">fwd · routed block 3</text>
 <text x="498.00" y="601" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Bulk exchanges  ·  24 ticks</text>
 <text x="985.00" y="601" font-size="19" font-weight="700" fill="#20333e" text-anchor="start">Chunk-ready pipeline  ·  12 ticks</text>

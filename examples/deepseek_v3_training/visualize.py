@@ -223,44 +223,37 @@ def backbone(svg, layer):
 
 
 def chunk_guide(svg, y, rows):
-    """Separate the example's scheduling unit from a GEMM kernel's tiling."""
+    """Define the routed row group represented by one pipeline tile."""
     svg.box(34, y, 1432, 188, "#edf2f3", radius=12)
-    svg.text(
-        54, y + 31, "A token chunk = a bundle of routed rows (the scheduler's “tile”)", 22, 700
-    )
+    svg.text(54, y + 31, "Tile = one chunk of routed token rows", 22, 700)
     svg.text(172, y + 62, f"{HIDDEN:,} input channels →", 15, 700, COLOR["NVLink"], "middle")
     for row in range(4):
         svg.box(55, y + 76 + row * 19, 235, 16, "#6994b3", radius=2)
     svg.text(302, y + 119, "rows", 14, color=COLOR["NVLink"])
     svg.text(55, y + 171, "One row = one routed token activation", 14, color="#4a5e66")
-    svg.text(358, y + 69, "Transfer and schedule this row bundle together.", 17, 700)
-    svg.text(358, y + 97, "Its ID follows activations, outputs and input gradients.", 16)
+    svg.text(
+        400, y + 69, "Group routed rows into one unit of transfer and expert computation.", 18, 700
+    )
+    svg.text(
+        400,
+        y + 97,
+        "The same tile ID follows their activations, expert outputs and input-gradient contributions.",
+        17,
+    )
     example_rows = rows if rows is not None else 128
     label = "Profile" if rows is not None else "Example size"
     svg.text(
-        358,
+        400,
         y + 125,
         f"{label}: {example_rows:,} BF16 rows = {example_rows * HIDDEN * 2 / 2**20:g} MiB per activation hop.",
-        16,
+        17,
     )
-    svg.text(358, y + 153, "Chunk count is separate from the full sequence length.", 16)
-    svg.box(922, y + 19, 1, 150, "#bdccd1")
-    svg.text(943, y + 32, "GEMM tiling · fwd projection example", 20, 700)
-    for row in range(4):
-        for col in range(6):
-            svg.box(
-                945 + col * 24,
-                y + 70 + row * 20,
-                21,
-                17,
-                COLOR["Compute"] if row < 2 and col < 2 else "#cedcd7",
-                radius=2,
-            )
-    svg.text(945, y + 171, "Output matrix sketch", 14, color="#4a5e66")
-    svg.text(1110, y + 68, "M: token rows · N: output channels", 16, 700)
-    svg.text(1110, y + 96, "K: reduction channels", 16, 700)
-    svg.text(1110, y + 124, "M / N / K tile sizes are selected", 15)
-    svg.text(1110, y + 152, "separately for tensor-core compute.", 15)
+    svg.text(
+        400,
+        y + 153,
+        "Tile count sets the work shown along one route; sequence length and batch size are separate inputs.",
+        17,
+    )
 
 
 def panel(svg, phase, y, layer, tiles, slots, samples, complete, captures, tolerance):
