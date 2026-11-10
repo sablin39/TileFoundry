@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1540" height="675" viewBox="0 0 1540 675">
+<title>Can the weight gradient be deferred safely?</title>
+<rect width="100%" height="100%" fill="#f8fafc"/>
+<g font-family="Arial, sans-serif" fill="#14243a">
+<text x="30" y="37" font-size="23" fill="#14243a">Can the weight gradient be deferred safely?</text>
+<text x="30" y="65" font-size="14" fill="#14243a">The hidden activation and gate/up activation gradient reuse one scratch range. Time is in dependency ticks.</text>
+<text x="30" y="105" font-size="18" fill="#166534">Baseline: consume hidden activation before reuse</text>
+<text x="30" y="135" font-size="12" fill="#14243a">hidden activation</text>
+<text x="30" y="149" font-size="11" fill="#64748b">expert.scratch</text>
+<rect x="295" y="122" width="546" height="30" rx="3" fill="#dbeafe"><title></title></rect>
+<rect x="295" y="122" width="91" height="30" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="300" y="141" font-size="11" fill="#14243a">forward</text>
+<rect x="568" y="122" width="273" height="30" rx="3" fill="#fbbf24"><title></title></rect>
+<text x="573" y="141" font-size="11" fill="#14243a">down weight gradient</text>
+<text x="30" y="175" font-size="12" fill="#14243a">gate up activation gradient</text>
+<text x="30" y="189" font-size="11" fill="#64748b">expert.scratch</text>
+<rect x="841" y="162" width="546" height="30" rx="3" fill="#dbeafe"><title></title></rect>
+<rect x="841" y="162" width="91" height="30" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="846" y="181" font-size="11" fill="#14243a">swiglu backward</text>
+<rect x="932" y="162" width="182" height="30" rx="3" fill="#fbbf24"><title></title></rect>
+<text x="937" y="181" font-size="11" fill="#14243a">gate up input gradient</text>
+<rect x="1114" y="162" width="273" height="30" rx="3" fill="#fbbf24"><title></title></rect>
+<text x="1119" y="181" font-size="11" fill="#14243a">gate up weight gradient</text>
+<rect x="295" y="243" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="292" y="260" font-size="11" fill="#64748b">0</text>
+<rect x="477" y="243" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="474" y="260" font-size="11" fill="#64748b">2</text>
+<rect x="659" y="243" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="656" y="260" font-size="11" fill="#64748b">4</text>
+<rect x="841" y="243" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="838" y="260" font-size="11" fill="#64748b">6</text>
+<rect x="1023" y="243" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="1020" y="260" font-size="11" fill="#64748b">8</text>
+<rect x="1205" y="243" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="1202" y="260" font-size="11" fill="#64748b">10</text>
+<rect x="1387" y="243" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="1384" y="260" font-size="11" fill="#64748b">12</text>
+<rect x="1478" y="243" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="1475" y="260" font-size="11" fill="#64748b">13</text>
+<text x="30" y="285" font-size="18" fill="#b91c1c">Rejected: the weight-gradient reader still needs the overwritten value</text>
+<text x="30" y="315" font-size="12" fill="#14243a">hidden activation</text>
+<text x="30" y="329" font-size="11" fill="#64748b">expert.scratch</text>
+<rect x="295" y="302" width="910" height="30" rx="3" fill="#dbeafe"><title></title></rect>
+<rect x="295" y="302" width="91" height="30" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="300" y="321" font-size="11" fill="#14243a">forward</text>
+<rect x="932" y="302" width="273" height="30" rx="3" fill="#fbbf24"><title></title></rect>
+<text x="937" y="321" font-size="11" fill="#14243a">down weight gradient</text>
+<text x="30" y="355" font-size="12" fill="#14243a">gate up activation gradient</text>
+<text x="30" y="369" font-size="11" fill="#64748b">expert.scratch</text>
+<rect x="659" y="342" width="819" height="30" rx="3" fill="#dbeafe"><title></title></rect>
+<rect x="659" y="342" width="91" height="30" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="664" y="361" font-size="11" fill="#14243a">swiglu backward</text>
+<rect x="750" y="342" width="182" height="30" rx="3" fill="#fbbf24"><title></title></rect>
+<text x="755" y="361" font-size="11" fill="#14243a">gate up input gradient</text>
+<rect x="1205" y="342" width="273" height="30" rx="3" fill="#fbbf24"><title></title></rect>
+<text x="1210" y="361" font-size="11" fill="#14243a">gate up weight gradient</text>
+<text x="295" y="410" font-size="13" fill="#b91c1c">Same physical bytes are overwritten at tick 4; down weight gradient reads them at ticks 7–10.</text>
+<rect x="295" y="423" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="292" y="440" font-size="11" fill="#64748b">0</text>
+<rect x="477" y="423" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="474" y="440" font-size="11" fill="#64748b">2</text>
+<rect x="659" y="423" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="656" y="440" font-size="11" fill="#64748b">4</text>
+<rect x="841" y="423" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="838" y="440" font-size="11" fill="#64748b">6</text>
+<rect x="1023" y="423" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="1020" y="440" font-size="11" fill="#64748b">8</text>
+<rect x="1205" y="423" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="1202" y="440" font-size="11" fill="#64748b">10</text>
+<rect x="1387" y="423" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="1384" y="440" font-size="11" fill="#64748b">12</text>
+<rect x="1478" y="423" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="1475" y="440" font-size="11" fill="#64748b">13</text>
+<text x="30" y="465" font-size="18" fill="#166534">Legal candidate: preserve the hidden activation in separate storage</text>
+<text x="30" y="495" font-size="12" fill="#14243a">hidden activation</text>
+<text x="30" y="509" font-size="11" fill="#64748b">expert.scratch</text>
+<rect x="295" y="482" width="182" height="30" rx="3" fill="#dbeafe"><title></title></rect>
+<rect x="295" y="482" width="91" height="30" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="300" y="501" font-size="11" fill="#14243a">forward</text>
+<rect x="386" y="482" width="91" height="30" rx="3" fill="#fbbf24"><title></title></rect>
+<text x="391" y="501" font-size="11" fill="#14243a">preserve hidden</text>
+<text x="30" y="535" font-size="12" fill="#14243a">preserved hidden</text>
+<text x="30" y="549" font-size="11" fill="#64748b">expert.saved_hidden</text>
+<rect x="386" y="522" width="819" height="30" rx="3" fill="#dbeafe"><title></title></rect>
+<rect x="386" y="522" width="91" height="30" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="391" y="541" font-size="11" fill="#14243a">preserve hidden</text>
+<rect x="932" y="522" width="273" height="30" rx="3" fill="#fbbf24"><title></title></rect>
+<text x="937" y="541" font-size="11" fill="#14243a">down weight gradient</text>
+<text x="30" y="575" font-size="12" fill="#14243a">gate up activation gradient</text>
+<text x="30" y="589" font-size="11" fill="#64748b">expert.scratch</text>
+<rect x="659" y="562" width="819" height="30" rx="3" fill="#dbeafe"><title></title></rect>
+<rect x="659" y="562" width="91" height="30" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="664" y="581" font-size="11" fill="#14243a">swiglu backward</text>
+<rect x="750" y="562" width="182" height="30" rx="3" fill="#fbbf24"><title></title></rect>
+<text x="755" y="581" font-size="11" fill="#14243a">gate up input gradient</text>
+<rect x="1205" y="562" width="273" height="30" rx="3" fill="#fbbf24"><title></title></rect>
+<text x="1210" y="581" font-size="11" fill="#14243a">gate up weight gradient</text>
+<rect x="295" y="603" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="292" y="620" font-size="11" fill="#64748b">0</text>
+<rect x="477" y="603" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="474" y="620" font-size="11" fill="#64748b">2</text>
+<rect x="659" y="603" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="656" y="620" font-size="11" fill="#64748b">4</text>
+<rect x="841" y="603" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="838" y="620" font-size="11" fill="#64748b">6</text>
+<rect x="1023" y="603" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="1020" y="620" font-size="11" fill="#64748b">8</text>
+<rect x="1205" y="603" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="1202" y="620" font-size="11" fill="#64748b">10</text>
+<rect x="1387" y="603" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="1384" y="620" font-size="11" fill="#64748b">12</text>
+<rect x="1478" y="603" width="1" height="5" rx="3" fill="#94a3b8"><title></title></rect>
+<text x="1475" y="620" font-size="11" fill="#64748b">13</text>
+<text x="30" y="655" font-size="14" fill="#14243a">Blue: producer / retained value · Gold: consumer · Extra hidden storage: 4 KiB per routed row at expert width 2,048.</text>
+</g></svg>

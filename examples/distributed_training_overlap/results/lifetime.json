@@ -1,0 +1,181 @@
+{
+  "baseline": {
+    "lifetimes": [
+      {
+        "value": "hidden_activation",
+        "allocation": "expert.scratch",
+        "offset": 0,
+        "nbytes": 524288,
+        "producer": {
+          "operation": "forward",
+          "start": 0,
+          "end": 1
+        },
+        "consumers": [
+          {
+            "operation": "down_weight_gradient",
+            "start": 3,
+            "end": 6
+          }
+        ]
+      },
+      {
+        "value": "gate_up_activation_gradient",
+        "allocation": "expert.scratch",
+        "offset": 0,
+        "nbytes": 1048576,
+        "producer": {
+          "operation": "swiglu_backward",
+          "start": 6,
+          "end": 7
+        },
+        "consumers": [
+          {
+            "operation": "gate_up_input_gradient",
+            "start": 7,
+            "end": 9
+          },
+          {
+            "operation": "gate_up_weight_gradient",
+            "start": 9,
+            "end": 12
+          }
+        ]
+      }
+    ],
+    "hazards": []
+  },
+  "unsafe_defer": {
+    "lifetimes": [
+      {
+        "value": "hidden_activation",
+        "allocation": "expert.scratch",
+        "offset": 0,
+        "nbytes": 524288,
+        "producer": {
+          "operation": "forward",
+          "start": 0,
+          "end": 1
+        },
+        "consumers": [
+          {
+            "operation": "down_weight_gradient",
+            "start": 7,
+            "end": 10
+          }
+        ]
+      },
+      {
+        "value": "gate_up_activation_gradient",
+        "allocation": "expert.scratch",
+        "offset": 0,
+        "nbytes": 1048576,
+        "producer": {
+          "operation": "swiglu_backward",
+          "start": 4,
+          "end": 5
+        },
+        "consumers": [
+          {
+            "operation": "gate_up_input_gradient",
+            "start": 5,
+            "end": 7
+          },
+          {
+            "operation": "gate_up_weight_gradient",
+            "start": 10,
+            "end": 13
+          }
+        ]
+      }
+    ],
+    "hazards": [
+      {
+        "kind": "overwrite_live_value",
+        "allocation": "expert.scratch",
+        "values": [
+          "hidden_activation",
+          "gate_up_activation_gradient"
+        ],
+        "operations": [
+          "down_weight_gradient",
+          "swiglu_backward"
+        ]
+      }
+    ]
+  },
+  "preserve_and_defer": {
+    "lifetimes": [
+      {
+        "value": "hidden_activation",
+        "allocation": "expert.scratch",
+        "offset": 0,
+        "nbytes": 524288,
+        "producer": {
+          "operation": "forward",
+          "start": 0,
+          "end": 1
+        },
+        "consumers": [
+          {
+            "operation": "preserve_hidden",
+            "start": 1,
+            "end": 2
+          }
+        ]
+      },
+      {
+        "value": "preserved_hidden",
+        "allocation": "expert.saved_hidden",
+        "offset": 0,
+        "nbytes": 524288,
+        "producer": {
+          "operation": "preserve_hidden",
+          "start": 1,
+          "end": 2
+        },
+        "consumers": [
+          {
+            "operation": "down_weight_gradient",
+            "start": 7,
+            "end": 10
+          }
+        ]
+      },
+      {
+        "value": "gate_up_activation_gradient",
+        "allocation": "expert.scratch",
+        "offset": 0,
+        "nbytes": 1048576,
+        "producer": {
+          "operation": "swiglu_backward",
+          "start": 4,
+          "end": 5
+        },
+        "consumers": [
+          {
+            "operation": "gate_up_input_gradient",
+            "start": 5,
+            "end": 7
+          },
+          {
+            "operation": "gate_up_weight_gradient",
+            "start": 10,
+            "end": 13
+          }
+        ]
+      }
+    ],
+    "hazards": []
+  },
+  "decision": {
+    "candidate": "preserve_and_defer",
+    "question": "Can input gradients reach the preceding stage earlier?",
+    "extra_bytes_per_routed_row": 4096,
+    "required_measurements": [
+      "input_gradient_delivery_us",
+      "backward_completion_us"
+    ],
+    "time_unit": "dependency ticks; no hardware rates"
+  }
+}

@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1380" height="730" viewBox="0 0 1380 730">
+<title>SM103: earlier input-gradient delivery and its cost</title>
+<rect width="100%" height="100%" fill="#f8fafc"/>
+<g font-family="Arial, sans-serif" fill="#14243a">
+<text x="30" y="37" font-size="23" fill="#14243a">SM103: earlier input-gradient delivery and its cost</text>
+<text x="30" y="65" font-size="14" fill="#14243a">CUDA-graph medians in microseconds. Both schedules use the same GEMMs and SwiGLU backward; preservation copy is included.</text>
+<text x="320" y="101" font-size="17" fill="#14243a">Input gradient delivered to peer</text>
+<text x="810" y="101" font-size="17" fill="#14243a">All backward outputs ready</text>
+<text x="30" y="143" font-size="17" fill="#14243a">128 routed rows</text>
+<text x="30" y="167" font-size="13" fill="#14243a">Extra hidden storage: 0.5 MiB</text>
+<text x="30" y="190" font-size="12" fill="#14243a">retain baseline</text>
+<rect x="320" y="125" width="80.01077343490235" height="26" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="408.0107734349024" y="144" font-size="12" fill="#14243a">52.80 us</text>
+<rect x="320" y="161" width="76.03447837877117" height="26" rx="3" fill="#fb923c"><title></title></rect>
+<text x="404.03447837877115" y="180" font-size="12" fill="#14243a">50.18 us</text>
+<rect x="810" y="125" width="89.80603301064252" height="26" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="907.8060330106425" y="144" font-size="12" fill="#14243a">59.26 us</text>
+<rect x="810" y="161" width="93.68534457209498" height="26" rx="3" fill="#fb923c"><title></title></rect>
+<text x="911.685344572095" y="180" font-size="12" fill="#14243a">61.82 us</text>
+<text x="320" y="227" font-size="14" fill="#14243a">Delivery improvement: 5.0%</text>
+<text x="810" y="227" font-size="14" fill="#14243a">Completion change: +4.3%</text>
+<text x="30" y="288" font-size="17" fill="#14243a">512 routed rows</text>
+<text x="30" y="312" font-size="13" fill="#14243a">Extra hidden storage: 2 MiB</text>
+<text x="30" y="335" font-size="12" fill="#14243a">candidate meets delivery objective</text>
+<rect x="320" y="270" width="127.28986580186476" height="26" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="455.2898658018648" y="289" font-size="12" fill="#14243a">84.00 us</text>
+<rect x="320" y="306" width="109.00861253826855" height="26" rx="3" fill="#fb923c"><title></title></rect>
+<text x="437.00861253826855" y="325" font-size="12" fill="#14243a">71.94 us</text>
+<rect x="810" y="270" width="142.71012855299585" height="26" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="960.7101285529959" y="289" font-size="12" fill="#14243a">94.18 us</text>
+<rect x="810" y="306" width="145.57111906546098" height="26" rx="3" fill="#fb923c"><title></title></rect>
+<text x="963.571119065461" y="325" font-size="12" fill="#14243a">96.06 us</text>
+<text x="320" y="372" font-size="14" fill="#14243a">Delivery improvement: 14.4%</text>
+<text x="810" y="372" font-size="14" fill="#14243a">Completion change: +2.0%</text>
+<text x="30" y="433" font-size="17" fill="#14243a">1,024 routed rows</text>
+<text x="30" y="457" font-size="13" fill="#14243a">Extra hidden storage: 4 MiB</text>
+<text x="30" y="480" font-size="12" fill="#14243a">candidate meets delivery objective</text>
+<rect x="320" y="415" width="198.18426976891746" height="26" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="526.1842697689175" y="434" font-size="12" fill="#14243a">130.78 us</text>
+<rect x="320" y="451" width="162.9310291296092" height="26" rx="3" fill="#fb923c"><title></title></rect>
+<text x="490.9310291296092" y="470" font-size="12" fill="#14243a">107.52 us</text>
+<rect x="810" y="415" width="215.78662727948375" height="26" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="1033.7866272794838" y="434" font-size="12" fill="#14243a">142.40 us</text>
+<rect x="810" y="451" width="220.05387846479053" height="26" rx="3" fill="#fb923c"><title></title></rect>
+<text x="1038.0538784647906" y="470" font-size="12" fill="#14243a">145.22 us</text>
+<text x="320" y="517" font-size="14" fill="#14243a">Delivery improvement: 17.8%</text>
+<text x="810" y="517" font-size="14" fill="#14243a">Completion change: +2.0%</text>
+<text x="30" y="578" font-size="17" fill="#14243a">2,048 routed rows</text>
+<text x="30" y="602" font-size="13" fill="#14243a">Extra hidden storage: 8 MiB</text>
+<text x="30" y="625" font-size="12" fill="#14243a">candidate meets delivery objective</text>
+<rect x="320" y="560" width="315.77586513486017" height="26" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="643.7758651348602" y="579" font-size="12" fill="#14243a">208.38 us</text>
+<rect x="320" y="596" width="263.0172278991068" height="26" rx="3" fill="#fb923c"><title></title></rect>
+<text x="591.0172278991067" y="615" font-size="12" fill="#14243a">173.57 us</text>
+<rect x="810" y="560" width="353.84158195873664" height="26" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="1171.8415819587367" y="579" font-size="12" fill="#14243a">233.50 us</text>
+<rect x="810" y="596" width="360.0" height="26" rx="3" fill="#fb923c"><title></title></rect>
+<text x="1178.0" y="615" font-size="12" fill="#14243a">237.57 us</text>
+<text x="320" y="662" font-size="14" fill="#14243a">Delivery improvement: 16.7%</text>
+<text x="810" y="662" font-size="14" fill="#14243a">Completion change: +1.7%</text>
+<text x="30" y="715" font-size="13" fill="#14243a">Blue: baseline   Orange: preserve and defer. These are one-expert / one-peer-hop measurements.</text>
+</g></svg>

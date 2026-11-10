@@ -1,0 +1,300 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="850" viewBox="0 0 1700 850">
+<title>DualPipe action order and activation ownership</title>
+<rect width="100%" height="100%" fill="#f8fafc"/>
+<g font-family="Arial, sans-serif" fill="#14243a">
+<text x="30" y="37" font-size="23" fill="#14243a">DualPipe action order and activation ownership</text>
+<text x="30" y="65" font-size="14" fill="#14243a">4-stage routed FFN example. Numbers in bars identify microbatches; full operation names are in the legend.</text>
+<rect x="30" y="83" width="20" height="15" rx="3" fill="#60a5fa"><title></title></rect>
+<text x="60" y="96" font-size="14" fill="#14243a">fwd</text>
+<rect x="250" y="83" width="20" height="15" rx="3" fill="#34d399"><title></title></rect>
+<text x="280" y="96" font-size="14" fill="#14243a">bwd input</text>
+<rect x="470" y="83" width="20" height="15" rx="3" fill="#fbbf24"><title></title></rect>
+<text x="500" y="96" font-size="14" fill="#14243a">bwd weight</text>
+<rect x="700" y="83" width="20" height="15" rx="3" fill="#c084fc"><title></title></rect>
+<text x="730" y="96" font-size="14" fill="#14243a">PP transfer</text>
+<text x="1010" y="96" font-size="12" fill="#14243a">Serial compute within paired groups; dependency ticks</text>
+<text x="30" y="142" font-size="15" fill="#14243a">GPU 0 compute</text>
+<text x="30" y="175" font-size="13" fill="#14243a">PP send</text>
+<rect x="215" y="125" width="1430" height="28" rx="3" fill="#e2e8f0"><title></title></rect>
+<rect x="215" y="162" width="1430" height="17" rx="3" fill="#f1f5f9"><title></title></rect>
+<rect x="215.0" y="125" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 0, microbatch 0, fwd, direction 0</title></rect>
+<text x="218.0" y="144" font-size="11" fill="#14243a">0</text>
+<rect x="286.5" y="162" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 0, microbatch 0, send_fwd, direction 0</title></rect>
+<rect x="286.5" y="125" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 0, microbatch 1, fwd, direction 0</title></rect>
+<text x="289.5" y="144" font-size="11" fill="#14243a">1</text>
+<rect x="358.0" y="162" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 0, microbatch 1, send_fwd, direction 0</title></rect>
+<rect x="358.0" y="125" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 0, microbatch 2, fwd, direction 0</title></rect>
+<text x="361.0" y="144" font-size="11" fill="#14243a">2</text>
+<rect x="429.5" y="162" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 0, microbatch 2, send_fwd, direction 0</title></rect>
+<rect x="501.0" y="125" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 3, microbatch 4, fwd, direction 1</title></rect>
+<text x="504.0" y="144" font-size="11" fill="#14243a">4</text>
+<rect x="572.5" y="125" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 3, microbatch 4, bwd_input, direction 1</title></rect>
+<text x="575.5" y="144" font-size="11" fill="#14243a">4</text>
+<rect x="620.1666666666666" y="162" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 3, microbatch 4, send_bwd_input, direction 1</title></rect>
+<rect x="620.1666666666666" y="125" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 3, microbatch 4, bwd_weight, direction 1</title></rect>
+<text x="623.1666666666666" y="144" font-size="11" fill="#14243a">4</text>
+<rect x="667.8333333333333" y="125" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 3, microbatch 5, fwd, direction 1</title></rect>
+<text x="670.8333333333333" y="144" font-size="11" fill="#14243a">5</text>
+<rect x="739.3333333333333" y="125" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 0, microbatch 3, fwd, direction 0</title></rect>
+<text x="742.3333333333333" y="144" font-size="11" fill="#14243a">3</text>
+<rect x="810.8333333333333" y="162" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 0, microbatch 3, send_fwd, direction 0</title></rect>
+<rect x="810.8333333333333" y="125" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 3, microbatch 5, bwd_input, direction 1</title></rect>
+<text x="813.8333333333333" y="144" font-size="11" fill="#14243a">5</text>
+<rect x="858.5" y="162" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 3, microbatch 5, send_bwd_input, direction 1</title></rect>
+<rect x="858.5" y="125" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 3, microbatch 5, bwd_weight, direction 1</title></rect>
+<text x="861.5" y="144" font-size="11" fill="#14243a">5</text>
+<rect x="930.0" y="125" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 3, microbatch 6, fwd, direction 1</title></rect>
+<text x="933.0" y="144" font-size="11" fill="#14243a">6</text>
+<rect x="1001.5" y="125" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 0, microbatch 0, bwd_input, direction 0</title></rect>
+<text x="1004.5" y="144" font-size="11" fill="#14243a">0</text>
+<rect x="1049.1666666666665" y="125" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 0, microbatch 0, bwd_weight, direction 0</title></rect>
+<text x="1052.1666666666665" y="144" font-size="11" fill="#14243a">0</text>
+<rect x="1073.0" y="125" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 3, microbatch 6, bwd_input, direction 1</title></rect>
+<text x="1076.0" y="144" font-size="11" fill="#14243a">6</text>
+<rect x="1120.6666666666665" y="162" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 3, microbatch 6, send_bwd_input, direction 1</title></rect>
+<rect x="1120.6666666666665" y="125" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 3, microbatch 6, bwd_weight, direction 1</title></rect>
+<text x="1123.6666666666665" y="144" font-size="11" fill="#14243a">6</text>
+<rect x="1216.0" y="125" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 3, microbatch 7, fwd, direction 1</title></rect>
+<text x="1219.0" y="144" font-size="11" fill="#14243a">7</text>
+<rect x="1287.5" y="125" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 0, microbatch 1, bwd_input, direction 0</title></rect>
+<text x="1290.5" y="144" font-size="11" fill="#14243a">1</text>
+<rect x="1335.1666666666665" y="125" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 0, microbatch 1, bwd_weight, direction 0</title></rect>
+<text x="1338.1666666666665" y="144" font-size="11" fill="#14243a">1</text>
+<rect x="1359.0" y="125" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 3, microbatch 7, bwd_input, direction 1</title></rect>
+<text x="1362.0" y="144" font-size="11" fill="#14243a">7</text>
+<rect x="1406.6666666666665" y="162" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 3, microbatch 7, send_bwd_input, direction 1</title></rect>
+<rect x="1406.6666666666665" y="125" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 3, microbatch 7, bwd_weight, direction 1</title></rect>
+<text x="1409.6666666666665" y="144" font-size="11" fill="#14243a">7</text>
+<rect x="1430.5" y="125" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 0, microbatch 2, bwd_input, direction 0</title></rect>
+<text x="1433.5" y="144" font-size="11" fill="#14243a">2</text>
+<rect x="1478.1666666666665" y="125" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 0, microbatch 2, bwd_weight, direction 0</title></rect>
+<text x="1481.1666666666665" y="144" font-size="11" fill="#14243a">2</text>
+<rect x="1573.5" y="125" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 0, microbatch 3, bwd_input, direction 0</title></rect>
+<text x="1576.5" y="144" font-size="11" fill="#14243a">3</text>
+<rect x="1621.1666666666665" y="125" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 0, microbatch 3, bwd_weight, direction 0</title></rect>
+<text x="1624.1666666666665" y="144" font-size="11" fill="#14243a">3</text>
+<text x="30" y="242" font-size="15" fill="#14243a">GPU 1 compute</text>
+<text x="30" y="275" font-size="13" fill="#14243a">PP send</text>
+<rect x="215" y="225" width="1430" height="28" rx="3" fill="#e2e8f0"><title></title></rect>
+<rect x="215" y="262" width="1430" height="17" rx="3" fill="#f1f5f9"><title></title></rect>
+<rect x="310.3333333333333" y="225" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 1, microbatch 0, fwd, direction 0</title></rect>
+<text x="313.3333333333333" y="244" font-size="11" fill="#14243a">0</text>
+<rect x="381.8333333333333" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 0, send_fwd, direction 0</title></rect>
+<rect x="405.66666666666663" y="225" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 2, microbatch 4, fwd, direction 1</title></rect>
+<text x="408.66666666666663" y="244" font-size="11" fill="#14243a">4</text>
+<rect x="477.16666666666663" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 4, send_fwd, direction 1</title></rect>
+<rect x="477.16666666666663" y="225" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 1, microbatch 1, fwd, direction 0</title></rect>
+<text x="480.16666666666663" y="244" font-size="11" fill="#14243a">1</text>
+<rect x="548.6666666666666" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 1, send_fwd, direction 0</title></rect>
+<rect x="572.5" y="225" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 2, microbatch 5, fwd, direction 1</title></rect>
+<text x="575.5" y="244" font-size="11" fill="#14243a">5</text>
+<rect x="644.0" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 5, send_fwd, direction 1</title></rect>
+<rect x="644.0" y="225" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 1, microbatch 2, fwd, direction 0</title></rect>
+<text x="647.0" y="244" font-size="11" fill="#14243a">2</text>
+<rect x="715.5" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 2, send_fwd, direction 0</title></rect>
+<rect x="715.5" y="225" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 2, microbatch 4, bwd_input, direction 1</title></rect>
+<text x="718.5" y="244" font-size="11" fill="#14243a">4</text>
+<rect x="763.1666666666666" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 4, send_bwd_input, direction 1</title></rect>
+<rect x="763.1666666666666" y="225" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 2, microbatch 4, bwd_weight, direction 1</title></rect>
+<text x="766.1666666666666" y="244" font-size="11" fill="#14243a">4</text>
+<rect x="787.0" y="225" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 2, microbatch 6, fwd, direction 1</title></rect>
+<text x="790.0" y="244" font-size="11" fill="#14243a">6</text>
+<rect x="858.5" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 6, send_fwd, direction 1</title></rect>
+<rect x="858.5" y="225" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 1, microbatch 0, bwd_input, direction 0</title></rect>
+<text x="861.5" y="244" font-size="11" fill="#14243a">0</text>
+<rect x="906.1666666666666" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 0, send_bwd_input, direction 0</title></rect>
+<rect x="906.1666666666666" y="225" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 1, microbatch 0, bwd_weight, direction 0</title></rect>
+<text x="909.1666666666666" y="244" font-size="11" fill="#14243a">0</text>
+<rect x="930.0" y="225" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 1, microbatch 3, fwd, direction 0</title></rect>
+<text x="933.0" y="244" font-size="11" fill="#14243a">3</text>
+<rect x="1001.5" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 3, send_fwd, direction 0</title></rect>
+<rect x="1001.5" y="225" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 2, microbatch 5, bwd_input, direction 1</title></rect>
+<text x="1004.5" y="244" font-size="11" fill="#14243a">5</text>
+<rect x="1049.1666666666665" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 5, send_bwd_input, direction 1</title></rect>
+<rect x="1049.1666666666665" y="225" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 2, microbatch 5, bwd_weight, direction 1</title></rect>
+<text x="1052.1666666666665" y="244" font-size="11" fill="#14243a">5</text>
+<rect x="1073.0" y="225" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 2, microbatch 7, fwd, direction 1</title></rect>
+<text x="1076.0" y="244" font-size="11" fill="#14243a">7</text>
+<rect x="1144.5" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 7, send_fwd, direction 1</title></rect>
+<rect x="1144.5" y="225" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 1, microbatch 1, bwd_input, direction 0</title></rect>
+<text x="1147.5" y="244" font-size="11" fill="#14243a">1</text>
+<rect x="1192.1666666666665" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 1, send_bwd_input, direction 0</title></rect>
+<rect x="1192.1666666666665" y="225" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 1, microbatch 1, bwd_weight, direction 0</title></rect>
+<text x="1195.1666666666665" y="244" font-size="11" fill="#14243a">1</text>
+<rect x="1216.0" y="225" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 2, microbatch 6, bwd_input, direction 1</title></rect>
+<text x="1219.0" y="244" font-size="11" fill="#14243a">6</text>
+<rect x="1263.6666666666665" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 6, send_bwd_input, direction 1</title></rect>
+<rect x="1263.6666666666665" y="225" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 2, microbatch 6, bwd_weight, direction 1</title></rect>
+<text x="1266.6666666666665" y="244" font-size="11" fill="#14243a">6</text>
+<rect x="1287.5" y="225" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 1, microbatch 2, bwd_input, direction 0</title></rect>
+<text x="1290.5" y="244" font-size="11" fill="#14243a">2</text>
+<rect x="1335.1666666666665" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 2, send_bwd_input, direction 0</title></rect>
+<rect x="1335.1666666666665" y="225" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 1, microbatch 2, bwd_weight, direction 0</title></rect>
+<text x="1338.1666666666665" y="244" font-size="11" fill="#14243a">2</text>
+<rect x="1430.5" y="225" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 2, microbatch 7, bwd_input, direction 1</title></rect>
+<text x="1433.5" y="244" font-size="11" fill="#14243a">7</text>
+<rect x="1478.1666666666665" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 7, send_bwd_input, direction 1</title></rect>
+<rect x="1502.0" y="225" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 1, microbatch 3, bwd_input, direction 0</title></rect>
+<text x="1505.0" y="244" font-size="11" fill="#14243a">3</text>
+<rect x="1549.6666666666665" y="262" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 3, send_bwd_input, direction 0</title></rect>
+<rect x="1549.6666666666665" y="225" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 2, microbatch 7, bwd_weight, direction 1</title></rect>
+<text x="1552.6666666666665" y="244" font-size="11" fill="#14243a">7</text>
+<rect x="1573.5" y="225" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 1, microbatch 3, bwd_weight, direction 0</title></rect>
+<text x="1576.5" y="244" font-size="11" fill="#14243a">3</text>
+<text x="30" y="342" font-size="15" fill="#14243a">GPU 2 compute</text>
+<text x="30" y="375" font-size="13" fill="#14243a">PP send</text>
+<rect x="215" y="325" width="1430" height="28" rx="3" fill="#e2e8f0"><title></title></rect>
+<rect x="215" y="362" width="1430" height="17" rx="3" fill="#f1f5f9"><title></title></rect>
+<rect x="310.3333333333333" y="325" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 1, microbatch 4, fwd, direction 1</title></rect>
+<text x="313.3333333333333" y="344" font-size="11" fill="#14243a">4</text>
+<rect x="381.8333333333333" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 4, send_fwd, direction 1</title></rect>
+<rect x="405.66666666666663" y="325" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 2, microbatch 0, fwd, direction 0</title></rect>
+<text x="408.66666666666663" y="344" font-size="11" fill="#14243a">0</text>
+<rect x="477.16666666666663" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 0, send_fwd, direction 0</title></rect>
+<rect x="477.16666666666663" y="325" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 1, microbatch 5, fwd, direction 1</title></rect>
+<text x="480.16666666666663" y="344" font-size="11" fill="#14243a">5</text>
+<rect x="548.6666666666666" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 5, send_fwd, direction 1</title></rect>
+<rect x="572.5" y="325" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 2, microbatch 1, fwd, direction 0</title></rect>
+<text x="575.5" y="344" font-size="11" fill="#14243a">1</text>
+<rect x="644.0" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 1, send_fwd, direction 0</title></rect>
+<rect x="644.0" y="325" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 1, microbatch 6, fwd, direction 1</title></rect>
+<text x="647.0" y="344" font-size="11" fill="#14243a">6</text>
+<rect x="715.5" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 6, send_fwd, direction 1</title></rect>
+<rect x="715.5" y="325" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 2, microbatch 0, bwd_input, direction 0</title></rect>
+<text x="718.5" y="344" font-size="11" fill="#14243a">0</text>
+<rect x="763.1666666666666" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 0, send_bwd_input, direction 0</title></rect>
+<rect x="763.1666666666666" y="325" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 2, microbatch 0, bwd_weight, direction 0</title></rect>
+<text x="766.1666666666666" y="344" font-size="11" fill="#14243a">0</text>
+<rect x="787.0" y="325" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 2, microbatch 2, fwd, direction 0</title></rect>
+<text x="790.0" y="344" font-size="11" fill="#14243a">2</text>
+<rect x="858.5" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 2, send_fwd, direction 0</title></rect>
+<rect x="858.5" y="325" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 1, microbatch 4, bwd_input, direction 1</title></rect>
+<text x="861.5" y="344" font-size="11" fill="#14243a">4</text>
+<rect x="906.1666666666666" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 4, send_bwd_input, direction 1</title></rect>
+<rect x="906.1666666666666" y="325" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 1, microbatch 4, bwd_weight, direction 1</title></rect>
+<text x="909.1666666666666" y="344" font-size="11" fill="#14243a">4</text>
+<rect x="930.0" y="325" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 1, microbatch 7, fwd, direction 1</title></rect>
+<text x="933.0" y="344" font-size="11" fill="#14243a">7</text>
+<rect x="1001.5" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 7, send_fwd, direction 1</title></rect>
+<rect x="1001.5" y="325" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 2, microbatch 1, bwd_input, direction 0</title></rect>
+<text x="1004.5" y="344" font-size="11" fill="#14243a">1</text>
+<rect x="1049.1666666666665" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 1, send_bwd_input, direction 0</title></rect>
+<rect x="1049.1666666666665" y="325" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 2, microbatch 1, bwd_weight, direction 0</title></rect>
+<text x="1052.1666666666665" y="344" font-size="11" fill="#14243a">1</text>
+<rect x="1073.0" y="325" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 2, microbatch 3, fwd, direction 0</title></rect>
+<text x="1076.0" y="344" font-size="11" fill="#14243a">3</text>
+<rect x="1144.5" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 3, send_fwd, direction 0</title></rect>
+<rect x="1144.5" y="325" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 1, microbatch 5, bwd_input, direction 1</title></rect>
+<text x="1147.5" y="344" font-size="11" fill="#14243a">5</text>
+<rect x="1192.1666666666665" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 5, send_bwd_input, direction 1</title></rect>
+<rect x="1192.1666666666665" y="325" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 1, microbatch 5, bwd_weight, direction 1</title></rect>
+<text x="1195.1666666666665" y="344" font-size="11" fill="#14243a">5</text>
+<rect x="1216.0" y="325" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 2, microbatch 2, bwd_input, direction 0</title></rect>
+<text x="1219.0" y="344" font-size="11" fill="#14243a">2</text>
+<rect x="1263.6666666666665" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 2, send_bwd_input, direction 0</title></rect>
+<rect x="1263.6666666666665" y="325" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 2, microbatch 2, bwd_weight, direction 0</title></rect>
+<text x="1266.6666666666665" y="344" font-size="11" fill="#14243a">2</text>
+<rect x="1287.5" y="325" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 1, microbatch 6, bwd_input, direction 1</title></rect>
+<text x="1290.5" y="344" font-size="11" fill="#14243a">6</text>
+<rect x="1335.1666666666665" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 6, send_bwd_input, direction 1</title></rect>
+<rect x="1335.1666666666665" y="325" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 1, microbatch 6, bwd_weight, direction 1</title></rect>
+<text x="1338.1666666666665" y="344" font-size="11" fill="#14243a">6</text>
+<rect x="1430.5" y="325" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 2, microbatch 3, bwd_input, direction 0</title></rect>
+<text x="1433.5" y="344" font-size="11" fill="#14243a">3</text>
+<rect x="1478.1666666666665" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 2, microbatch 3, send_bwd_input, direction 0</title></rect>
+<rect x="1502.0" y="325" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 1, microbatch 7, bwd_input, direction 1</title></rect>
+<text x="1505.0" y="344" font-size="11" fill="#14243a">7</text>
+<rect x="1549.6666666666665" y="362" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 1, microbatch 7, send_bwd_input, direction 1</title></rect>
+<rect x="1549.6666666666665" y="325" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 2, microbatch 3, bwd_weight, direction 0</title></rect>
+<text x="1552.6666666666665" y="344" font-size="11" fill="#14243a">3</text>
+<rect x="1573.5" y="325" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 1, microbatch 7, bwd_weight, direction 1</title></rect>
+<text x="1576.5" y="344" font-size="11" fill="#14243a">7</text>
+<text x="30" y="442" font-size="15" fill="#14243a">GPU 3 compute</text>
+<text x="30" y="475" font-size="13" fill="#14243a">PP send</text>
+<rect x="215" y="425" width="1430" height="28" rx="3" fill="#e2e8f0"><title></title></rect>
+<rect x="215" y="462" width="1430" height="17" rx="3" fill="#f1f5f9"><title></title></rect>
+<rect x="215.0" y="425" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 0, microbatch 4, fwd, direction 1</title></rect>
+<text x="218.0" y="444" font-size="11" fill="#14243a">4</text>
+<rect x="286.5" y="462" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 0, microbatch 4, send_fwd, direction 1</title></rect>
+<rect x="286.5" y="425" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 0, microbatch 5, fwd, direction 1</title></rect>
+<text x="289.5" y="444" font-size="11" fill="#14243a">5</text>
+<rect x="358.0" y="462" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 0, microbatch 5, send_fwd, direction 1</title></rect>
+<rect x="358.0" y="425" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 0, microbatch 6, fwd, direction 1</title></rect>
+<text x="361.0" y="444" font-size="11" fill="#14243a">6</text>
+<rect x="429.5" y="462" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 0, microbatch 6, send_fwd, direction 1</title></rect>
+<rect x="501.0" y="425" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 3, microbatch 0, fwd, direction 0</title></rect>
+<text x="504.0" y="444" font-size="11" fill="#14243a">0</text>
+<rect x="572.5" y="425" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 3, microbatch 0, bwd_input, direction 0</title></rect>
+<text x="575.5" y="444" font-size="11" fill="#14243a">0</text>
+<rect x="620.1666666666666" y="462" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 3, microbatch 0, send_bwd_input, direction 0</title></rect>
+<rect x="620.1666666666666" y="425" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 3, microbatch 0, bwd_weight, direction 0</title></rect>
+<text x="623.1666666666666" y="444" font-size="11" fill="#14243a">0</text>
+<rect x="667.8333333333333" y="425" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 3, microbatch 1, fwd, direction 0</title></rect>
+<text x="670.8333333333333" y="444" font-size="11" fill="#14243a">1</text>
+<rect x="739.3333333333333" y="425" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 0, microbatch 7, fwd, direction 1</title></rect>
+<text x="742.3333333333333" y="444" font-size="11" fill="#14243a">7</text>
+<rect x="810.8333333333333" y="462" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 0, microbatch 7, send_fwd, direction 1</title></rect>
+<rect x="810.8333333333333" y="425" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 3, microbatch 1, bwd_input, direction 0</title></rect>
+<text x="813.8333333333333" y="444" font-size="11" fill="#14243a">1</text>
+<rect x="858.5" y="462" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 3, microbatch 1, send_bwd_input, direction 0</title></rect>
+<rect x="858.5" y="425" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 3, microbatch 1, bwd_weight, direction 0</title></rect>
+<text x="861.5" y="444" font-size="11" fill="#14243a">1</text>
+<rect x="930.0" y="425" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 3, microbatch 2, fwd, direction 0</title></rect>
+<text x="933.0" y="444" font-size="11" fill="#14243a">2</text>
+<rect x="1001.5" y="425" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 0, microbatch 4, bwd_input, direction 1</title></rect>
+<text x="1004.5" y="444" font-size="11" fill="#14243a">4</text>
+<rect x="1049.1666666666665" y="425" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 0, microbatch 4, bwd_weight, direction 1</title></rect>
+<text x="1052.1666666666665" y="444" font-size="11" fill="#14243a">4</text>
+<rect x="1073.0" y="425" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 3, microbatch 2, bwd_input, direction 0</title></rect>
+<text x="1076.0" y="444" font-size="11" fill="#14243a">2</text>
+<rect x="1120.6666666666665" y="462" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 3, microbatch 2, send_bwd_input, direction 0</title></rect>
+<rect x="1120.6666666666665" y="425" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 3, microbatch 2, bwd_weight, direction 0</title></rect>
+<text x="1123.6666666666665" y="444" font-size="11" fill="#14243a">2</text>
+<rect x="1216.0" y="425" width="70.5" height="28" rx="3" fill="#60a5fa"><title>stage 3, microbatch 3, fwd, direction 0</title></rect>
+<text x="1219.0" y="444" font-size="11" fill="#14243a">3</text>
+<rect x="1287.5" y="425" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 0, microbatch 5, bwd_input, direction 1</title></rect>
+<text x="1290.5" y="444" font-size="11" fill="#14243a">5</text>
+<rect x="1335.1666666666665" y="425" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 0, microbatch 5, bwd_weight, direction 1</title></rect>
+<text x="1338.1666666666665" y="444" font-size="11" fill="#14243a">5</text>
+<rect x="1359.0" y="425" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 3, microbatch 3, bwd_input, direction 0</title></rect>
+<text x="1362.0" y="444" font-size="11" fill="#14243a">3</text>
+<rect x="1406.6666666666665" y="462" width="22.833333333333332" height="17" rx="3" fill="#c084fc"><title>stage 3, microbatch 3, send_bwd_input, direction 0</title></rect>
+<rect x="1406.6666666666665" y="425" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 3, microbatch 3, bwd_weight, direction 0</title></rect>
+<text x="1409.6666666666665" y="444" font-size="11" fill="#14243a">3</text>
+<rect x="1430.5" y="425" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 0, microbatch 6, bwd_input, direction 1</title></rect>
+<text x="1433.5" y="444" font-size="11" fill="#14243a">6</text>
+<rect x="1478.1666666666665" y="425" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 0, microbatch 6, bwd_weight, direction 1</title></rect>
+<text x="1481.1666666666665" y="444" font-size="11" fill="#14243a">6</text>
+<rect x="1573.5" y="425" width="46.666666666666664" height="28" rx="3" fill="#34d399"><title>stage 0, microbatch 7, bwd_input, direction 1</title></rect>
+<text x="1576.5" y="444" font-size="11" fill="#14243a">7</text>
+<rect x="1621.1666666666665" y="425" width="22.833333333333332" height="28" rx="3" fill="#fbbf24"><title>stage 0, microbatch 7, bwd_weight, direction 1</title></rect>
+<text x="1624.1666666666665" y="444" font-size="11" fill="#14243a">7</text>
+<text x="30" y="545" font-size="17" fill="#14243a">GPU 0 saved activations: each slot is retained through its matching weight backward</text>
+<text x="30" y="585" font-size="14" fill="#14243a">Activation slot 0</text>
+<rect x="215" y="563" width="1430" height="32" rx="3" fill="#e2e8f0"><title></title></rect>
+<rect x="215.0" y="563" width="858.0" height="32" rx="3" fill="#bfdbfe"><title></title></rect>
+<text x="220.0" y="584" font-size="11" fill="#14243a">stage 0 / microbatch 0</text>
+<rect x="1216.0" y="563" width="214.5" height="32" rx="3" fill="#bbf7d0"><title></title></rect>
+<text x="1221.0" y="584" font-size="11" fill="#14243a">stage 3 / microbatch 7</text>
+<text x="30" y="633" font-size="14" fill="#14243a">Activation slot 1</text>
+<rect x="215" y="611" width="1430" height="32" rx="3" fill="#e2e8f0"><title></title></rect>
+<rect x="286.5" y="611" width="1072.5" height="32" rx="3" fill="#bfdbfe"><title></title></rect>
+<text x="291.5" y="632" font-size="11" fill="#14243a">stage 0 / microbatch 1</text>
+<text x="30" y="681" font-size="14" fill="#14243a">Activation slot 2</text>
+<rect x="215" y="659" width="1430" height="32" rx="3" fill="#e2e8f0"><title></title></rect>
+<rect x="358.0" y="659" width="1144.0" height="32" rx="3" fill="#bfdbfe"><title></title></rect>
+<text x="363.0" y="680" font-size="11" fill="#14243a">stage 0 / microbatch 2</text>
+<text x="30" y="729" font-size="14" fill="#14243a">Activation slot 3</text>
+<rect x="215" y="707" width="1430" height="32" rx="3" fill="#e2e8f0"><title></title></rect>
+<rect x="501.0" y="707" width="143.0" height="32" rx="3" fill="#bbf7d0"><title></title></rect>
+<text x="506.0" y="728" font-size="11" fill="#14243a">stage 3 / microbatch 4</text>
+<rect x="667.8333333333333" y="707" width="214.5" height="32" rx="3" fill="#bbf7d0"><title></title></rect>
+<text x="672.8333333333333" y="728" font-size="11" fill="#14243a">stage 3 / microbatch 5</text>
+<rect x="930.0" y="707" width="214.5" height="32" rx="3" fill="#bbf7d0"><title></title></rect>
+<text x="935.0" y="728" font-size="11" fill="#14243a">stage 3 / microbatch 6</text>
+<text x="30" y="777" font-size="14" fill="#14243a">Activation slot 4</text>
+<rect x="215" y="755" width="1430" height="32" rx="3" fill="#e2e8f0"><title></title></rect>
+<rect x="739.3333333333333" y="755" width="905.6666666666666" height="32" rx="3" fill="#bfdbfe"><title></title></rect>
+<text x="744.3333333333333" y="776" font-size="11" fill="#14243a">stage 0 / microbatch 3</text>
+<text x="215" y="825" font-size="13" fill="#14243a">Blue slots: fwd placement GPU 0 → GPU 3 · Green slots: fwd placement GPU 3 → GPU 0</text>
+</g></svg>
