@@ -1,5 +1,14 @@
 # DeepSeek-V3 training across nodes
 
+This example explores end-to-end optimization of a DeepSeek-V3-style MoE
+training subgraph: token ownership and dispatch, expert computation, weighted
+combine, backward and gradient delivery. CP, selected FSDP operations and a
+companion DualPipe example supply surrounding training constraints. The
+optimization objective spans this graph; the analysis, correctness checks and
+hardware experiments remain independently callable. Numerical references,
+dependency models and an SM103 expert-backward measurement provide the current
+evidence; whole-model throughput is a subsequent validation target.
+
 ![Source, gateway and expert GPUs with fwd and bwd timelines](topology.svg)
 
 Each training sequence contains **1,048,576 causal tokens**. Global batch size is a separate input. For `sequences_per_update` full sequences, an optimizer update consumes `sequences_per_update × 1,048,576` tokens. The overview uses an illustrative 32 nodes × 16 GPUs and follows the 61 decoder blocks through ordinary next-token loss and backward. It shows three dense FFNs and 58 MoE blocks, each with MLA, one shared expert and eight of 256 routed experts per token. One sequence creates 8,388,608 expert assignments in each routed block. [DeepSeek-V3 model dimensions](https://huggingface.co/deepseek-ai/DeepSeek-V3/blob/main/config.json) · [Training infrastructure](https://arxiv.org/html/2412.19437v2#S3.SS2.SSS2)
@@ -51,6 +60,143 @@ python visualize_baselines.py --out-dir .
 - `context_parallel.py` checks the causal attention output, query gradient, latent gradient, positional-key gradient and both key/value projection weight gradients against dense FP32 autograd. The evaluator runs HIR projection and attention blocks, split-to-split exchanges, the shared-key gather and its backward reduction. The rank driver rotates the ring packets. Inputs begin at the normalized latent and post-RoPE boundary.
 - `expert_parallel.py` runs all three plans on identical routes with co-located experts, spread experts and empty owners. It checks the combined expert output, token input gradients, selected-score gradients and every expert weight gradient. HIR evaluates the bounded exchange mailboxes and expert MLP. The driver supplies the fixed top-eight selections, variable record counts and peer addresses.
 - `compare.py` composes **all six CP × EP pairs** at an MLA output projection feeding a routed FFN. The same four logical ranks switch from CP to EP after attention returns token ownership. Across four independent data replicas, FSDP gathers shards of the MLA KV projection, keeps the weights available through backward and reduce-scatters its accumulated gradient. Each final gradient shard and each sequence’s output, input and score gradients are checked against one dense loss. The executable uses 12-token sequences and 32 toy experts. The figures use the full-model dimensions for payload arithmetic. The [FSDP/HSDP training example](../fsdp_training/README.md) covers the wider parameter and optimizer lifecycle.
+
+## Reference designs and what is verified
+
+These are reference **designs** whose selected contracts are reproduced by the
+examples. Numerical agreement checks the modeled training behavior. Native
+library throughput is a separate comparison.
+
+| Reference design | Contract exercised | Verification |
+|---|---|---|
+| Ulysses and compact MLA Ring Attention | Token/head ownership, causal attention and reverse exchanges | HIR outputs, input gradients and KV projection gradients against dense autograd; compact all-gather controls for the KV representation |
+| TorchTitan naive EP and DeepEP-style compact dispatch | Per-assignment rows versus per-destination rows, score weighting and gradient reduction | Identical routes through all three EP references, including co-located experts and empty owners; separate four-GPU PyTorch/NCCL controls for naive and compact exchange |
+| Dist-MoE | Published source rows, expert-side pointer gathering, output slots, and hidden-activation scratch reuse in backward | Peer-address HIR output and all gradients; an illegal deferred reader is rejected and a separate-buffer repair passes the lifetime checker |
+| DualPipe | Counterflow compute-action groups and deferred weight backward | Four schedule configurations match the pinned official action groups; the four-rank/eight-microbatch HIR case has maximum absolute error `8.94e-8` and five saved-activation slots per rank |
+| Selected FSDP projection lifecycle | Gather the MLA KV projection and reduce-scatter its accumulated gradient | All six Ulysses/Ring × naive/compact/peer EP combinations agree with a dense training loss |
+
+Dist-MoE motivates a kernel boundary that can gather remote rows as local
+matrix tiles become ready and scatter results at the output boundary. Its BF16
+scratch contract also explains why down-projection weight backward must read
+the hidden activation before that range is reused. The companion experiment
+preserves that activation to permit a different order. It uses cuBLAS,
+TileLang and a peer CUDA copy; it does not benchmark the native Dist-MoE kernels.
+See the [Dist-MoE execution contract](https://github.com/meta-pytorch/dist_moe/blob/285763b5a0e01059a62c96b0990754a60a6ed94a/docs/bf16_execution.md).
+
+DualPipe supplies a larger consumer of such a boundary: the preceding pipeline
+stage needs input gradients before this stage necessarily needs to finish all
+weight gradients. The adapter checks that saved activations survive those
+deferred readers. It serializes compute within an upstream paired group and
+uses dependency ticks, so this is a schedule/gradient/lifetime check rather
+than a full distributed DualPipe performance reproduction. The checked
+`(ranks, microbatches)` pairs are `(2, 4)`, `(4, 8)`, `(4, 12)` and `(8, 20)`.
+[Official DualPipe schedule](https://github.com/deepseek-ai/DualPipe/blob/030ce4325f4ebeb437da4ebc6d00a70469dd58ae/dualpipe/dualpipe.py).
+
+## From modeling to optimization decisions
+
+The useful optimization unit can span tensor representation, ownership,
+communication, several kernels and their consumers. A developer or agent can
+call each example independently, retain its outputs, and revisit a decision
+when another stage supplies new evidence. No optimization controller is required.
+
+| Decision | Result available from these examples | Design guidance |
+|---|---|---|
+| What should CP communicate? | At four GPUs, Ulysses sends 27.09 GiB per GPU in each pass; compact ring sends 0.84 GiB fwd and 1.97 GiB bwd. Compact all-gather also sends 0.84 GiB fwd and 0.84 GiB bwd. | Compare compact representation separately from collective choice. Ring trades successive blocks and replay against all-gather residency; it is not automatically the faster choice. |
+| Where should expert rows be grouped? | For the illustrated token, eight assignments on two remote GPUs become two destination rows: 112 KiB → 28 KiB for dispatch, and the same reduction for return. The expert computations are unchanged. | Inspect routing locality and row imbalance before tuning grouped GEMM. Peer addressing alone does not prove that eight addressed reads cause only one physical transfer. |
+| When can compute consume a chunk? | The bounded route sweep below reaches its best tested dependency schedule at two slots. | Make chunk readiness and consumer completion explicit at the communication/kernel interface; extra buffering needs evidence of benefit. |
+| Which backward result should arrive first? | The SM103 experiment returns 2,048-row input gradients 34.81 microseconds earlier, with 8 MiB extra live storage and 4.07 microseconds later local completion. | Evaluate the preceding stage's dependency window and memory budget, as well as individual kernel time. |
+
+`guidance.py` reuses `workload.cp_payload`, the same route fixture as the EP
+reference, and TileFoundry's `tile_pipeline`. It emits the arithmetic, schedule
+sweep and evidence units as JSON. Supplying a saved backward report adds an
+independent sensitivity calculation; it does not launch GPU kernels or train a
+model.
+
+```sh
+python guidance.py --out /tmp/training-guidance.json
+python guidance.py --cp-gpus 8 --chunks 16 --slots 1 2 4 --out /tmp/larger-route.json
+python guidance.py --backward-report ../distributed_training_overlap/results/sm103.json \
+  --upstream-work-us 0 32 80 --out /tmp/dependency-window.json
+```
+
+### Chunk readiness and buffer capacity
+
+The default sweep schedules eight 128-row chunks through the same fwd/bwd
+phases used in the diagrams. Every operation has duration **one dependency
+tick**. IB, NVLink and compute each have one serial resource; the authored
+gate/up, down and weight-gradient phase boundaries remain in place.
+
+| Service order | Slots per staged edge | fwd completion | bwd completion | BF16 wire buffer per edge |
+|---|---:|---:|---:|---:|
+| Bulk, materialize every stage | 8 | 48 ticks | 64 ticks | 14 MiB |
+| Chunk-ready | 1 | 34 ticks | 50 ticks | 1.75 MiB |
+| Chunk-ready | 2 | 20 ticks | 36 ticks | 3.5 MiB |
+| Chunk-ready | 3 | 20 ticks | 36 ticks | 5.25 MiB |
+| Chunk-ready | 4 | 20 ticks | 36 ticks | 7 MiB |
+
+Work does not disappear: IB and NVLink each serve 16 ticks in both passes;
+compute serves 16 ticks in fwd and 32 in bwd. Readiness removes stage-wide
+waiting, and a slot stays occupied until its consumer finishes. Two slots are
+the smallest tested capacity at the best completion time under these
+assumptions. The buffer column is `slots × 128 × 7168 × 2` bytes for **one
+wire edge**, not total training memory or a compiled kernel's shared memory.
+
+This suggests testing a double-buffered chunk interface before increasing
+capacity. Replace equal ticks with matched compute, NVLink and IB probes to
+revisit that choice:
+
+```sh
+python guidance.py --rows 128 --samples measurements/compute.json \
+  measurements/nvlink.json measurements/ib.json --out /tmp/calibrated-guidance.json
+```
+
+A complete probe set changes the schedule unit to **modeled microseconds**.
+With a missing probe, all stages stay in dependency ticks and the report names
+the missing evidence. Observed overlap still needs a common-clock activity
+trace; isolated medians do not capture shared-fabric or compute contention.
+
+### Feed kernel-suite measurements back into a training dependency
+
+The companion SM103 experiment measures input-gradient delivery and all-backward
+completion separately. For 2,048 routed rows, their medians are respectively
+`208.38 / 233.50` microseconds for the baseline and `173.57 / 237.57` for
+preserve-and-defer. Both use identical GEMMs and activation derivatives.
+
+Consider an explicitly hypothetical predecessor that can start independent
+work immediately when the gradient arrives. A two-branch completion estimate is
+`max(delivery + predecessor work, local backward completion)`:
+
+| Assumed predecessor work | Baseline completion from medians | Preserve-and-defer completion from medians |
+|---|---:|---:|
+| 0 microseconds | 233.50 microseconds | 237.57 microseconds |
+| 32 microseconds | 240.38 microseconds | 237.57 microseconds |
+| 80 microseconds | 288.38 microseconds | 253.57 microseconds |
+
+The preferred order changes with the consumer. These are sensitivity results
+derived from the saved medians, not measured training-step times or completion
+quantiles. They assume an available preceding stage, no new contention and no
+other dependencies. A full application must also retain the per-expert row
+distribution, parameter gathers/reductions, activation retention and memory
+budgets. Multiplying the measured improvement by 58 MoE blocks would ignore
+those dependencies.
+
+### Independent handovers
+
+| Producer | Reusable output | Consumer and acceptance check |
+|---|---|---|
+| CP/EP/FSDP numerical references | Tensor ownership, routing and expected outputs/gradients | A layout or communication implementation must preserve the same training result. |
+| Payload and route analysis | Bytes, per-expert rows, chunk geometry, stage intervals and evidence units | An implementation author chooses packing, readiness granularity and buffer capacity to test. |
+| Lifetime analysis and DualPipe adapter | Last readers, safe reuse, split-backward order and saved activation slots | A proposed fusion or reordering must retain every consumer's input. |
+| External GPU implementation | Correctness results, delivery/completion samples and extra live bytes | The training model revisits the critical dependency and measures the next missing stage. |
+
+For example, a compact-EP candidate changes packing and local fan-in, then
+passes the same output/input/score/weight-gradient checks. A chunk-ready
+candidate changes buffer ownership and completion signaling, then needs its
+own activity trace. A deferred-backward candidate changes storage and order,
+then returns two completion events to the application. These are separate
+decisions that can compose. The examples demonstrate the interfaces and local
+evidence; a measured comparison of whole-model candidate selection and search
+cost remains a subsequent experiment.
 
 ## Generate the topology and pipeline
 
